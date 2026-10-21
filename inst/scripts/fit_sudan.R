@@ -78,14 +78,29 @@ fits[["log flow + (log flow)^2, aridity in intensity, gamma = 0"]] <-
   odisp_fit(y ~ log(AI), ~ log(DIS_AV_CMS) + I(log(DIS_AV_CMS)^2), data = v, nodes = nodes,
             pairs = pairs, max_range = max_range, scaling = scaling, phi_max = phi_max,
             fixed = list(gamma = 0))
-# Benchmarks without any river component: binomial models with the same
-# complementary log-log link and aridity as the only covariate
-v_df <- st_drop_geometry(v)
-no_rivers <- list(
-  "no rivers, log AI" = glm(cbind(y, n - y) ~ log(AI), family = binomial("cloglog"), data = v_df),
-  "no rivers, log AI + (log AI)^2" = glm(cbind(y, n - y) ~ log(AI) + I(log(AI)^2),
-                                         family = binomial("cloglog"), data = v_df))
-fits_all <- c(fits, no_rivers)
+# Aridity in the intensity as a linear spline in log AI, with a change point
+# estimated by profile likelihood (range fixed at phi_max, gamma = 0)
+la <- log(v$AI)
+fit_cp <- function(cp) {
+  v$h <- pmax(la - cp, 0)
+  odisp_fit(y ~ log(AI) + h, ~ log(DIS_AV_CMS) + I(log(DIS_AV_CMS)^2), data = v, nodes = nodes,
+            pairs = pairs, max_range = max_range, scaling = scaling, phi_max = phi_max,
+            fixed = list(gamma = 0))
+}
+cp_grid <- seq(quantile(la, 0.05), quantile(la, 0.95), length.out = 31)
+cp_ll <- sapply(cp_grid, function(cp) fit_cp(cp)$logLik)
+b_cp <- which.max(cp_ll)
+cp_fine <- seq(cp_grid[max(1, b_cp - 1)], cp_grid[min(31, b_cp + 1)], length.out = 21)
+cp_ll_fine <- sapply(cp_fine, function(cp) fit_cp(cp)$logLik)
+cp_prof <- data.frame(cp = c(cp_grid, cp_fine), logLik = c(cp_ll, cp_ll_fine))
+cp_prof <- cp_prof[order(cp_prof$cp), ]
+cp_hat <- cp_prof$cp[which.max(cp_prof$logLik)]
+cp_ci <- range(cp_prof$cp[cp_prof$logLik > max(cp_prof$logLik) - qchisq(0.95, 1) / 2])
+cat(sprintf("Change point: AI = %.3f (95%% profile interval %.3f-%.3f)\n", exp(cp_hat), exp(cp_ci[1]), exp(cp_ci[2])))
+v$h <- pmax(la - cp_hat, 0)
+fits[["log flow + (log flow)^2, aridity spline in intensity, gamma = 0"]] <- fit_cp(cp_hat)
+write.csv(cp_prof, file.path(out_dir, "changepoint_profile.csv"), row.names = FALSE)
+fits_all <- fits
 
 comparison <- data.frame(model = names(fits_all),
                          parameters = sapply(fits_all, function(f) attr(logLik(f), "df")),
@@ -94,7 +109,7 @@ comparison <- data.frame(model = names(fits_all),
 print(comparison, row.names = FALSE)
 write.csv(comparison, file.path(out_dir, "model_comparison.csv"), row.names = FALSE)
 
-best <- fits[[which.min(sapply(fits, AIC))]]   # best river model
+best <- fits[[which.min(sapply(fits, AIC))]]
 print(summary(best))
 capture.output(summary(best), file = file.path(out_dir, "best_model_summary.txt"))
 
@@ -145,6 +160,7 @@ grid <- grid[lengths(st_intersects(grid, st_transform(st_union(sudans), crs_km))
 grid <- st_sf(geometry = st_transform(grid, 4326))
 grid$AI <- extract_aridity(grid, ai_file, buffer_km = grid_km / 2)
 grid <- grid[is.finite(grid$AI) & grid$AI > 0, ]
+grid$h <- pmax(log(grid$AI) - cp_hat, 0)   # spline term, if used by the best model
 pred <- predict(best, grid, nodes)
 grid <- cbind(grid, pred)
 xy <- st_coordinates(grid)

@@ -24,10 +24,21 @@
 #'   (precipitation / evapotranspiration, positive values).
 #' @param max_range Maximum dispersal range (km) used when \code{pairs} is
 #'   computed here.
+#' @param scaling How the kernel is normalised. \code{"line"} uses
+#'   \eqn{K_\phi(r) = k(r/\phi) / (c_1 \phi)} with \eqn{c_1 = 2/3}, so that
+#'   exposure on the bank of a long straight river equals its breeding
+#'   intensity whatever \eqn{\phi}; exposure then grows with \eqn{\phi} where
+#'   the network is dense. \code{"area"} uses
+#'   \eqn{K_\phi(r) = k(r/\phi) / (c_2 \phi^2)} with \eqn{c_2 = \pi/7}, so that
+#'   exposure is a kernel-weighted density of breeding habitat (km of river
+#'   per km\eqn{^2}, weighted by intensity) and does not grow with \eqn{\phi}
+#'   in a uniformly dense network.
 #' @return An object of class \code{odisp_design}.
 #' @export
 odisp_design <- function(formula, breeding = ~ 0, data, nodes, pairs = NULL,
-                         trials = "n", aridity = "AI", max_range = 50) {
+                         trials = "n", aridity = "AI", max_range = 50,
+                         scaling = c("line", "area")) {
+  scaling <- match.arg(scaling)
   if (!inherits(data, "sf")) stop("'data' must be an sf object of survey locations")
   if (is.null(pairs)) pairs <- river_pairs(data, nodes, max_range)
   if (pairs$m != nrow(data)) stop("'pairs' was computed for a different set of locations")
@@ -47,11 +58,19 @@ odisp_design <- function(formula, breeding = ~ 0, data, nodes, pairs = NULL,
   used <- sort(unique(pairs$j))
   Z <- stats::model.matrix(breeding, as.data.frame(nodes)[used, , drop = FALSE])
   Z <- Z[, colnames(Z) != "(Intercept)", drop = FALSE]
-  jmap <- match(pairs$j, used)
+
+  # pairs sorted by location and distance, so that the compiled loop can stop
+  # at the first node beyond the current range
+  ord <- order(pairs$i, pairs$r)
+  i <- pairs$i[ord]
+  start <- c(0L, cumsum(tabulate(i, nbins = nrow(df))))
 
   structure(list(y = as.numeric(y), n = as.numeric(n), D = D, Z = Z,
-                 logAI = log(ai), i = pairs$i, j = jmap, r = pairs$r,
-                 len = nodes$len[used], m = nrow(df), max_range = pairs$max_range,
+                 logAI = log(ai), i = i, j = match(pairs$j[ord], used), r = pairs$r[ord],
+                 start = as.integer(start), len = nodes$len[used], m = nrow(df),
+                 max_range = pairs$max_range, scaling = scaling,
+                 a = if (scaling == "line") 1 else 2,
+                 c = if (scaling == "line") 2 / 3 else pi / 7,
                  formula = formula, breeding = breeding, trials = trials,
                  aridity = aridity),
             class = "odisp_design")
@@ -65,43 +84,59 @@ odisp_par_names <- function(design, background) {
     if (background) "log_eps")
 }
 
-# Exposure, its derivatives and the force of infection for one parameter vector
-odisp_eval <- function(par, design, background, deriv = FALSE) {
+# Exposure, its derivatives and the force of infection for one parameter vector.
+# engine = "cpp" uses the compiled loop with early exit; "R" is a vectorised
+# reference implementation used in the tests.
+odisp_eval <- function(par, design, background, deriv = FALSE, engine = "cpp") {
   p <- ncol(design$D); q <- ncol(design$Z)
   beta <- par[seq_len(p)]
   theta <- par[p + seq_len(q)]
   eta0 <- par[p + q + 1]; gamma <- par[p + q + 2]
   eps <- if (background) exp(par[p + q + 3]) else 0
+  a <- if (is.null(design$a)) 1 else design$a
+  cc <- if (is.null(design$c)) 1 else design$c
 
   phi <- exp(eta0 + gamma * design$logAI)
-  i <- design$i; j <- design$j
-  phi_i <- phi[i]
-  t <- design$r / phi_i
   w <- if (q) as.vector(exp(design$Z %*% theta)) else rep(1, length(design$len))
-  base <- design$len[j] * w[j] / phi_i          # Delta_j w_j / phi_i
-  inside <- t < 1
-  kt <- numeric(length(t)); kt[inside] <- (1 - t[inside])^4 * (1 + 4 * t[inside])
-  contrib <- base * kt
 
-  sum_by <- function(v) { out <- numeric(design$m); s <- rowsum(v, i, reorder = FALSE)
-                          out[as.integer(rownames(s))] <- s[, 1]; out }
-  E <- sum_by(contrib)
+  if (engine == "cpp") {
+    ex <- exposure_cpp(design$start, design$j - 1L, design$r, design$len, w,
+                       if (q && deriv) design$Z else matrix(0, 0, 0),
+                       phi, a, cc, deriv)
+    E <- ex$E
+  } else {
+    i <- design$i; j <- design$j
+    phi_i <- phi[i]
+    t <- design$r / phi_i
+    base <- design$len[j] * w[j] / (cc * phi_i^a)
+    inside <- t < 1
+    kt <- numeric(length(t)); kt[inside] <- (1 - t[inside])^4 * (1 + 4 * t[inside])
+    contrib <- base * kt
+    sum_by <- function(v) { out <- numeric(design$m); s <- rowsum(v, i, reorder = FALSE)
+                            out[as.integer(rownames(s))] <- s[, 1]; out }
+    E <- sum_by(contrib)
+  }
   h <- as.vector(exp(design$D %*% beta))
   lambda <- (E + eps) * h
   res <- list(phi = phi, E = E, h = h, lambda = lambda, eps = eps)
   if (!deriv) return(res)
 
-  # dE/deta0 = - sum Delta w phi^-1 [k(t) + t k'(t)],  k + t k' = (1-t)^3 (1 + 3t - 24 t^2)
-  g <- numeric(length(t))
-  ti <- t[inside]
-  g[inside] <- (1 - ti)^3 * (1 + 3 * ti - 24 * ti^2)
-  res$dE_deta0 <- -sum_by(base * g)
-  res$dE_dgamma <- res$dE_deta0 * design$logAI
-  if (q) {
-    res$dE_dtheta <- vapply(seq_len(q), function(k) sum_by(contrib * design$Z[j, k]),
-                            numeric(design$m))
-    dim(res$dE_dtheta) <- c(design$m, q)
+  if (engine == "cpp") {
+    res$dE_deta0 <- ex$dE_dlogphi
+    if (q) res$dE_dtheta <- ex$dE_dtheta
+  } else {
+    # d/dlog(phi) of phi^-a k(t) = -phi^-a [a k(t) + t k'(t)], with
+    # a k + t k' = (1-t)^3 [a (1-t)(1+4t) - 20 t^2]
+    g <- numeric(length(t)); ti <- t[inside]
+    g[inside] <- (1 - ti)^3 * (a * (1 - ti) * (1 + 4 * ti) - 20 * ti^2)
+    res$dE_deta0 <- -sum_by(base * g)
+    if (q) {
+      res$dE_dtheta <- vapply(seq_len(q), function(k) sum_by(contrib * design$Z[j, k]),
+                              numeric(design$m))
+      dim(res$dE_dtheta) <- c(design$m, q)
+    }
   }
+  res$dE_dgamma <- res$dE_deta0 * design$logAI
   res
 }
 
@@ -153,7 +188,7 @@ odisp_objective <- function(design, background, fixed) {
 #'
 #' Fits the model without latent random fields:
 #' \deqn{w(s) = \exp\{z(s)^\top\theta\}, \qquad
-#'       E(x) = \int_\Gamma \phi(x)^{-1} k(\|x - s\|/\phi(x))\, w(s)\, ds,}
+#'       E(x) = \int_\Gamma K_{\phi(x)}(\|x - s\|)\, w(s)\, ds,}
 #' \deqn{\log\phi(x) = \eta_0 + \gamma \log AI(x), \qquad
 #'       Y_i \sim Bin(n_i, 1 - \exp[-\{E(x_i) + \epsilon\} \exp\{d(x_i)^\top\beta\}]),}
 #' where \eqn{k} is the Wendland kernel and \eqn{\epsilon \ge 0} an optional
@@ -178,12 +213,14 @@ odisp_objective <- function(design, background, fixed) {
 #' @export
 odisp_fit <- function(formula, breeding = ~ 0, data, nodes, pairs = NULL,
                       trials = "n", aridity = "AI", max_range = 50,
+                      scaling = c("line", "area"),
                       background = FALSE, fixed = list(), start = NULL,
                       gamma_starts = c(0, 0.5, 1), control = list(maxit = 500),
                       design = NULL) {
   cl <- match.call()
   if (is.null(design))
-    design <- odisp_design(formula, breeding, data, nodes, pairs, trials, aridity, max_range)
+    design <- odisp_design(formula, breeding, data, nodes, pairs, trials, aridity, max_range,
+                           match.arg(scaling))
   obj <- odisp_objective(design, background, fixed)
   nm <- obj$names
   if (length(setdiff(names(fixed), nm)))

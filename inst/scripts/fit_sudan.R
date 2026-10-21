@@ -27,6 +27,8 @@ dir.create(out_dir, showWarnings = FALSE)
 min_flow  <- 0.1   # m3/s; reaches with less flow are dropped
 spacing   <- 2     # km between quadrature nodes
 max_range <- 100   # km; largest dispersal range the model can reach (increase if the fit warns)
+scaling   <- "line" # "line" (1/phi) or "area" (1/phi^2); see ?odisp_design
+agg_cell  <- 0     # km; > 0 merges nodes onto cells of this size to speed up fitting
 grid_km   <- 20    # resolution of the prediction grid
 
 # ---- 1. Data -------------------------------------------------------------------
@@ -44,6 +46,7 @@ stopifnot(all(is.finite(v$AI)), all(v$AI > 0))
 
 # ---- 2. Network quadrature and village-node pairs -------------------------------
 nodes <- river_nodes(rivers, spacing = spacing)
+if (agg_cell > 0) nodes <- aggregate_nodes(nodes, cell = agg_cell, vars = "DIS_AV_CMS")
 print(nodes)
 pairs <- river_pairs(v, nodes, max_range = max_range)
 print(pairs)
@@ -52,7 +55,7 @@ v$dist_river_km <- nearest_node_distance(v, nodes)
 # ---- 3. Fit a sequence of models ---------------------------------------------------
 fit_one <- function(breeding, fixed = list(), background = FALSE)
   odisp_fit(y ~ 1, breeding, data = v, nodes = nodes, pairs = pairs,
-            max_range = max_range, fixed = fixed, background = background)
+            max_range = max_range, scaling = scaling, fixed = fixed, background = background)
 
 fits <- list(
   "constant range"                     = fit_one(~ 0, fixed = list(gamma = 0)),

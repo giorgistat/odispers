@@ -23,25 +23,27 @@ river_nodes <- function(rivers, spacing = 2, crs = NULL) {
   r <- suppressWarnings(sf::st_cast(sf::st_cast(r, "MULTILINESTRING"), "LINESTRING"))
   attrs <- sf::st_drop_geometry(r)
   xy <- sf::st_coordinates(r)
-  line_id <- xy[, "L1"]
-  split_xy <- split(seq_len(nrow(xy)), line_id)
-
-  out <- vector("list", length(split_xy))
-  for (k in seq_along(split_xy)) {
-    idx <- split_xy[[k]]
-    px <- xy[idx, "X"]; py <- xy[idx, "Y"]
-    seglen <- sqrt(diff(px)^2 + diff(py)^2)
-    cum <- c(0, cumsum(seglen))
-    L <- cum[length(cum)]
-    if (L <= 0) next
-    n <- max(1L, ceiling(L / spacing))
-    target <- (seq_len(n) - 0.5) * L / n
-    out[[k]] <- data.frame(line = as.integer(names(split_xy)[k]),
-                           x = stats::approx(cum, px, xout = target, ties = "ordered")$y,
-                           y = stats::approx(cum, py, xout = target, ties = "ordered")$y,
-                           len = rep(L / n, n))
-  }
-  nodes <- do.call(rbind, out)
+  L1 <- xy[, "L1"]
+  # cumulative distance along each line, computed for all lines at once
+  first <- c(TRUE, L1[-1] != L1[-length(L1)])
+  seg <- c(0, sqrt(diff(xy[, "X"])^2 + diff(xy[, "Y"])^2))
+  seg[first] <- 0
+  cum <- stats::ave(seg, L1, FUN = cumsum)
+  L <- as.vector(tapply(seg, L1, sum))
+  ids <- as.integer(names(tapply(seg, L1, sum)))
+  # lay the lines end to end on one axis, with a gap of 1 km between lines,
+  # so that a single interpolation places the nodes on every line
+  offset <- c(0, cumsum(L + 1))[seq_along(L)]
+  pos <- cum + offset[match(L1, ids)]
+  keep <- L > 0
+  n <- ifelse(keep, pmax(1L, ceiling(L / spacing)), 0L)
+  line <- rep(ids, n)
+  k <- sequence(n)
+  target <- (k - 0.5) * rep(L / pmax(n, 1), n) + rep(offset, n)
+  nodes <- data.frame(line = line,
+                      x = stats::approx(pos, xy[, "X"], xout = target, ties = "ordered")$y,
+                      y = stats::approx(pos, xy[, "Y"], xout = target, ties = "ordered")$y,
+                      len = rep(L / pmax(n, 1), n))
   nodes <- cbind(nodes, attrs[nodes$line, , drop = FALSE])
   rownames(nodes) <- NULL
   attr(nodes, "crs") <- crs
@@ -55,4 +57,43 @@ print.odisp_network <- function(x, ...) {
       format(round(sum(x$len)), big.mark = ","), "km of river\n")
   cat("Projection:", attr(x, "crs"), "\n")
   invisible(x)
+}
+
+#' Aggregate quadrature nodes onto a coarser grid
+#'
+#' Merges nodes that fall in the same square cell of side \code{cell} km and,
+#' optionally, in the same class of one or more numeric attributes (binned on
+#' the log scale). Each merged node is placed at the length-weighted centroid
+#' of the nodes it replaces, carries their total length, and the
+#' length-weighted mean of the attributes in \code{vars}. This reduces the
+#' number of nodes, and therefore of location-node pairs, at the cost of a
+#' quadrature error of the order of \code{cell}, which is small when
+#' \code{cell} is well below the dispersal range. Only the attributes in
+#' \code{vars} are kept.
+#'
+#' @param nodes An \code{odisp_network} object.
+#' @param cell Side (km) of the aggregation cells.
+#' @param vars Names of numeric node attributes to carry over (for example
+#'   \code{"DIS_AV_CMS"}); nodes are merged only within the same class.
+#' @param log_width Width, on the natural log scale, of the classes used for
+#'   \code{vars}; \code{0.5} merges nodes whose values differ by less than a
+#'   factor of about 1.6.
+#' @return An \code{odisp_network} object with fewer nodes.
+#' @export
+aggregate_nodes <- function(nodes, cell = 4, vars = NULL, log_width = 0.5) {
+  if (!inherits(nodes, "odisp_network")) stop("'nodes' must come from river_nodes()")
+  key <- paste(floor(nodes$x / cell), floor(nodes$y / cell))
+  for (v in vars) {
+    val <- nodes[[v]]
+    if (!is.numeric(val) || any(val <= 0, na.rm = TRUE)) stop("'", v, "' must be numeric and positive")
+    key <- paste(key, floor(log(val) / log_width))
+  }
+  g <- match(key, unique(key))
+  L <- as.vector(rowsum(nodes$len, g))
+  wmean <- function(z) as.vector(rowsum(z * nodes$len, g)) / L
+  out <- data.frame(line = NA_integer_, x = wmean(nodes$x), y = wmean(nodes$y), len = L)
+  for (v in vars) out[[v]] <- exp(wmean(log(nodes[[v]])))
+  attr(out, "crs") <- attr(nodes, "crs")
+  class(out) <- c("odisp_network", "data.frame")
+  out
 }

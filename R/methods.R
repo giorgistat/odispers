@@ -74,7 +74,8 @@ predict.odisp_fit <- function(object, newdata, nodes, pairs = NULL, ...) {
   lhs <- all.vars(d0$formula)[1]
   if (is.null(df[[lhs]])) df[[lhs]] <- 0L
   des <- odisp_design(d0$formula, d0$breeding, data = sf::st_sf(df, geometry = sf::st_geometry(newdata)),
-                      nodes = nodes, pairs = pairs, trials = d0$trials, aridity = d0$aridity)
+                      nodes = nodes, pairs = pairs, trials = d0$trials, aridity = d0$aridity,
+                      scaling = if (is.null(d0$scaling)) "line" else d0$scaling)
   if (!identical(colnames(des$Z), colnames(d0$Z)))
     stop("breeding covariates for the new locations do not match those of the fit")
   ev <- odisp_eval(object$coefficients, des, object$background)

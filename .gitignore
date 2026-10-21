@@ -3,3 +3,6 @@
 .RData
 *.Rcheck
 *.tar.gz
+src/*.o
+src/*.so
+src/*.dll

@@ -12,7 +12,8 @@ odisp_design(
   pairs = NULL,
   trials = "n",
   aridity = "AI",
-  max_range = 50
+  max_range = 50,
+  scaling = c("line", "area")
 )
 }
 \arguments{
@@ -41,6 +42,16 @@ computed for \code{data}; computed if \code{NULL}.}
 
 \item{max_range}{Maximum dispersal range (km) used when \code{pairs} is
 computed here.}
+
+\item{scaling}{How the kernel is normalised. \code{"line"} uses
+\eqn{K_\phi(r) = k(r/\phi) / (c_1 \phi)} with \eqn{c_1 = 2/3}, so that
+exposure on the bank of a long straight river equals its breeding
+intensity whatever \eqn{\phi}; exposure then grows with \eqn{\phi} where
+the network is dense. \code{"area"} uses
+\eqn{K_\phi(r) = k(r/\phi) / (c_2 \phi^2)} with \eqn{c_2 = \pi/7}, so that
+exposure is a kernel-weighted density of breeding habitat (km of river
+per km\eqn{^2}, weighted by intensity) and does not grow with \eqn{\phi}
+in a uniformly dense network.}
 }
 \value{
 An object of class \code{odisp_design}.

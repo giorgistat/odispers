@@ -31,7 +31,7 @@ river_pairs <- function(points, nodes, max_range = 50) {
     ii[[p]] <- rep.int(p, sum(keep)); jj[[p]] <- cand[keep]; rr[[p]] <- d[keep]
   }
   structure(list(i = as.integer(unlist(ii)), j = as.integer(unlist(jj)),
-                 r = unlist(rr), m = nrow(P), max_range = max_range),
+                 r = as.numeric(unlist(rr)), m = nrow(P), max_range = max_range),
             class = "odisp_pairs")
 }
 

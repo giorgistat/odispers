@@ -1,7 +1,7 @@
 Package: odispers
 Type: Package
 Title: River-Network Dispersal Models for Onchocerciasis Prevalence
-Version: 0.1.0
+Version: 0.2.0
 Authors@R: person("Emanuele", "Giorgi", email = "e.giorgi@bham.ac.uk",
                   role = c("aut", "cre"))
 Description: Fits exposure models for disease prevalence in which vector
@@ -16,9 +16,12 @@ License: GPL (>= 3)
 Encoding: UTF-8
 Depends: R (>= 4.1.0)
 Imports:
+    Rcpp,
     sf,
     stats,
     utils
+LinkingTo:
+    Rcpp
 Suggests:
     terra,
     testthat (>= 3.0.0)

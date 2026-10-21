@@ -12,7 +12,7 @@ For a survey location $x$ with $n$ people examined and $y$ found positive,
 
 $$
 w(s) = \exp\{z(s)^\top\theta\}, \qquad
-E(x) = \int_\Gamma \frac{1}{\phi(x)}\, k\!\left(\frac{\lVert x - s\rVert}{\phi(x)}\right) w(s)\, ds,
+E(x) = \int_\Gamma K_{\phi(x)}(\lVert x - s\rVert)\, w(s)\, ds,
 $$
 
 $$
@@ -23,7 +23,9 @@ $$
 where
 
 - $\Gamma$ is the river network and $z(s)$ are characteristics of the river at $s$, such as log discharge;
-- $k(t) = (1-t)_+^4(1+4t)$ is the Wendland kernel, which is zero beyond $t = 1$, so a river contributes to $E(x)$ only within the dispersal range $\phi(x)$;
+- $K_\phi(r) = k(r/\phi)/(c\,\phi^a)$, where $k(t) = (1-t)_+^4(1+4t)$ is the Wendland kernel. The kernel is zero beyond $t = 1$, so a river contributes to $E(x)$ only within the dispersal range $\phi(x)$. Two normalisations are available:
+  - `scaling = "line"` ($a = 1$, $c = 2/3$): exposure on the bank of an isolated straight river equals its breeding intensity, whatever $\phi$.
+  - `scaling = "area"` ($a = 2$, $c = \pi/7$): exposure is a kernel-weighted density of breeding habitat, in km of river per km$^2$ weighted by intensity, and does not grow with $\phi$ where the network is dense;
 - $\mathrm{AI}(x)$ is the aridity index (precipitation divided by reference evapotranspiration), so $\gamma > 0$ means a shorter range where it is drier;
 - $d(x)$ are covariates on the plane, and $\epsilon \ge 0$ is an optional small background exposure.
 
@@ -35,6 +37,8 @@ The integral is computed by quadrature over short pieces of the network.
 # install.packages("remotes")
 remotes::install_github("giorgistat/odispers")
 ```
+
+The likelihood is computed in compiled C++ code (via Rcpp), so installing from GitHub needs a working compiler: Rtools on Windows, the Xcode command line tools on macOS.
 
 ## Usage
 
@@ -72,11 +76,20 @@ A full analysis of REMO nodule data for Sudan and South Sudan, with HydroRIVERS 
 |---|---|
 | `river_nodes()` | Splits the river network into quadrature nodes with their lengths and attributes |
 | `river_pairs()` | Finds the nodes within `max_range` of each location |
+| `aggregate_nodes()` | Merges nodes onto a coarser grid, within classes of flow, to speed up fitting |
 | `extract_aridity()` | Aridity index at point locations from the Global Aridity Index GeoTIFF |
 | `odisp_fit()` | Maximum likelihood fit; `fixed = list(gamma = 0)` gives a constant range |
 | `odisp_profile()` | Profile log-likelihood for one parameter |
 | `predict()` | Range, exposure, prevalence and zero-exposure indicator at new locations |
 | `odisp_simulate()`, `simulate()` | Simulate survey outcomes, e.g. for checking that parameters are recovered |
+
+## Computation
+
+Exposure and its derivatives are computed in a single compiled pass over the location-node pairs. The pairs are sorted by distance within each location, and the loop for a location stops at the first node beyond the current range, so only pairs inside the range are visited. The gradient is exact.
+
+For the Sudan data (900 villages, about 150,000 nodes and 1.5 million pairs within 100 km), one likelihood evaluation takes about 0.03 s and a complete fit, including three starting values and the Hessian, about 20 s.
+
+`aggregate_nodes()` gives a further reduction. Merging nodes onto 4 km cells, within classes of flow, roughly halves the number of pairs and changes the estimates very little.
 
 ## Practical notes
 

@@ -13,6 +13,7 @@ odisp_fit(
   trials = "n",
   aridity = "AI",
   max_range = 50,
+  scaling = c("line", "area"),
   background = FALSE,
   fixed = list(),
   start = NULL,
@@ -48,6 +49,16 @@ computed for \code{data}; computed if \code{NULL}.}
 \item{max_range}{Maximum dispersal range (km) used when \code{pairs} is
 computed here.}
 
+\item{scaling}{How the kernel is normalised. \code{"line"} uses
+\eqn{K_\phi(r) = k(r/\phi) / (c_1 \phi)} with \eqn{c_1 = 2/3}, so that
+exposure on the bank of a long straight river equals its breeding
+intensity whatever \eqn{\phi}; exposure then grows with \eqn{\phi} where
+the network is dense. \code{"area"} uses
+\eqn{K_\phi(r) = k(r/\phi) / (c_2 \phi^2)} with \eqn{c_2 = \pi/7}, so that
+exposure is a kernel-weighted density of breeding habitat (km of river
+per km\eqn{^2}, weighted by intensity) and does not grow with \eqn{\phi}
+in a uniformly dense network.}
+
 \item{background}{Logical; if \code{TRUE}, a background exposure
 \eqn{\epsilon > 0} is estimated (as \code{log_eps}). This prevents a
 single positive survey far from any river from forcing a large range.}
@@ -73,7 +84,7 @@ An object of class \code{odisp_fit}.
 \description{
 Fits the model without latent random fields:
 \deqn{w(s) = \exp\{z(s)^\top\theta\}, \qquad
-      E(x) = \int_\Gamma \phi(x)^{-1} k(\|x - s\|/\phi(x))\, w(s)\, ds,}
+      E(x) = \int_\Gamma K_{\phi(x)}(\|x - s\|)\, w(s)\, ds,}
 \deqn{\log\phi(x) = \eta_0 + \gamma \log AI(x), \qquad
       Y_i \sim Bin(n_i, 1 - \exp[-\{E(x_i) + \epsilon\} \exp\{d(x_i)^\top\beta\}]),}
 where \eqn{k} is the Wendland kernel and \eqn{\epsilon \ge 0} an optional

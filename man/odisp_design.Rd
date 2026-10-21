@@ -13,7 +13,8 @@ odisp_design(
   trials = "n",
   aridity = "AI",
   max_range = 50,
-  scaling = c("line", "area")
+  scaling = c("line", "area"),
+  phi_max = NULL
 )
 }
 \arguments{
@@ -52,6 +53,13 @@ the network is dense. \code{"area"} uses
 exposure is a kernel-weighted density of breeding habitat (km of river
 per km\eqn{^2}, weighted by intensity) and does not grow with \eqn{\phi}
 in a uniformly dense network.}
+
+\item{phi_max}{Optional upper bound (km) on the dispersal range. If given,
+the range is \eqn{\log\phi = \log\phi_{\max} -
+\mathrm{softplus}(\log\phi_{\max} - \eta_0 - \gamma\log AI)}, which
+equals \eqn{\eta_0 + \gamma\log AI} well below the bound and approaches
+\eqn{\phi_{\max}} smoothly, so the kernel cannot be stretched beyond a
+plausible flight range. Must not exceed \code{max_range}.}
 }
 \value{
 An object of class \code{odisp_design}.

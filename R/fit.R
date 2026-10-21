@@ -33,15 +33,23 @@
 #'   exposure is a kernel-weighted density of breeding habitat (km of river
 #'   per km\eqn{^2}, weighted by intensity) and does not grow with \eqn{\phi}
 #'   in a uniformly dense network.
+#' @param phi_max Optional upper bound (km) on the dispersal range. If given,
+#'   the range is \eqn{\log\phi = \log\phi_{\max} -
+#'   \mathrm{softplus}(\log\phi_{\max} - \eta_0 - \gamma\log AI)}, which
+#'   equals \eqn{\eta_0 + \gamma\log AI} well below the bound and approaches
+#'   \eqn{\phi_{\max}} smoothly, so the kernel cannot be stretched beyond a
+#'   plausible flight range. Must not exceed \code{max_range}.
 #' @return An object of class \code{odisp_design}.
 #' @export
 odisp_design <- function(formula, breeding = ~ 0, data, nodes, pairs = NULL,
                          trials = "n", aridity = "AI", max_range = 50,
-                         scaling = c("line", "area")) {
+                         scaling = c("line", "area"), phi_max = NULL) {
   scaling <- match.arg(scaling)
   if (!inherits(data, "sf")) stop("'data' must be an sf object of survey locations")
   if (is.null(pairs)) pairs <- river_pairs(data, nodes, max_range)
   if (pairs$m != nrow(data)) stop("'pairs' was computed for a different set of locations")
+  if (!is.null(phi_max) && phi_max > pairs$max_range)
+    stop("phi_max (", phi_max, " km) exceeds the max_range of the pairs (", pairs$max_range, " km)")
   df <- sf::st_drop_geometry(data)
 
   mf <- stats::model.frame(formula, df, na.action = stats::na.fail)
@@ -68,7 +76,7 @@ odisp_design <- function(formula, breeding = ~ 0, data, nodes, pairs = NULL,
   structure(list(y = as.numeric(y), n = as.numeric(n), D = D, Z = Z,
                  logAI = log(ai), i = i, j = match(pairs$j[ord], used), r = pairs$r[ord],
                  start = as.integer(start), len = nodes$len[used], m = nrow(df),
-                 max_range = pairs$max_range, scaling = scaling,
+                 max_range = pairs$max_range, scaling = scaling, phi_max = phi_max,
                  a = if (scaling == "line") 1 else 2,
                  c = if (scaling == "line") 2 / 3 else pi / 7,
                  formula = formula, breeding = breeding, trials = trials,
@@ -96,7 +104,17 @@ odisp_eval <- function(par, design, background, deriv = FALSE, engine = "cpp") {
   a <- if (is.null(design$a)) 1 else design$a
   cc <- if (is.null(design$c)) 1 else design$c
 
-  phi <- exp(eta0 + gamma * design$logAI)
+  g_lin <- eta0 + gamma * design$logAI
+  if (is.null(design$phi_max)) {
+    phi <- exp(g_lin); dlogphi <- rep(1, length(g_lin))
+  } else {
+    # log phi = log phi_max - softplus(log phi_max - g): equal to g well below
+    # the bound and approaching log phi_max smoothly from below
+    zz <- log(design$phi_max) - g_lin
+    sp <- ifelse(zz > 30, zz, log1p(exp(pmin(zz, 30))))
+    phi <- design$phi_max * exp(-sp)
+    dlogphi <- stats::plogis(zz)
+  }
   w <- if (q) as.vector(exp(design$Z %*% theta)) else rep(1, length(design$len))
 
   if (engine == "cpp") {
@@ -136,6 +154,7 @@ odisp_eval <- function(par, design, background, deriv = FALSE, engine = "cpp") {
       dim(res$dE_dtheta) <- c(design$m, q)
     }
   }
+  res$dE_deta0 <- res$dE_deta0 * dlogphi
   res$dE_dgamma <- res$dE_deta0 * design$logAI
   res
 }
@@ -148,7 +167,9 @@ odisp_objective <- function(design, background, fixed) {
                         v[free] <- x; v[names(fixed)] <- unlist(fixed); v }
   y <- design$y; n <- design$n; pos <- y > 0
   big <- 1e12
-  penalty <- 1e4   # keeps phi below max_range, where the precomputed pairs are complete
+  # keeps phi below max_range, where the precomputed pairs are complete; not
+  # needed when the range is bounded by phi_max <= max_range
+  penalty <- if (is.null(design$phi_max)) 1e4 else 0
 
   fn <- function(x) {
     ev <- odisp_eval(full(x), design, background)
@@ -213,14 +234,14 @@ odisp_objective <- function(design, background, fixed) {
 #' @export
 odisp_fit <- function(formula, breeding = ~ 0, data, nodes, pairs = NULL,
                       trials = "n", aridity = "AI", max_range = 50,
-                      scaling = c("line", "area"),
+                      scaling = c("line", "area"), phi_max = NULL,
                       background = FALSE, fixed = list(), start = NULL,
                       gamma_starts = c(0, 0.5, 1), control = list(maxit = 500),
                       design = NULL) {
   cl <- match.call()
   if (is.null(design))
     design <- odisp_design(formula, breeding, data, nodes, pairs, trials, aridity, max_range,
-                           match.arg(scaling))
+                           match.arg(scaling), phi_max)
   obj <- odisp_objective(design, background, fixed)
   nm <- obj$names
   if (length(setdiff(names(fixed), nm)))
@@ -240,12 +261,19 @@ odisp_fit <- function(formula, breeding = ~ 0, data, nodes, pairs = NULL,
     }
     st
   }
+  # linear predictor of the range that gives a range of phi (km)
+  g_for <- function(phi) {
+    if (is.null(design$phi_max)) return(log(phi))
+    phi <- pmin(phi, 0.995 * design$phi_max)
+    log(design$phi_max) - log(design$phi_max / phi - 1)
+  }
+  upper <- if (is.null(design$phi_max)) design$max_range else design$phi_max
   make_start <- function(g0) {
     st <- stats::setNames(numeric(length(nm)), nm)
     st["gamma"] <- g0
-    st["eta0"] <- log(0.5 * design$max_range) - g0 * mean(design$logAI)
+    st["eta0"] <- g_for(0.5 * upper) - g0 * mean(design$logAI)
     if (any(pos_reach))
-      st["eta0"] <- max(st["eta0"], max(log(1.05 * dmin[pos_reach]) - g0 * design$logAI[pos_reach]))
+      st["eta0"] <- max(st["eta0"], max(g_for(1.05 * dmin[pos_reach]) - g0 * design$logAI[pos_reach]))
     if (background) st["log_eps"] <- log(1e-3)
     st[names(fixed)] <- unlist(fixed)
     set_intercept(st)
@@ -266,8 +294,9 @@ odisp_fit <- function(formula, breeding = ~ 0, data, nodes, pairs = NULL,
   if (!any(ok)) {
     st <- starts[[1]]
     bad <- which(design$y > 0 & odisp_eval(st, design, background)$lambda <= 0)
-    stop(length(bad), " location(s) with positive counts have no river node within max_range. ",
-         "Increase max_range or set background = TRUE. Locations: ",
+    stop(length(bad), " location(s) with positive counts have no river node within ",
+         if (is.null(design$phi_max)) "max_range" else "phi_max",
+         ". Increase it or set background = TRUE. Locations: ",
          paste(utils::head(bad, 10), collapse = ", "))
   }
   opts <- lapply(starts[ok], function(st)
@@ -280,7 +309,7 @@ odisp_fit <- function(formula, breeding = ~ 0, data, nodes, pairs = NULL,
   est <- obj$full(opt$par)
   ev <- odisp_eval(est, design, background)
 
-  cap_binds <- max(ev$phi) > design$max_range
+  cap_binds <- is.null(design$phi_max) && max(ev$phi) > design$max_range
   if (cap_binds)
     warning(sprintf("fitted dispersal range reaches %.1f km at some locations, beyond max_range = %g km; ",
                     max(ev$phi), design$max_range),

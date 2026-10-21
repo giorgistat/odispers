@@ -108,3 +108,26 @@ test_that("prevalence is exactly zero beyond reach and predict works", {
   expect_true(pr$zero_exposure)
   expect_equal(pr$prevalence, 0)
 })
+
+test_that("bounded range: phi stays below phi_max and the gradient is exact", {
+  s <- toy_setup(m = 150)
+  s$villages$y <- rbinom(150, 40, 0.2)
+  des <- odisp_design(y ~ 1, ~ log(flow), s$villages, s$nodes, s$pairs, phi_max = 40)
+  par <- c("beta.(Intercept)" = -1, "theta.log(flow)" = 0.3, eta0 = log(60), gamma = 0.5)
+  ev <- odispers:::odisp_eval(par, des, FALSE)
+  expect_true(all(ev$phi < 40))
+  obj <- odispers:::odisp_objective(des, FALSE, list())
+  x <- unname(par)
+  num <- vapply(seq_along(x), function(k) {
+    h <- 1e-6; e <- replace(numeric(length(x)), k, h)
+    (obj$fn(x + e) - obj$fn(x - e)) / (2 * h)
+  }, numeric(1))
+  expect_equal(obj$gr(x), num, tolerance = 1e-4)
+  set.seed(7)
+  s$villages$y <- odisp_simulate(des, c("beta.(Intercept)" = 0.5, "theta.log(flow)" = 0.3,
+                                       eta0 = log(30), gamma = 0.5))[, 1]
+  fit <- odisp_fit(y ~ 1, ~ log(flow), data = s$villages, nodes = s$nodes, pairs = s$pairs,
+                   max_range = 80, phi_max = 40)
+  expect_true(all(fit$phi < 40))
+  expect_false(fit$range_capped)
+})

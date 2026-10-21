@@ -26,8 +26,12 @@ dir.create(out_dir, showWarnings = FALSE)
 
 min_flow  <- 0.1   # m3/s; reaches with less flow are dropped
 spacing   <- 2     # km between quadrature nodes
-max_range <- 100   # km; largest dispersal range the model can reach (increase if the fit warns)
+max_range <- 40    # km; pairs are computed up to this distance; must be >= phi_max
+                   # (without a bound, use e.g. 100 and increase it if the fit warns)
 scaling   <- "line" # "line" (1/phi) or "area" (1/phi^2); see ?odisp_design
+phi_max   <- 40    # km; upper bound on the dispersal range (NULL for no bound).
+                   # A guess: every infected REMO village in Sudan is within 33 km
+                   # of a reach with flow >= 0.1 m3/s, so the bound must exceed that.
 agg_cell  <- 0     # km; > 0 merges nodes onto cells of this size to speed up fitting
 grid_km   <- 20    # resolution of the prediction grid
 
@@ -55,7 +59,8 @@ v$dist_river_km <- nearest_node_distance(v, nodes)
 # ---- 3. Fit a sequence of models ---------------------------------------------------
 fit_one <- function(breeding, fixed = list(), background = FALSE)
   odisp_fit(y ~ 1, breeding, data = v, nodes = nodes, pairs = pairs,
-            max_range = max_range, scaling = scaling, fixed = fixed, background = background)
+            max_range = max_range, scaling = scaling, phi_max = phi_max,
+            fixed = fixed, background = background)
 
 fits <- list(
   "constant range"                     = fit_one(~ 0, fixed = list(gamma = 0)),
@@ -63,6 +68,10 @@ fits <- list(
   "+ log flow"                         = fit_one(~ log(DIS_AV_CMS)),
   "+ log flow + (log flow)^2"          = fit_one(~ log(DIS_AV_CMS) + I(log(DIS_AV_CMS)^2))
 )
+# aridity also acting on the intensity of transmission
+fits[["+ log flow + (log flow)^2, log AI in intensity"]] <-
+  odisp_fit(y ~ log(AI), ~ log(DIS_AV_CMS) + I(log(DIS_AV_CMS)^2), data = v, nodes = nodes,
+            pairs = pairs, max_range = max_range, scaling = scaling, phi_max = phi_max)
 comparison <- data.frame(model = names(fits),
                          parameters = sapply(fits, function(f) attr(logLik(f), "df")),
                          logLik = round(sapply(fits, logLik), 2),
@@ -76,7 +85,7 @@ capture.output(summary(best), file = file.path(out_dir, "best_model_summary.txt"
 
 # ---- 4. How well is the aridity effect identified? --------------------------------
 g_hat <- coef(best)["gamma"]
-prof <- odisp_profile(best, "gamma", g_hat + seq(-0.6, 0.6, by = 0.15))
+prof <- odisp_profile(best, "gamma", sort(unique(c(g_hat, seq(0, 2, by = 0.2)))))
 print(prof)
 p_prof <- ggplot(prof, aes(value, logLik - max(logLik, na.rm = TRUE))) +
   geom_line() + geom_point() +
@@ -90,8 +99,9 @@ ggsave(file.path(out_dir, "profile_gamma.png"), p_prof, width = 6, height = 4, d
 
 # Fitted dispersal range as a function of aridity
 ai_seq <- exp(seq(log(min(v$AI)), log(max(v$AI)), length.out = 100))
-p_phi <- ggplot(data.frame(AI = ai_seq,
-                           phi = exp(coef(best)["eta0"] + coef(best)["gamma"] * log(ai_seq))),
+g_seq <- coef(best)["eta0"] + coef(best)["gamma"] * log(ai_seq)
+phi_seq <- if (is.null(phi_max)) exp(g_seq) else phi_max / (1 + exp(log(phi_max) - g_seq))
+p_phi <- ggplot(data.frame(AI = ai_seq, phi = phi_seq),
                 aes(AI, phi)) +
   geom_line() + scale_x_log10() +
   labs(x = "Aridity index (log scale; smaller = drier)", y = "Dispersal range (km)",

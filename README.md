@@ -16,7 +16,7 @@ E(x) = \int_\Gamma K_{\phi(x)}(\lVert x - s\rVert)\, w(s)\, ds,
 $$
 
 $$
-\log\phi(x) = \eta_0 + \gamma \log \mathrm{AI}(x), \qquad
+\log\phi(x) = \eta_0 + \gamma \log \mathrm{AI}(x) \quad \text{(optionally bounded above by } \phi_{\max}\text{)}, \qquad
 Y \sim \mathrm{Bin}\Big(n,\; 1 - \exp\big[-\{E(x) + \epsilon\}\, e^{d(x)^\top\beta}\big]\Big),
 $$
 
@@ -90,6 +90,22 @@ Exposure and its derivatives are computed in a single compiled pass over the loc
 For the Sudan data (900 villages, about 150,000 nodes and 1.5 million pairs within 100 km), one likelihood evaluation takes about 0.03 s and a complete fit, including three starting values and the Hessian, about 20 s.
 
 `aggregate_nodes()` gives a further reduction. Merging nodes onto 4 km cells, within classes of flow, roughly halves the number of pairs and changes the estimates very little.
+
+## Bounding the dispersal range
+
+Without further constraints, the fitted range tends to grow to whatever `max_range` allows, because a wide kernel can act as a spatial smoother. Setting `phi_max` bounds the range smoothly:
+
+$$
+\log\phi = \log\phi_{\max} - \mathrm{softplus}\big(\log\phi_{\max} - \eta_0 - \gamma\log\mathrm{AI}\big).
+$$
+
+This equals $\eta_0 + \gamma\log\mathrm{AI}$ well below the bound and approaches $\phi_{\max}$ smoothly. Pairs then only need computing up to `phi_max`, which also makes fitting much faster:
+
+```r
+pairs <- river_pairs(villages, nodes, max_range = 40)
+fit <- odisp_fit(y ~ 1, ~ log(DIS_AV_CMS) + I(log(DIS_AV_CMS)^2), data = villages,
+                 nodes = nodes, pairs = pairs, max_range = 40, phi_max = 40)
+```
 
 ## Practical notes
 

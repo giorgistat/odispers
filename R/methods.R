@@ -36,7 +36,8 @@ summary.odisp_fit <- function(object, ...) {
   structure(list(table = tab, fixed = object$fixed, logLik = object$logLik,
                  AIC = stats::AIC(object), phi = object$phi,
                  n_zero_exposure = sum(object$exposure == 0),
-                 m = object$nobs, background = object$background),
+                 m = object$nobs, background = object$background,
+                 phi_max = object$design$phi_max),
             class = "summary.odisp_fit")
 }
 
@@ -47,6 +48,9 @@ print.summary.odisp_fit <- function(x, ...) {
   cat("\nLog-likelihood:", format(x$logLik, digits = 6), "  AIC:", format(x$AIC, digits = 6), "\n")
   cat(sprintf("Dispersal range at survey locations: min %.1f km, median %.1f km, max %.1f km\n",
               min(x$phi), stats::median(x$phi), max(x$phi)))
+  if (!is.null(x$phi_max))
+    cat(sprintf("Range bounded above by %g km; %d of %d locations within 10%% of the bound\n",
+                x$phi_max, sum(x$phi > 0.9 * x$phi_max), x$m))
   cat(sprintf("Locations with zero exposure: %d of %d%s\n", x$n_zero_exposure, x$m,
               if (x$background) " (before the background term)" else ""))
   invisible(x)
@@ -75,7 +79,8 @@ predict.odisp_fit <- function(object, newdata, nodes, pairs = NULL, ...) {
   if (is.null(df[[lhs]])) df[[lhs]] <- 0L
   des <- odisp_design(d0$formula, d0$breeding, data = sf::st_sf(df, geometry = sf::st_geometry(newdata)),
                       nodes = nodes, pairs = pairs, trials = d0$trials, aridity = d0$aridity,
-                      scaling = if (is.null(d0$scaling)) "line" else d0$scaling)
+                      scaling = if (is.null(d0$scaling)) "line" else d0$scaling,
+                      phi_max = d0$phi_max)
   if (!identical(colnames(des$Z), colnames(d0$Z)))
     stop("breeding covariates for the new locations do not match those of the fit")
   ev <- odisp_eval(object$coefficients, des, object$background)

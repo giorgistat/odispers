@@ -4,7 +4,7 @@ River-network dispersal models for onchocerciasis prevalence.
 
 `odispers` fits exposure models for prevalence survey data in which vector breeding takes place on a river network, exposure at each location accumulates from all river segments within reach, and the distance over which rivers spread infection depends on aridity. Prevalence is exactly zero at locations beyond the reach of any river, so areas without transmission follow from the model rather than being specified in advance.
 
-This first version implements the model **without latent random fields**, fitted by maximum likelihood. The Gaussian field on the river network and the Gaussian process on the plane will follow.
+The basic model has no latent fields and is fitted by maximum likelihood (`odisp_fit()`). Version 0.3 adds a Gaussian Whittle–Matérn field $u$ on the river network in the breeding intensity, together with an independent village effect, fitted by a Laplace approximation (`odisp_fit_u()`; see below). A Gaussian process on the plane will follow.
 
 ## Model
 
@@ -30,6 +30,28 @@ where
 - $d(x)$ are covariates on the plane, and $\epsilon \ge 0$ is an optional small background exposure.
 
 The integral is computed by quadrature over short pieces of the network.
+
+## Breeding field on the river network
+
+`odisp_fit_u()` keeps the dispersal range fixed and adds two latent effects:
+- a field $u$ on the network, which enters the breeding intensity as $w(s) = \exp\{z(s)^\top\theta + u(s)\}$;
+- a village effect $Z$, which enters the force of infection.
+
+The field $u$ is a Whittle–Matérn field on the metric graph with $\alpha = 1$ (Bolin, Simas & Wallin, 2024). Its covariance is exponential along the rivers, and its precision at the graph vertices is exact and sparse (`wm_precision()`). `river_graph()` builds the graph from HydroRIVERS: reaches are joined through `NEXT_DOWN`, and reaches longer than `vertex_spacing` are split into shorter edges.
+
+```r
+graph <- river_graph(nodes, vertex_spacing = 5)        # nodes need HYRIV_ID and NEXT_DOWN
+fits  <- odisp_fit_u(y ~ log(AI) + h, ~ log(DIS_AV_CMS) + I(log(DIS_AV_CMS)^2),
+                     villages, nodes, graph, phi = 40, range_u = c(25, 50, 100, 200))
+attr(fits, "profile")                                  # Laplace log-likelihood by range of u
+```
+
+How the fit works:
+- **Integrating out the latent effects.** The regression coefficients get diffuse Gaussian priors, and they are integrated out together with $u$ and $Z$.
+- **Finding the mode.** The mode is found by truncated Newton with the exact Hessian. Conjugate gradients are preconditioned with the Gauss–Newton Hessian, which is inverted through the Woodbury identity using one sparse Cholesky factor per range. For the Sudan data (75,000 vertices, 900 villages), one Laplace evaluation takes 10–20 seconds.
+- **Hyperparameters.** $\sigma_u$ and $\sigma_Z$ are chosen by maximising the approximate marginal likelihood, and the range of $u$ is profiled.
+
+The full analysis is in `inst/scripts/paper/07_fit_u_field.R`.
 
 ## Installation
 

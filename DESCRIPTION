@@ -1,7 +1,7 @@
 Package: odispers
 Type: Package
 Title: River-Network Dispersal Models for Onchocerciasis Prevalence
-Version: 0.2.0
+Version: 0.3.0
 Authors@R: person("Emanuele", "Giorgi", email = "e.giorgi@bham.ac.uk",
                   role = c("aut", "cre"))
 Description: Fits exposure models for disease prevalence in which vector
@@ -11,11 +11,13 @@ Description: Fits exposure models for disease prevalence in which vector
     over the network with a compactly supported Wendland kernel, so that
     prevalence is exactly zero beyond the reach of any river. This version
     implements the model without latent random fields, fitted by maximum
-    likelihood.
+    likelihood, and with a Whittle-Matern field on the river network in the
+    breeding intensity, fitted by a Laplace approximation.
 License: GPL (>= 3)
 Encoding: UTF-8
 Depends: R (>= 4.1.0)
 Imports:
+    Matrix,
     Rcpp,
     sf,
     stats,

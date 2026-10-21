@@ -30,8 +30,11 @@ max_range <- 40    # km; pairs are computed up to this distance; must be >= phi_
                    # (without a bound, use e.g. 100 and increase it if the fit warns)
 scaling   <- "line" # "line" (1/phi) or "area" (1/phi^2); see ?odisp_design
 phi_max   <- 40    # km; upper bound on the dispersal range (NULL for no bound).
-                   # A guess: every infected REMO village in Sudan is within 33 km
-                   # of a reach with flow >= 0.1 m3/s, so the bound must exceed that.
+                   # Set from entomological evidence on Simulium dispersal (WHO
+                   # transmission-zone rule 20 km; forest biting-rate decline
+                   # calibrates to about 53 km). Every infected REMO village in
+                   # Sudan is within 33 km of a reach with flow >= 0.1 m3/s, so a
+                   # bound below that needs background = TRUE.
 agg_cell  <- 0     # km; > 0 merges nodes onto cells of this size to speed up fitting
 grid_km   <- 20    # resolution of the prediction grid
 
@@ -75,14 +78,23 @@ fits[["log flow + (log flow)^2, aridity in intensity, gamma = 0"]] <-
   odisp_fit(y ~ log(AI), ~ log(DIS_AV_CMS) + I(log(DIS_AV_CMS)^2), data = v, nodes = nodes,
             pairs = pairs, max_range = max_range, scaling = scaling, phi_max = phi_max,
             fixed = list(gamma = 0))
-comparison <- data.frame(model = names(fits),
-                         parameters = sapply(fits, function(f) attr(logLik(f), "df")),
-                         logLik = round(sapply(fits, logLik), 2),
-                         AIC = round(sapply(fits, AIC), 2))
+# Benchmarks without any river component: binomial models with the same
+# complementary log-log link and aridity as the only covariate
+v_df <- st_drop_geometry(v)
+no_rivers <- list(
+  "no rivers, log AI" = glm(cbind(y, n - y) ~ log(AI), family = binomial("cloglog"), data = v_df),
+  "no rivers, log AI + (log AI)^2" = glm(cbind(y, n - y) ~ log(AI) + I(log(AI)^2),
+                                         family = binomial("cloglog"), data = v_df))
+fits_all <- c(fits, no_rivers)
+
+comparison <- data.frame(model = names(fits_all),
+                         parameters = sapply(fits_all, function(f) attr(logLik(f), "df")),
+                         logLik = round(sapply(fits_all, function(f) as.numeric(logLik(f))), 2),
+                         AIC = round(sapply(fits_all, AIC), 2))
 print(comparison, row.names = FALSE)
 write.csv(comparison, file.path(out_dir, "model_comparison.csv"), row.names = FALSE)
 
-best <- fits[[which.min(comparison$AIC)]]
+best <- fits[[which.min(sapply(fits, AIC))]]   # best river model
 print(summary(best))
 capture.output(summary(best), file = file.path(out_dir, "best_model_summary.txt"))
 

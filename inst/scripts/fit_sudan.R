@@ -68,10 +68,13 @@ fits <- list(
   "+ log flow"                         = fit_one(~ log(DIS_AV_CMS)),
   "+ log flow + (log flow)^2"          = fit_one(~ log(DIS_AV_CMS) + I(log(DIS_AV_CMS)^2))
 )
-# aridity also acting on the intensity of transmission
-fits[["+ log flow + (log flow)^2, log AI in intensity"]] <-
+# Aridity in the intensity of transmission instead of the range (gamma = 0).
+# When both are allowed, the data put the aridity effect on the intensity and
+# carry no information on gamma, so the range is not made to depend on aridity.
+fits[["log flow + (log flow)^2, aridity in intensity, gamma = 0"]] <-
   odisp_fit(y ~ log(AI), ~ log(DIS_AV_CMS) + I(log(DIS_AV_CMS)^2), data = v, nodes = nodes,
-            pairs = pairs, max_range = max_range, scaling = scaling, phi_max = phi_max)
+            pairs = pairs, max_range = max_range, scaling = scaling, phi_max = phi_max,
+            fixed = list(gamma = 0))
 comparison <- data.frame(model = names(fits),
                          parameters = sapply(fits, function(f) attr(logLik(f), "df")),
                          logLik = round(sapply(fits, logLik), 2),
@@ -83,9 +86,12 @@ best <- fits[[which.min(comparison$AIC)]]
 print(summary(best))
 capture.output(summary(best), file = file.path(out_dir, "best_model_summary.txt"))
 
-# ---- 4. How well is the aridity effect identified? --------------------------------
-g_hat <- coef(best)["gamma"]
-prof <- odisp_profile(best, "gamma", sort(unique(c(g_hat, seq(0, 2, by = 0.2)))))
+# ---- 4. How well is the aridity effect on the range identified? --------------------
+# (for the best model in which the range depends on aridity)
+free_gamma <- names(fits)[sapply(fits, function(f) is.null(f$fixed$gamma))]
+best_g <- fits[[free_gamma[which.min(sapply(fits[free_gamma], AIC))]]]
+g_hat <- coef(best_g)["gamma"]
+prof <- odisp_profile(best_g, "gamma", sort(unique(c(g_hat, seq(0, 2, by = 0.2)))))
 print(prof)
 p_prof <- ggplot(prof, aes(value, logLik - max(logLik, na.rm = TRUE))) +
   geom_line() + geom_point() +

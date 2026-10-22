@@ -125,17 +125,17 @@ test_that("u and S together: stationary mode and a fit", {
 
 test_that("zero-inflated likelihood: derivatives agree with finite differences", {
   set.seed(3)
-  S <- list(n = c(50, 40, 30, 60), y = c(0, 3, 0, 12))
+  S <- list(n = c(50, 40, 30, 60), y = c(0, 3, 0, 12), lai = log(c(0.05, 0.3, 0.8, 1.2)))
   a <- c(-1, 0.5, 1.2, 0.3); b <- c(-2, -1.5, -4, -1)
-  f <- function(a, b) odispers:::odisp_zi_lik(a, b, S, 0.6, 0.8)$ll
-  d <- odispers:::odisp_zi_lik(a, b, S, 0.6, 0.8)
+  f <- function(a, b) odispers:::odisp_zi_lik(a, b, S, 0.6, 0.8, 0.7)$ll
+  d <- odispers:::odisp_zi_lik(a, b, S, 0.6, 0.8, 0.7)
   h <- 1e-5
   for (i in seq_along(a)) {
     ea <- replace(numeric(4), i, h)
     num_a <- (f(a + ea, b) - f(a - ea, b)) / (2 * h); num_b <- (f(a, b + ea) - f(a, b - ea)) / (2 * h)
     expect_equal(d$ga[i], num_a, tolerance = 1e-6); expect_equal(d$gb[i], num_b, tolerance = 1e-6)
-    ga <- function(a, b) odispers:::odisp_zi_lik(a, b, S, 0.6, 0.8)$ga[i]
-    gb <- function(a, b) odispers:::odisp_zi_lik(a, b, S, 0.6, 0.8)$gb[i]
+    ga <- function(a, b) odispers:::odisp_zi_lik(a, b, S, 0.6, 0.8, 0.7)$ga[i]
+    gb <- function(a, b) odispers:::odisp_zi_lik(a, b, S, 0.6, 0.8, 0.7)$gb[i]
     expect_equal(d$haa[i], (ga(a + ea, b) - ga(a - ea, b)) / (2 * h), tolerance = 1e-5)
     expect_equal(d$hab[i], (ga(a, b + ea) - ga(a, b - ea)) / (2 * h), tolerance = 1e-5)
     expect_equal(d$hbb[i], (gb(a, b + ea) - gb(a, b - ea)) / (2 * h), tolerance = 1e-5)

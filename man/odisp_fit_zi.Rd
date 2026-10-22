@@ -17,7 +17,7 @@ odisp_fit_zi(
   aridity = "AI",
   prior_sd = 10,
   start = NULL,
-  fixed = list(),
+  fixed = list(delta = 0),
   trace = TRUE
 )
 }
@@ -54,10 +54,11 @@ computed for \code{data}; computed if \code{NULL}.}
 \item{prior_sd}{Prior standard deviation of \eqn{\beta} and \eqn{\theta}.}
 
 \item{start}{Optional starting values \code{c(log sigma_u, log sigma_z,
-log alpha, logit gamma)}.}
+log alpha, logit gamma, delta)}.}
 
 \item{fixed}{Optional named list fixing some of \code{sigma_u},
-\code{sigma_z}, \code{alpha}, \code{gamma} (on their natural scale).}
+\code{sigma_z}, \code{alpha}, \code{gamma}, \code{delta} (on their
+natural scale). By default \code{delta = 0}: aridity is not in \eqn{\pi}.}
 
 \item{trace}{Logical; print progress.}
 }
@@ -69,13 +70,16 @@ A village is either outside any zone of local transmission, with no
 positives, or inside one, with binomial counts. Both the probability of
 being inside a zone and the force of infection depend on the exposure from
 the river network:
-\deqn{\pi(x) = 1 - \exp\{-\alpha E(x)\}, \qquad
+\deqn{\pi(x) = 1 - \exp\{-\alpha E(x) \mathrm{AI}(x)^\delta\}, \qquad
 \lambda(x) = E(x)^\gamma \exp\{d(x)^\top\beta + Z(x)\},}
 \deqn{P(Y = 0) = 1 - \pi + \pi (1 - p)^n, \quad
 P(Y = y) = \pi\, \mathrm{Bin}(y; n, p) \ (y > 0), \quad p = 1 - e^{-\lambda},}
 with \eqn{E(x) = \int_\Gamma K_\phi(\|x-s\|) \exp\{z(s)^\top\theta + u(s)\} ds}
 as in \code{\link{odisp_fit_u}}, \eqn{u} a Whittle-Matern field on the river
-network and \eqn{Z} an independent village effect. With \eqn{\gamma = 0}
+network and \eqn{Z} an independent village effect. The aridity index
+\eqn{\mathrm{AI}} in \eqn{\pi} lets climate determine, with the rivers,
+whether a village lies in a zone of transmission (\eqn{\delta = 0} by
+default, i.e. rivers only). With \eqn{\gamma = 0}
 the rivers determine only whether a village is in a transmission zone and
 the intensity of transmission alone determines prevalence within it; with
 \eqn{\gamma = 1} exposure also scales the force of infection; and as
@@ -89,6 +93,6 @@ applied to the two predictors \eqn{\log E} and \eqn{d^\top\beta + Z} of
 each village; the Hessian used for the preconditioner and the
 log-determinant is the observed information of the two predictors, with
 eigenvalues floored at a small positive value. \eqn{\sigma_u},
-\eqn{\sigma_Z}, \eqn{\alpha} and \eqn{\gamma} maximise the approximate
-marginal likelihood for the given range of \eqn{u}.
+\eqn{\sigma_Z}, \eqn{\alpha}, \eqn{\gamma} and \eqn{\delta} maximise
+the approximate marginal likelihood for the given range of \eqn{u}.
 }

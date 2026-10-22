@@ -4,13 +4,16 @@
 #' positives, or inside one, with binomial counts. Both the probability of
 #' being inside a zone and the force of infection depend on the exposure from
 #' the river network:
-#' \deqn{\pi(x) = 1 - \exp\{-\alpha E(x)\}, \qquad
+#' \deqn{\pi(x) = 1 - \exp\{-\alpha E(x) \mathrm{AI}(x)^\delta\}, \qquad
 #' \lambda(x) = E(x)^\gamma \exp\{d(x)^\top\beta + Z(x)\},}
 #' \deqn{P(Y = 0) = 1 - \pi + \pi (1 - p)^n, \quad
 #' P(Y = y) = \pi\, \mathrm{Bin}(y; n, p) \ (y > 0), \quad p = 1 - e^{-\lambda},}
 #' with \eqn{E(x) = \int_\Gamma K_\phi(\|x-s\|) \exp\{z(s)^\top\theta + u(s)\} ds}
 #' as in \code{\link{odisp_fit_u}}, \eqn{u} a Whittle-Matern field on the river
-#' network and \eqn{Z} an independent village effect. With \eqn{\gamma = 0}
+#' network and \eqn{Z} an independent village effect. The aridity index
+#' \eqn{\mathrm{AI}} in \eqn{\pi} lets climate determine, with the rivers,
+#' whether a village lies in a zone of transmission (\eqn{\delta = 0} by
+#' default, i.e. rivers only). With \eqn{\gamma = 0}
 #' the rivers determine only whether a village is in a transmission zone and
 #' the intensity of transmission alone determines prevalence within it; with
 #' \eqn{\gamma = 1} exposure also scales the force of infection; and as
@@ -23,34 +26,37 @@
 #' each village; the Hessian used for the preconditioner and the
 #' log-determinant is the observed information of the two predictors, with
 #' eigenvalues floored at a small positive value. \eqn{\sigma_u},
-#' \eqn{\sigma_Z}, \eqn{\alpha} and \eqn{\gamma} maximise the approximate
-#' marginal likelihood for the given range of \eqn{u}.
+#' \eqn{\sigma_Z}, \eqn{\alpha}, \eqn{\gamma} and \eqn{\delta} maximise
+#' the approximate marginal likelihood for the given range of \eqn{u}.
 #'
 #' @inheritParams odisp_fit_u
 #' @param range_u Range of \eqn{u} (km).
 #' @param start Optional starting values \code{c(log sigma_u, log sigma_z,
-#'   log alpha, logit gamma)}.
+#'   log alpha, logit gamma, delta)}.
 #' @param fixed Optional named list fixing some of \code{sigma_u},
-#'   \code{sigma_z}, \code{alpha}, \code{gamma} (on their natural scale).
+#'   \code{sigma_z}, \code{alpha}, \code{gamma}, \code{delta} (on their
+#'   natural scale). By default \code{delta = 0}: aridity is not in \eqn{\pi}.
 #' @return An object of class \code{odisp_zifit}.
 #' @export
 odisp_fit_zi <- function(formula, breeding, data, nodes, graph, pairs = NULL, phi = 40,
                          range_u = 800, trials = "n", aridity = "AI", prior_sd = 10,
-                         start = NULL, fixed = list(), trace = TRUE) {
+                         start = NULL, fixed = list(delta = 0), trace = TRUE) {
   S <- odisp_u_setup(formula, breeding, data, nodes, graph, pairs, phi, trials, aridity, prior_sd)
   n <- length(S$y)
   R <- wm_precision(graph, range_u, 1)
   base <- list(field = "u", R = R, Rch = Matrix::Cholesky(R, LDL = FALSE, perm = TRUE))
-  if (is.null(start)) start <- c(log(2), log(1), log(1), 0)
-  names(start) <- c("sigma_u", "sigma_z", "alpha", "gamma")
-  tr <- list(sigma_u = log, sigma_z = log, alpha = log, gamma = stats::qlogis)
+  if (is.null(start)) start <- c(log(2), log(1), log(1), 0, 0)
+  if (length(start) == 4) start <- c(start, 0)
+  names(start) <- c("sigma_u", "sigma_z", "alpha", "gamma", "delta")
+  tr <- list(sigma_u = log, sigma_z = log, alpha = log, gamma = stats::qlogis, delta = identity)
   free <- setdiff(names(start), names(fixed))
   make_fld <- function(par) {
     full <- start
     full[free] <- par
     for (nm in names(fixed)) full[nm] <- tr[[nm]](fixed[[nm]])
     c(base, list(sig_u = exp(full[["sigma_u"]]), sig_z = exp(full[["sigma_z"]]),
-                 alpha = exp(full[["alpha"]]), gamma = stats::plogis(full[["gamma"]])))
+                 alpha = exp(full[["alpha"]]), gamma = stats::plogis(full[["gamma"]]),
+                 delta = full[["delta"]]))
   }
   x0 <- list(beta = S$m_beta, theta = S$m_theta, u = rep(0, graph$nv), s = NULL, z = rep(0, n))
   state <- new.env(); state$x <- x0; state$cache <- list()
@@ -61,8 +67,8 @@ odisp_fit_zi <- function(formula, breeding, data, nodes, graph, pairs = NULL, ph
     res <- tryCatch(odisp_zi_laplace(fld, S, state$x), error = function(e) list(logLik = -Inf))
     if (is.finite(res$logLik)) state$x <- res$x
     state$cache[[key]] <- res
-    if (trace) cat(sprintf("  sigma_u %.3f  sigma_z %.3f  alpha %.4g  gamma %.3f  logLik = %.3f\n",
-                           fld$sig_u, fld$sig_z, fld$alpha, fld$gamma, res$logLik))
+    if (trace) cat(sprintf("  sigma_u %.3f  sigma_z %.3f  alpha %.4g  gamma %.3f  delta %.3f  logLik = %.3f\n",
+                           fld$sig_u, fld$sig_z, fld$alpha, fld$gamma, fld$delta, res$logLik))
     res
   }
   par <- start[free]
@@ -76,21 +82,22 @@ odisp_fit_zi <- function(formula, breeding, data, nodes, graph, pairs = NULL, ph
   a <- res$a; b <- res$b
   structure(list(coefficients = est, vcov = res$Vfix,
                  hyper = c(sigma_u = fld$sig_u, sigma_z = fld$sig_z, alpha = fld$alpha,
-                           gamma = fld$gamma, range_u = range_u),
+                           gamma = fld$gamma, delta = fld$delta, range_u = range_u),
                  par = par, fixed = fixed, logLik = res$logLik, u = res$x$u, z = res$x$z,
-                 E = exp(a), pi = -expm1(-fld$alpha * exp(a)),
+                 E = exp(a), pi = -expm1(-fld$alpha * exp(a + fld$delta * S$lai)),
                  p = -expm1(-exp(fld$gamma * a + b)), setup = S, fld = fld),
             class = "odisp_zifit")
 }
 
 # Log-likelihood of the zero-inflated model and its first and second
 # derivatives with respect to a = log E and b = d'beta + Z, village by village.
-odisp_zi_lik <- function(a, b, S, gamma, alpha) {
+odisp_zi_lik <- function(a, b, S, gamma, alpha, delta = 0) {
   n <- S$n; y <- S$y
   if (any(!is.finite(a)) || any(!is.finite(b))) return(list(ll = -Inf))
   eta <- gamma * a + b
-  if (max(eta) > 30 || max(a + log(alpha)) > 30) return(list(ll = -Inf))
-  lam <- exp(eta); kap <- exp(log(alpha) + a)
+  off <- if (delta != 0) delta * S$lai else 0                       # aridity in pi
+  if (max(eta) > 30 || max(a + log(alpha) + off) > 30) return(list(ll = -Inf))
+  lam <- exp(eta); kap <- exp(log(alpha) + a + off)
   pi_ <- -expm1(-kap); logpi <- log1mexp(kap)
   la <- lb <- laa <- lab <- lbb <- ll <- numeric(length(y))
   pos <- y > 0
@@ -199,7 +206,8 @@ odisp_zi_laplace <- function(fld, S, x, maxit = 50, tol = 1e-7) {
   m <- odisp_u_vec(list(beta = S$m_beta, theta = S$m_theta, u = 0 * x$u, s = NULL, z = 0 * x$z))
   prior <- function(x) odisp_u_prior(x, S, fld)
   f_of <- function(x) {
-    ev <- odisp_zi_eval(x, S); lk <- odisp_zi_lik(ev$a, ev$b, S, fld$gamma, fld$alpha)
+    ev <- odisp_zi_eval(x, S)
+    lk <- odisp_zi_lik(ev$a, ev$b, S, fld$gamma, fld$alpha, if (is.null(fld$delta)) 0 else fld$delta)
     v <- lk$ll - 0.5 * prior(x)
     list(f = if (is.finite(v)) v else -Inf, ev = ev, lk = lk)
   }
@@ -243,8 +251,9 @@ odisp_zi_laplace <- function(fld, S, x, maxit = 50, tol = 1e-7) {
 print.odisp_zifit <- function(x, ...) {
   h <- x$hyper
   cat("Zero-inflated river-network model, range of dispersal", x$setup$phi, "km\n")
-  cat(sprintf("pi(x) = 1 - exp(-alpha E(x)), alpha = %.4g;  lambda(x) = E(x)^gamma T(x), gamma = %.3f\n",
-              h[["alpha"]], h[["gamma"]]))
+  dl <- if ("delta" %in% names(h)) h[["delta"]] else 0
+  cat(sprintf("pi(x) = 1 - exp(-alpha E(x) AI(x)^delta), alpha = %.4g, delta = %.3f;  lambda(x) = E(x)^gamma T(x), gamma = %.3f\n",
+              h[["alpha"]], dl, h[["gamma"]]))
   cat(sprintf("Field u: range %g km, sd %.3f; village effect sd %.3f\n", h[["range_u"]], h[["sigma_u"]], h[["sigma_z"]]))
   print(round(cbind(estimate = x$coefficients, se = sqrt(diag(x$vcov))), 3))
   cat("Laplace log-likelihood:", round(x$logLik, 2), "\n")

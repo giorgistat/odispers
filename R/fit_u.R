@@ -117,7 +117,7 @@ odisp_u_setup <- function(formula, breeding, data, nodes, graph, pairs, phi, tri
   cf <- coef(f0)
   p <- ncol(d$D); q <- ncol(d$Z)
   xy <- sf::st_coordinates(sf::st_transform(sf::st_geometry(data), attr(nodes, "crs")))[has, 1:2, drop = FALSE]
-  list(y = d$y[has], n = d$n[has], X = d$D[has, , drop = FALSE], K = K, B = B, xy = xy,
+  list(y = d$y[has], n = d$n[has], X = d$D[has, , drop = FALSE], K = K, B = B, xy = xy, lai = d$logAI[has],
        A = graph$A[used, , drop = FALSE], graph = graph, used = used, has = has, m_all = d$m,
        m_beta = cf[seq_len(p)], m_theta = cf[p + seq_len(q)], s2 = prior_sd^2,
        lchoose = sum(lchoose(d$n[has], d$y[has])), fit0 = f0, phi = phi,

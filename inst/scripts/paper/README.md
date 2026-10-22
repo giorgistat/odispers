@@ -11,7 +11,13 @@ data(sudan_aridity)   # Global Aridity Index v3.1, packed terra raster (AI x 10,
 data(sudan_borders)   # borders of Sudan and South Sudan (sf)
 ```
 
-Run the scripts in order from any working folder.
+Run the scripts in order from any working folder. Each script loads the shared settings from the installed package with
+
+```r
+source(system.file("scripts/paper/00_settings.R", package = "odispers"))
+```
+
+and writes its results to `paper_results/` and `paper_figures/` in the current working folder. To run a script without cloning the repository, use, for example, `source(system.file("scripts/paper/02_prepare_inputs.R", package = "odispers"))`.
 
 | Script | What it does |
 |---|---|

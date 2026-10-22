@@ -5,7 +5,7 @@
 
 library(odispers)
 library(sf)
-source("00_settings.R")
+source(system.file("scripts/paper/00_settings.R", package = "odispers"))   # shared settings
 
 data(remo)            # REMO nodule survey data
 data(sudan_rivers)    # HydroRIVERS reaches with discharge >= 0.1 m3/s

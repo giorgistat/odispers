@@ -3,7 +3,7 @@
 ###############################################################################
 
 library(odispers); library(sf); library(ggplot2)
-source("00_settings.R")
+source(system.file("scripts/paper/00_settings.R", package = "odispers"))   # shared settings
 out <- readRDS(file.path(out_dir, "spline_fits.rds")); f <- out[[as.character(phi_main)]]$fit; cp <- out[[as.character(phi_main)]]$cp
 inp <- readRDS(file.path(out_dir, "inputs.rds")); v <- inp$villages; nodes <- inp$nodes
 grid <- inp$grid[, c("AI")]; grid$h <- pmax(log(grid$AI) - cp, 0)

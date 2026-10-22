@@ -7,7 +7,7 @@
 
 library(odispers)
 library(sf)
-source("00_settings.R")
+source(system.file("scripts/paper/00_settings.R", package = "odispers"))   # shared settings
 
 inp <- readRDS(file.path(out_dir, "inputs.rds"))
 v <- inp$villages; nodes <- inp$nodes; pairs <- inp$pairs

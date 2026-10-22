@@ -16,6 +16,8 @@ Run them in order from a folder that contains:
 | `04_river_size_and_aridity.R` | Effect of river size on breeding, share of exposure by river size, aridity curve, change-point profile |
 | `05_observed_vs_predicted.R` | Observed against predicted prevalence |
 | `06_prediction_maps.R` | Maps of predicted prevalence, exposure and intensity of transmission |
+| `07_fit_u_field.R` | Adds a Whittle–Matérn breeding field u on the river network and a village effect to the spline/quadratic model; profiles the range of u |
+| `08_fit_u_linear.R` | Simplified model with u: aridity linear in log AI and breeding linear in log discharge |
 
 Intermediate results are written to `paper_results/` and figures to `paper_figures/`. Script 03 fits the model about 110 times to profile the change point and takes some minutes.
 

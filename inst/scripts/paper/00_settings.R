@@ -38,7 +38,8 @@ load_result <- function(name) {
   }
   if (!file.exists(f)) {
     by <- c(spline_fits.rds = "03_fit_spline.R", u_fits.rds = "07_fit_u_field.R",
-          u_fits_linear.rds = "08_fit_u_linear.R")[name]
+          u_fits_linear.rds = "08_fit_u_linear.R", cv_calibration.rds = "12_cv_calibration.R",
+          zi_fits.rds = "13_fit_zero_inflated.R")[name]
     stop(sprintf("%s not found in %s: run %s first", name, normalizePath(out_dir),
                  if (is.na(by)) "the script that creates it" else by), call. = FALSE)
   }

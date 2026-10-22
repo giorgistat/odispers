@@ -34,6 +34,8 @@ and writes its results to `paper_results/` and `paper_figures/` in the current w
 | `10_fit_s_vs_u.R` | Spatial random effect in the exposure (u on the river network) or in the intensity of transmission (Gaussian process S on the plane), each with and without the village effect |
 | `11_fit_u_s_z.R` | Full model with u in the exposure, S in the intensity and the village effect |
 | `12_cv_calibration.R` | Cross-validated calibration of the model of 08 (random folds and spatial blocks): non-randomised PIT among villages with at least one positive, and discrimination and reliability of the probability of at least one positive |
+| `13_fit_zero_inflated.R` | Zero-inflated model: probability of a transmission zone 1 - exp(-alpha E) and force of infection E^gamma T, with u and the village effect; gamma free, 0 and 1 |
+| `14_cv_zero_inflated.R` | Cross-validated calibration of the zero-inflated model, compared with the model without zero inflation |
 
 Intermediate results are written to `paper_results/` and figures to `paper_figures/`. Each script uses results of earlier scripts from `paper_results/` in the working folder:
 
@@ -45,6 +47,8 @@ Intermediate results are written to `paper_results/` and figures to `paper_figur
 | 10 | `inputs.rds`; uses `u_fits_linear.rds` from 08 if present |
 | 11 | `inputs.rds`; compares with `s_vs_u_fits.rds` from 10 if present |
 | 12 | `u_fits_linear.rds` (from 08) |
+| 13 | `inputs.rds`; compares with `u_fits_linear.rds` from 08 if present |
+| 14 | `zi_fits.rds` (from 13) and `cv_calibration.rds` (from 12) |
 
 So the linear model with u can be run on its own with `08_fit_u_linear.R`. Script 03 fits the model about 110 times to profile the change point and takes some minutes; scripts 07 and 08 take about an hour each.
 

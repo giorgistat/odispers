@@ -21,7 +21,7 @@ print(graph)
 
 form <- y ~ log(AI) + h
 fit_z <- odisp_fit_u(form, breeding, v, nodes, graph, pairs, phi = phi_main, u = FALSE)
-range_grid <- c(25, 50, 100, 200, 400)
+range_grid <- c(25, 50, 100, 200, 400, 800, 1600)   # the profile peaks at 400-800 km
 fits_u <- odisp_fit_u(form, breeding, v, nodes, graph, pairs, phi = phi_main, range_u = range_grid)
 prof <- attr(fits_u, "profile")
 best <- fits_u[[which.max(prof$logLik)]]

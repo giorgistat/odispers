@@ -9,7 +9,7 @@ extract_aridity(points, raster, buffer_km = 2)
 \arguments{
 \item{points}{An \code{sf} object of points.}
 
-\item{raster}{A \code{terra::SpatRaster} or the path to the GeoTIFF.}
+\item{raster}{A \code{terra::SpatRaster}, a packed raster such as \code{\link{sudan_aridity}}, or the path to the GeoTIFF.}
 
 \item{buffer_km}{Radius (km) of the buffer over which the index is averaged.}
 }

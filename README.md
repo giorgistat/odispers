@@ -92,6 +92,25 @@ pred <- predict(fit, grid, nodes)   # phi, E, prevalence, zero_exposure
 
 A full analysis of REMO nodule data for Sudan and South Sudan, with HydroRIVERS and the Global Aridity Index, is in `inst/scripts/fit_sudan.R`.
 
+## Data
+
+The package includes the data for the Sudan and South Sudan analysis:
+
+| Dataset | Content | Source |
+|---|---|---|
+| `remo` | REMO nodule surveys, 14,126 villages in 16 countries | APOC REMO (Zouré et al., 2014) |
+| `sudan_rivers` | 93,094 HydroRIVERS reaches with discharge ≥ 0.1 m³/s, with `NEXT_DOWN` topology | Lehner & Grill (2013) |
+| `sudan_aridity` | Annual aridity index at 30″, as a packed `terra` raster (values × 10,000) | Global Aridity Index v3.1, Zomer et al. (2022), CC BY 4.0 |
+| `sudan_borders` | Borders of Sudan and South Sudan | Natural Earth |
+
+```r
+data(remo); data(sudan_rivers); data(sudan_aridity)
+villages <- sf::st_as_sf(subset(remo, country == "SUDAN"), coords = c("long", "lat"), crs = 4326)
+villages$AI <- extract_aridity(villages, sudan_aridity)
+```
+
+`data-raw/make_data.R` rebuilds the datasets from the original files.
+
 ## Main functions
 
 | Function | Purpose |

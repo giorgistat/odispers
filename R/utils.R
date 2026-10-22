@@ -44,13 +44,14 @@ log1mexp <- function(x) {
 #' multiplied by 10,000 are rescaled automatically.
 #'
 #' @param points An \code{sf} object of points.
-#' @param raster A \code{terra::SpatRaster} or the path to the GeoTIFF.
+#' @param raster A \code{terra::SpatRaster}, a packed raster such as \code{\link{sudan_aridity}}, or the path to the GeoTIFF.
 #' @param buffer_km Radius (km) of the buffer over which the index is averaged.
 #' @return Numeric vector of aridity index values.
 #' @export
 extract_aridity <- function(points, raster, buffer_km = 2) {
   if (!requireNamespace("terra", quietly = TRUE)) stop("package 'terra' is required")
   if (is.character(raster)) raster <- terra::rast(raster)
+  if (inherits(raster, "PackedSpatRaster")) raster <- terra::unwrap(raster)
   pts <- sf::st_transform(sf::st_geometry(points), 4326)
   crs_km <- local_aeqd(pts)
   buf <- sf::st_transform(sf::st_buffer(sf::st_transform(pts, crs_km), buffer_km), 4326)

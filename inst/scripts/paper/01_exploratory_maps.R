@@ -2,10 +2,8 @@
 # Exploratory analysis of REMO nodule prevalence in Sudan / South Sudan
 # in relation to the river network (HydroRIVERS) and aridity (Global-AI v3.1)
 #
-# Files expected in the working directory (or adjust the paths below):
-#   Remo_AllCountries.csv
-#   HydroRIVERS_v10_af_shp/HydroRIVERS_v10_af.shp
-#   the unzipped Global-AI_ET0__annual_v3_1 folder (annual aridity GeoTIFF)
+# Inputs come with the package: data(remo), data(sudan_rivers),
+# data(sudan_aridity) and data(sudan_borders).
 #
 # All figures are written to the folder "figures/", and a village table with
 # every derived variable to "sudan_villages_explore.csv".
@@ -22,9 +20,7 @@ library(tidyr)
 
 
 # ---- 0. Settings ---------------------------------------------------------------
-remo_file   <- "Remo_AllCountries.csv"
-rivers_file <- "HydroRIVERS_v10_af_shp/HydroRIVERS_v10_af.shp"
-ai_file     <- NULL       # set to the .tif path if the automatic search fails
+data(remo, sudan_rivers, sudan_aridity, sudan_borders, package = "odispers")
 out_dir     <- "figures"
 dir.create(out_dir, showWarnings = FALSE)
 
@@ -38,7 +34,6 @@ save_fig <- function(p, name, w, h) {
 }
 
 # ---- 1. Survey data --------------------------------------------------------------
-remo <- read.csv(remo_file)
 v <- remo %>%
   filter(country == "SUDAN") %>%
   mutate(vid = row_number(), p = y / n, infected = y > 0)
@@ -51,20 +46,13 @@ cat(nrow(v), "villages\n")
 # Reaches with flow below 0.1 m3/s (many with flow 0) are dropped.
 bbox <- st_bbox(c(xmin = xlim[1], ymin = ylim[1], xmax = xlim[2], ymax = ylim[2]),
                 crs = st_crs(4326))
-rivers <- st_read(rivers_file, wkt_filter = st_as_text(st_as_sfc(bbox)), quiet = TRUE)
+rivers <- suppressMessages(st_filter(sudan_rivers, st_as_sfc(bbox), .predicate = st_intersects))
 rivers <- rivers[rivers$DIS_AV_CMS >= 0.1, c("HYRIV_ID", "DIS_AV_CMS")]
 rivers_m <- st_transform(rivers, aeqd)
 cat(nrow(rivers), "river reaches with flow >= 0.1 m3/s\n")
 
 # ---- 3. Aridity raster -------------------------------------------------------------
-if (is.null(ai_file)) {
-  cand <- list.files(".", pattern = "^ai.*yr.*\\.tif$", recursive = TRUE,
-                     full.names = TRUE, ignore.case = TRUE)
-  if (length(cand) == 0) stop("Annual aridity GeoTIFF not found: set ai_file at the top.")
-  ai_file <- cand[1]
-}
-cat("Aridity file:", ai_file, "\n")
-ai <- crop(rast(ai_file), ext(xlim[1], xlim[2], ylim[1], ylim[2]))
+ai <- crop(unwrap(sudan_aridity), ext(xlim[1], xlim[2], ylim[1], ylim[2]))
 if (global(ai, "max", na.rm = TRUE)[1, 1] > 100) ai <- ai / 10000   # stored as AI x 10,000
 names(ai) <- "AI"
 
@@ -106,8 +94,7 @@ print(summary(v[, c("AI", "dist_small_km", "dist_medium_km", "dist_major_km", "m
 print(table(v$ai_class, useNA = "ifany"))
 
 # ---- 5. Layers for maps ----------------------------------------------------------------
-sudans <- rnaturalearth::ne_countries(scale = "medium", returnclass = "sf") %>%
-  filter(admin %in% c("Sudan", "South Sudan"))
+sudans <- sudan_borders
 ai_df <- as.data.frame(aggregate(ai, fact = 4, fun = "mean", na.rm = TRUE), xy = TRUE, na.rm = TRUE)
 ai_df$ai_class <- cut(ai_df$AI, ai_breaks, labels = ai_labels, include.lowest = TRUE)
 rivers_draw <- rivers[order(rivers$DIS_AV_CMS), ]                  # big rivers drawn last

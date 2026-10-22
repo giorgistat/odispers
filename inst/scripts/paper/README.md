@@ -2,10 +2,16 @@
 
 These scripts reproduce the analysis and figures of *A river-network exposure model for onchocerciasis prevalence*. That analysis uses REMO nodule data for Sudan and South Sudan, with the dispersal range fixed at 40 km, breeding intensity quadratic in log discharge, and aridity in the intensity of transmission as a linear spline in log AI with a change point.
 
-Run them in order from a folder that contains:
-- the REMO data, `Remo_AllCountries.csv`;
-- HydroRIVERS for Africa, `HydroRIVERS_v10_af_shp/`;
-- the annual Global Aridity Index v3.1 GeoTIFF.
+All inputs come with the package, so the scripts need no external files:
+
+```r
+data(remo)            # REMO nodule surveys, 16 countries (Sudan: country == "SUDAN")
+data(sudan_rivers)    # HydroRIVERS reaches with discharge >= 0.1 m3/s (sf)
+data(sudan_aridity)   # Global Aridity Index v3.1, packed terra raster (AI x 10,000)
+data(sudan_borders)   # borders of Sudan and South Sudan (sf)
+```
+
+Run the scripts in order from any working folder.
 
 | Script | What it does |
 |---|---|

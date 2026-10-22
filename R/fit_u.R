@@ -45,7 +45,7 @@ odisp_fit_u <- function(formula, breeding, data, nodes, graph, pairs = NULL, phi
   if (is.null(start)) {
     if (trace) cat("village effect only (to initialise sigma_z)\n")
     f_z <- odisp_u_optimise(S, NULL, NULL, trace)
-    start <- c(log(0.5), log(f_z$hyper[["sigma_z"]]))
+    start <- c(log(2), log(f_z$hyper[["sigma_z"]] / 2))   # u typically takes over half of the village effect
   }
   fits <- lapply(range_u, function(r) {
     if (trace) cat("range_u =", r, "km\n")

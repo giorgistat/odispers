@@ -28,14 +28,14 @@ best <- fits_u[[which.max(prof$logLik)]]
 # the model without u and without the village effect, in the same Laplace
 # framework (village effect sd fixed at a negligible value), for comparison
 S <- fit_z$setup
-fit_none <- odispers:::odisp_u_laplace(c(0, 1e-4), S, NULL, NULL,
-  list(beta = S$m_beta, theta = S$m_theta, u = NULL, z = rep(0, length(S$y))))
+fit_none <- odispers:::odisp_u_laplace(list(field = "none", sig_z = 1e-4), S,
+  list(beta = S$m_beta, theta = S$m_theta, u = NULL, s = NULL, z = rep(0, length(S$y))))
 
 comparison <- data.frame(
   model = c("no u, no village effect", "village effect only",
             sprintf("u (range %g km) + village effect", range_grid)),
   logLik = round(c(fit_none$logLik, fit_z$logLik, prof$logLik), 2),
-  sigma_u = round(c(0, 0, prof$sigma_u), 3),
+  sigma_u = round(c(0, 0, prof$sigma_field), 3),
   sigma_z = round(c(0, fit_z$hyper["sigma_z"], prof$sigma_z), 3))
 cat("Laplace log-likelihoods (beta and theta integrated with diffuse priors);",
     "maximised log-likelihood of the model without u and Z:", round(spl$fit$logLik, 2), "\n")

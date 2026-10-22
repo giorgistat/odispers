@@ -31,6 +31,7 @@ and writes its results to `paper_results/` and `paper_figures/` in the current w
 | `07_fit_u_field.R` | Adds a Whittle–Matérn breeding field u on the river network and a village effect to the spline/quadratic model; profiles the range of u |
 | `08_fit_u_linear.R` | Simplified model with u: aridity linear in log AI and breeding linear in log discharge |
 | `09_variogram_z.R` | Variogram of the predicted village effects with a permutation envelope of spatial independence, with and without u |
+| `10_fit_s_vs_u.R` | Spatial random effect in the exposure (u on the river network) or in the intensity of transmission (Gaussian process S on the plane), each with and without the village effect |
 
 Intermediate results are written to `paper_results/` and figures to `paper_figures/`. Each script uses results of earlier scripts from `paper_results/` in the working folder:
 
@@ -39,6 +40,7 @@ Intermediate results are written to `paper_results/` and figures to `paper_figur
 | 03, 08 | `inputs.rds` (from 02; built automatically if missing) |
 | 04, 05, 06, 07 | `inputs.rds` and `spline_fits.rds` (from 03) |
 | 09 | `u_fits_linear.rds` (from 08) |
+| 10 | `inputs.rds`; uses `u_fits_linear.rds` from 08 if present |
 
 So the linear model with u can be run on its own with `08_fit_u_linear.R`. Script 03 fits the model about 110 times to profile the change point and takes some minutes; scripts 07 and 08 take about an hour each.
 

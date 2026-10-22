@@ -2,7 +2,7 @@
 % Please edit documentation in R/fit_u.R
 \name{odisp_fit_u}
 \alias{odisp_fit_u}
-\title{Fit the dispersal model with a Whittle-Matern breeding field on the network}
+\title{Fit the dispersal model with a spatial random effect in the exposure or in the intensity}
 \usage{
 odisp_fit_u(
   formula,
@@ -12,13 +12,16 @@ odisp_fit_u(
   graph,
   pairs = NULL,
   phi = 40,
-  range_u = 100,
-  u = TRUE,
+  field = c("u", "S", "none"),
+  range = 100,
+  z = TRUE,
   trials = "n",
   aridity = "AI",
   prior_sd = 10,
   start = NULL,
-  trace = TRUE
+  trace = TRUE,
+  range_u = NULL,
+  u = TRUE
 )
 }
 \arguments{
@@ -44,9 +47,13 @@ computed for \code{data}; computed if \code{NULL}.}
 
 \item{phi}{Dispersal range (km), fixed.}
 
-\item{range_u}{Range(s) of \eqn{u} (km) to fit; one fit per value.}
+\item{field}{The spatial random effect: \code{"u"} (on the river network,
+in the exposure), \code{"S"} (on the plane, in the intensity of
+transmission) or \code{"none"}.}
 
-\item{u}{Logical; \code{FALSE} fits the model with the village effect only.}
+\item{range}{Range(s) of the field (km) to fit; one fit per value.}
+
+\item{z}{Logical; include the independent village effect \eqn{Z}.}
 
 \item{trials}{Name of the column in \code{data} with the number examined.}
 
@@ -55,39 +62,48 @@ computed for \code{data}; computed if \code{NULL}.}
 
 \item{prior_sd}{Prior standard deviation of \eqn{\beta} and \eqn{\theta}.}
 
-\item{start}{Optional starting values \code{c(log_sigma_u, log_sigma_z)}.}
+\item{start}{Optional starting values of the log standard deviations of
+the field and of \eqn{Z}, in that order, for those in the model.}
 
 \item{trace}{Logical; print progress.}
+
+\item{range_u, u}{Deprecated: \code{range_u} is \code{range} with
+\code{field = "u"}, and \code{u = FALSE} is \code{field = "none"}.}
 }
 \value{
 An object of class \code{odisp_ufit} (or a list of them, one per
-  value of \code{range_u}, with the profile in attribute \code{profile}).
+  value of \code{range}, with the profile in attribute \code{profile}).
 }
 \description{
 Extends the model of \code{\link{odisp_fit}} (with the range fixed) by a
-Gaussian Whittle-Matern field \eqn{u} on the river network in the breeding
-intensity and an independent village effect \eqn{Z}:
+Gaussian random effect, either a Whittle-Matern field \eqn{u} on the river
+network in the breeding intensity (the exposure) or a Gaussian process
+\eqn{S} on the plane in the intensity of transmission, optionally with an
+independent village effect \eqn{Z}:
 \deqn{w(s) = \exp\{z(s)^\top\theta + u(s)\}, \quad
 E(x) = \int_\Gamma K_\phi(\|x-s\|)\, w(s)\, ds, \quad
-\lambda(x) = E(x) \exp\{d(x)^\top\beta + Z(x)\},}
+\lambda(x) = E(x) \exp\{d(x)^\top\beta + S(x) + Z(x)\},}
 with \eqn{Y \sim \mathrm{Bin}(n, 1 - e^{-\lambda})}. The field \eqn{u} has
 \eqn{\alpha = 1} (exponential covariance along the network; see
-\code{\link{wm_precision}}), standard deviation \code{sigma_u} and range
-\code{range_u}; \eqn{Z \sim N(0, \sigma_Z^2)}.
+\code{\link{wm_precision}}); \eqn{S} has exponential covariance
+\eqn{\sigma_S^2 \exp(-2d/\rho_S)} in straight-line distance, so that both
+ranges are the distance at which the correlation is \eqn{e^{-2}}; and
+\eqn{Z \sim N(0, \sigma_Z^2)}.
 }
 \details{
-The latent vector \eqn{(\beta, \theta, u, Z)} is integrated out by a
-Laplace approximation, with \eqn{\beta} and \eqn{\theta} given diffuse
-Gaussian priors (standard deviation \code{prior_sd}) centred on the
-estimates of the model without \eqn{u} and \eqn{Z}. The mode is found by
-a truncated Newton method: the exact Hessian, which includes the curvature
-of \eqn{\log E} in \eqn{(\theta, u)}, is inverted by conjugate gradients
-preconditioned with the Gauss-Newton (Fisher) Hessian. That Hessian is the
-prior precision plus a term of rank equal to the number of villages, so it
-is inverted by the Woodbury identity with one sparse Cholesky factor of
-the precision of \eqn{u}, computed once for each range. The
-log-determinant in the approximation uses the Gauss-Newton Hessian.
-\code{sigma_u} and \code{sigma_z} maximise the approximate marginal
-likelihood for each value of \code{range_u}, so the range can be profiled
-by giving several values.
+The latent vector, made of the regression coefficients, the field and the
+village effects, is integrated out by a Laplace approximation, with the
+regression coefficients given diffuse Gaussian priors (standard deviation
+\code{prior_sd}) centred on the estimates of the model without random
+effects. The mode is found by a truncated Newton method: the exact Hessian,
+which includes the curvature of \eqn{\log E} in \eqn{(\theta, u)}, is
+inverted by conjugate gradients preconditioned with the Gauss-Newton
+(Fisher) Hessian. That Hessian is the prior precision plus a term of rank
+equal to the number of villages, so it is inverted by the Woodbury
+identity, using a sparse Cholesky factor of the precision of \eqn{u} or a
+dense Cholesky factor of the correlation matrix of \eqn{S}, computed once
+for each range. The log-determinant in the approximation uses the
+Gauss-Newton Hessian. The standard deviations maximise the approximate
+marginal likelihood for each value of the range, so the range can be
+profiled by giving several values.
 }

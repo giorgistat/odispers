@@ -29,13 +29,13 @@ test_that("the Laplace mode is a stationary point of the log posterior", {
   S <- odispers:::odisp_u_setup(y ~ log(AI), ~ log(DIS_AV_CMS), v, tt$nodes, g, pairs,
                                 30, "n", "AI", 10)
   R <- wm_precision(g, 50); Rch <- Matrix::Cholesky(R, LDL = FALSE, perm = TRUE)
-  sig <- c(0.7, 0.4)
-  x0 <- list(beta = S$m_beta, theta = S$m_theta, u = rep(0, g$nv), z = rep(0, length(S$y)))
-  res <- odispers:::odisp_u_laplace(sig, S, R, Rch, x0)
+  fld <- list(field = "u", R = R, Rch = Rch, sig_f = 0.7, sig_z = 0.4)
+  x0 <- list(beta = S$m_beta, theta = S$m_theta, u = rep(0, g$nv), s = NULL, z = rep(0, length(S$y)))
+  res <- odispers:::odisp_u_laplace(fld, S, x0)
   expect_true(is.finite(res$logLik))
   f <- function(v) {
     x <- odispers:::odisp_u_unvec(v, x0)
-    odispers:::odisp_u_lik(odispers:::odisp_u_eta(x, S)$eta, S)$ll - 0.5 * odispers:::odisp_u_prior(x, S, R, sig)
+    odispers:::odisp_u_lik(odispers:::odisp_u_eta(x, S)$eta, S)$ll - 0.5 * odispers:::odisp_u_prior(x, S, fld)
   }
   xv <- odispers:::odisp_u_vec(res$x)
   idx <- c(1:4, 4 + c(1, 5, 10), length(xv) - 0:2)   # beta, theta, some u, some z
@@ -57,4 +57,32 @@ test_that("odisp_fit_u runs and the field improves on the village effect alone",
   pr <- predict(fu, v, tt$nodes, g, pairs = pairs)
   expect_equal(nrow(pr), nrow(v))
   expect_true(all(pr$prevalence >= 0 & pr$prevalence <= 1))
+})
+
+test_that("the Laplace mode is stationary with a Gaussian process S and no village effect", {
+  tt <- toy_u_setup()
+  v <- tt$v[sapply(seq_len(nrow(tt$v)), function(i) any(tt$pairs$i == i & tt$pairs$r < 30)), ]
+  pairs <- river_pairs(v, tt$nodes, 40)
+  g <- river_graph(tt$nodes, vertex_spacing = 5)
+  S <- odispers:::odisp_u_setup(y ~ log(AI), ~ log(DIS_AV_CMS), v, tt$nodes, g, pairs,
+                                30, "n", "AI", 10)
+  n <- length(S$y)
+  fld <- list(field = "S", LC = chol(odispers:::odisp_s_corr(S$xy, 60) + diag(1e-8, n)), sig_f = 0.8)
+  x0 <- list(beta = S$m_beta, theta = S$m_theta, u = NULL, s = rep(0, n), z = NULL)
+  res <- odispers:::odisp_u_laplace(fld, S, x0)
+  expect_true(is.finite(res$logLik))
+  f <- function(v) {
+    x <- odispers:::odisp_u_unvec(v, x0)
+    odispers:::odisp_u_lik(odispers:::odisp_u_eta(x, S)$eta, S)$ll - 0.5 * odispers:::odisp_u_prior(x, S, fld)
+  }
+  xv <- odispers:::odisp_u_vec(res$x)
+  idx <- c(1:3, 3 + c(1, 7, 20), length(xv) - 0:1)
+  h <- 1e-5
+  num <- sapply(idx, function(k) { e <- replace(numeric(length(xv)), k, h); (f(xv + e) - f(xv - e)) / (2 * h) })
+  expect_lt(max(abs(num)), 1e-3)
+  fs <- odisp_fit_u(y ~ log(AI), ~ log(DIS_AV_CMS), v, tt$nodes, g, pairs, phi = 30,
+                    field = "S", range = 60, z = FALSE, trace = FALSE)
+  expect_equal(fs$field, "S")
+  pr <- predict(fs, v, tt$nodes, g, pairs = pairs)
+  expect_true(all(is.finite(pr$S)))
 })

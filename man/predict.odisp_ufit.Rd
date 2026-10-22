@@ -2,7 +2,7 @@
 % Please edit documentation in R/fit_u.R
 \name{predict.odisp_ufit}
 \alias{predict.odisp_ufit}
-\title{Predict from a model with a breeding field on the network}
+\title{Predict from a model with a spatial random effect}
 \usage{
 \method{predict}{odisp_ufit}(object, newdata, nodes, graph, pairs = NULL, ...)
 }
@@ -21,9 +21,12 @@ covariates of the prevalence formula.}
 \value{
 A data frame with exposure \code{E}, force of infection
   \code{lambda}, \code{prevalence} and \code{zero_exposure}; attribute
-  \code{u_nodes} gives the mode of \eqn{u} at every node.
+  \code{u_nodes} gives the mode of \eqn{u} at every node, and column
+  \code{S} the predicted \eqn{S} when that field is in the model.
 }
 \description{
-Plug-in prediction at the posterior mode of \eqn{(\beta, \theta, u)},
-with the village effect set to zero.
+Plug-in prediction at the posterior mode of the regression coefficients
+and of the field, with the village effect set to zero. For the field
+\eqn{S} on the plane, its value at the new locations is the conditional
+mean given its mode at the villages (simple kriging).
 }

@@ -33,7 +33,7 @@ best <- fits_u[[which.max(prof$logLik)]]
 comparison <- data.frame(
   model = c("village effect only", sprintf("u (range %g km) + village effect", range_grid)),
   logLik = round(c(fit_z$logLik, prof$logLik), 2),
-  sigma_u = round(c(0, prof$sigma_u), 3),
+  sigma_u = round(c(0, prof$sigma_field), 3),
   sigma_z = round(c(fit_z$hyper["sigma_z"], prof$sigma_z), 3))
 cat("\nLinear model, Laplace log-likelihoods (beta and theta integrated with diffuse priors):\n")
 print(comparison, row.names = FALSE)

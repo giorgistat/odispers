@@ -37,7 +37,8 @@ load_result <- function(name) {
     source(system.file("scripts/paper/02_prepare_inputs.R", package = "odispers"), local = new.env())
   }
   if (!file.exists(f)) {
-    by <- c(spline_fits.rds = "03_fit_spline.R", u_fits.rds = "07_fit_u_field.R")[name]
+    by <- c(spline_fits.rds = "03_fit_spline.R", u_fits.rds = "07_fit_u_field.R",
+          u_fits_linear.rds = "08_fit_u_linear.R")[name]
     stop(sprintf("%s not found in %s: run %s first", name, normalizePath(out_dir),
                  if (is.na(by)) "the script that creates it" else by), call. = FALSE)
   }

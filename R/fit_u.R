@@ -238,6 +238,41 @@ odisp_u_laplace <- function(sig, S, R, Rch, x, maxit = 50, tol = 1e-7) {
        cg_iterations = cg, Vfix = Vf, converged = it < maxit)
 }
 
+# Maximise a smooth function of a few parameters by Newton's method with
+# central finite-difference derivatives (step h) and a trust region (steps of
+# at most `radius`). Stops when the predicted gain is below `tol` or after
+# `maxit` iterations. Suited to the approximate marginal likelihood, which is
+# smooth and close to quadratic in the log standard deviations but computed
+# with a small numerical error, and whose evaluations are cheap near the
+# current point (warm start) and expensive far from it.
+odisp_newton_max <- function(f, x, h = 0.05, radius = 0.5, tol = 1e-3, maxit = 20) {
+  d <- length(x); fx <- f(x)
+  for (it in seq_len(maxit)) {
+    E <- diag(h, d)
+    fp <- sapply(seq_len(d), function(k) f(x + E[, k]))
+    fm <- sapply(seq_len(d), function(k) f(x - E[, k]))
+    g <- (fp - fm) / (2 * h)
+    H <- diag((fp - 2 * fx + fm) / h^2, d)
+    if (d > 1) for (k in 1:(d - 1)) for (l in (k + 1):d) {
+      H[k, l] <- H[l, k] <- (f(x + E[, k] + E[, l]) - fp[k] - fp[l] + fx) / h^2
+    }
+    ev <- eigen(H, symmetric = TRUE)
+    if (all(ev$values < 0)) step <- -solve(H, g) else step <- g / max(abs(diag(H)), 1)
+    if (sqrt(sum(step^2)) > radius) step <- step * radius / sqrt(sum(step^2))
+    gain_pred <- sum(g * step) + 0.5 * sum(step * (H %*% step))
+    if (gain_pred < tol) break
+    repeat {
+      fn <- f(x + step)
+      if (fn > fx || sqrt(sum(step^2)) < 1e-3) break
+      step <- step / 2
+    }
+    if (fn <= fx) break
+    x <- x + step; done <- fn - fx < tol; fx <- fn
+    if (done) break
+  }
+  x
+}
+
 odisp_u_optimise <- function(S, range_u, start, trace) {
   x0 <- list(beta = S$m_beta, theta = S$m_theta,
              u = if (!is.null(range_u)) rep(0, S$graph$nv) else NULL, z = rep(0, length(S$y)))
@@ -245,27 +280,35 @@ odisp_u_optimise <- function(S, range_u, start, trace) {
     R <- wm_precision(S$graph, range_u, 1)
     Rch <- Matrix::Cholesky(R, LDL = FALSE, perm = TRUE)
   } else { R <- NULL; Rch <- NULL }
-  state <- new.env(); state$x <- x0
-  obj <- function(lh) {
+  state <- new.env(); state$x <- x0; state$cache <- list()
+  # approximate log-likelihood at log standard deviations lh; results are
+  # cached, so points revisited by the optimiser are not recomputed
+  eval_lh <- function(lh) {
+    key <- paste(sprintf("%.6f", lh), collapse = ",")
+    if (!is.null(state$cache[[key]])) return(state$cache[[key]])
     sig <- if (is.null(R)) c(0, exp(lh)) else exp(lh)
     res <- odisp_u_laplace(sig, S, R, Rch, state$x)
-    state$x <- res$x; state$last <- res
+    state$x <- res$x; state$cache[[key]] <- res
     if (trace) cat(sprintf("  sigma = %s  logLik = %.3f  (%d iterations)\n",
                            paste(sprintf("%.3f", sig[sig > 0]), collapse = ", "), res$logLik, res$iterations))
-    -res$logLik
+    res
   }
+  obj <- function(lh) -eval_lh(lh)$logLik
+  # The approximate likelihood is computed to about 1e-6, so the optimisers
+  # stop when the log-likelihood changes by less than about 1e-3: greater
+  # precision in the standard deviations has no practical meaning.
   if (is.null(R)) {
-    o <- stats::optimize(obj, c(log(0.01), log(5)))
+    o <- stats::optimize(obj, c(log(0.01), log(5)), tol = 1e-3)
     lh <- o$minimum
   } else {
     if (is.null(start)) start <- c(log(0.5), log(0.5))
-    o <- stats::optim(start, obj, method = "L-BFGS-B", lower = log(c(0.01, 0.01)), upper = log(c(20, 20)),
-                      control = list(ndeps = c(1e-3, 1e-3), factr = 1e8))
-    lh <- o$par
+    lh <- odisp_newton_max(function(lh) eval_lh(lh)$logLik, start)
   }
   sig <- if (is.null(R)) c(0, exp(lh)) else exp(lh)
-  state$x <- x0
-  res <- odisp_u_laplace(sig, S, R, Rch, x0)
+  res <- eval_lh(lh)
+  if (trace) cat(sprintf("  converged: sigma = %s, logLik = %.3f, %d evaluations\n",
+                         paste(sprintf("%.3f", sig[sig > 0]), collapse = ", "), res$logLik,
+                         length(state$cache)))
   p <- length(S$m_beta); q <- length(S$m_theta)
   est <- c(res$x$beta, res$x$theta)
   names(est) <- c(paste0("beta.", colnames(S$X)), paste0("theta.", S$nodes_names))

@@ -168,3 +168,43 @@ test_that("zero-inflated model: Laplace mode is stationary and the fit runs", {
   expect_s3_class(fz, "odisp_zifit")
   expect_true(all(fz$pi >= 0 & fz$pi <= 1))
 })
+
+test_that("zero-inflated logit/log model: derivatives, stationary mode and fit", {
+  S0 <- list(n = c(50, 40, 30, 60, 45), y = c(0, 3, 0, 12, 0))
+  d <- c(-1, 0.5, 2.2, 0.3, 4); e <- c(-2, -1.5, -4, -1, 0.5)
+  f <- function(d, e) odispers:::odisp_zil_lik(d, e, S0)$ll
+  L <- odispers:::odisp_zil_lik(d, e, S0)
+  h <- 1e-5
+  for (i in seq_along(d)) {
+    ei <- replace(numeric(5), i, h)
+    expect_equal(L$gd[i], (f(d + ei, e) - f(d - ei, e)) / (2 * h), tolerance = 1e-6)
+    expect_equal(L$ge[i], (f(d, e + ei) - f(d, e - ei)) / (2 * h), tolerance = 1e-6)
+    gd <- function(d, e) odispers:::odisp_zil_lik(d, e, S0)$gd[i]
+    ge <- function(d, e) odispers:::odisp_zil_lik(d, e, S0)$ge[i]
+    expect_equal(L$hdd[i], (gd(d + ei, e) - gd(d - ei, e)) / (2 * h), tolerance = 1e-5)
+    expect_equal(L$hde[i], (gd(d, e + ei) - gd(d, e - ei)) / (2 * h), tolerance = 1e-5)
+    expect_equal(L$hee[i], (ge(d, e + ei) - ge(d, e - ei)) / (2 * h), tolerance = 1e-5)
+  }
+  tt <- toy_u_setup()
+  v <- tt$v[sapply(seq_len(nrow(tt$v)), function(i) any(tt$pairs$i == i & tt$pairs$r < 30)), ]
+  pairs <- river_pairs(v, tt$nodes, 40)
+  g <- river_graph(tt$nodes, vertex_spacing = 5)
+  S <- odispers:::odisp_u_setup(y ~ log(AI), ~ log(DIS_AV_CMS), v, tt$nodes, g, pairs, 30, "n", "AI", 10)
+  S$m_c <- c(0, 0)
+  R <- wm_precision(g, 50)
+  fld <- list(R = R, Rch = Matrix::Cholesky(R, LDL = FALSE, perm = TRUE), sig_u = 0.6, sig_z = 0.4, aE = 0.8, gamma = 0.4)
+  x0 <- list(beta = S$m_beta, c = c(0, 0), theta = S$m_theta, u = rep(0, g$nv), z = rep(0, length(S$y)))
+  res <- odispers:::odisp_zil_laplace(fld, S, x0)
+  expect_true(is.finite(res$logLik))
+  fo <- function(vv) { x <- odispers:::odisp_zil_unvec(vv, x0); ev <- odispers:::odisp_zil_eval(x, S, fld)
+    odispers:::odisp_zil_lik(ev$d, ev$e, S)$ll - 0.5 * odispers:::odisp_zil_prior(x, S, fld) }
+  xv <- odispers:::odisp_zil_vec(res$x)
+  idx <- c(1:6, 6 + c(1, 5), length(xv) - 0:1)
+  num <- sapply(idx, function(k) { ek <- replace(numeric(length(xv)), k, h); (fo(xv + ek) - fo(xv - ek)) / (2 * h) })
+  expect_lt(max(abs(num)), 5e-3)
+  fz <- odisp_fit_zil(y ~ log(AI), ~ log(DIS_AV_CMS), v, tt$nodes, g, pairs, phi = 30, range_u = 50,
+                      fixed = list(sigma_u = 0.6, sigma_z = 0.4), trace = FALSE)
+  expect_s3_class(fz, "odisp_zilfit")
+  pr <- predict(fz, v, tt$nodes, g, pairs = pairs)
+  expect_true(all(pr$pi >= 0 & pr$pi <= 1 & pr$prevalence >= 0 & pr$prevalence <= 1))
+})

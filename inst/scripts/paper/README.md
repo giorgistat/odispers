@@ -38,6 +38,7 @@ and writes its results to `paper_results/` and `paper_figures/` in the current w
 | `14_cv_zero_inflated.R` | Cross-validated calibration of the zero-inflated model, compared with the model without zero inflation |
 | `15_fit_zi_aridity.R` | Zero-inflated model with aridity also in the probability of a transmission zone, 1 - exp(-alpha E AI^delta), and its cross-validated calibration |
 | `16_zi_report_figures.R` | Report figures for the zero-inflated model: maps of the probability of a transmission zone and of expected prevalence, and random-fold calibration |
+| `17_fit_zil.R` | Zero-inflated model with log river exposure and log aridity in both parts (logit for the zone of transmission, log for the force of infection), on the full river network; maps and random-fold calibration |
 
 Intermediate results are written to `paper_results/` and figures to `paper_figures/`. Each script uses results of earlier scripts from `paper_results/` in the working folder:
 
@@ -53,6 +54,7 @@ Intermediate results are written to `paper_results/` and figures to `paper_figur
 | 14 | `zi_fits.rds` (from 13) and `cv_calibration.rds` (from 12) |
 | 15 | `inputs.rds`, `cv_calibration.rds` (from 12); starts from `zi_fits.rds` (13) if present |
 | 16 | `zi_fits.rds` (13) and `cv_zero_inflated.rds` (14) |
+| 17 | `inputs.rds`, `cv_calibration.rds` (12); compares with `cv_zero_inflated.rds` (14) if present |
 
 So the linear model with u can be run on its own with `08_fit_u_linear.R`. Script 03 fits the model about 110 times to profile the change point and takes some minutes; scripts 07 and 08 take about an hour each.
 

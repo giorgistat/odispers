@@ -8,8 +8,7 @@
 # positives combines the Laplace (Gaussian) posterior of the latent effects
 # fitted to the other villages, a new village effect and binomial sampling.
 # The variance parameters and the range of u are fixed at their estimates
-# from all the data. Two schemes: 10 random folds, and 10 spatial blocks
-# (k-means clusters of the village locations).
+# from all the data. Ten random folds.
 #
 # Assessment, split as in a hurdle:
 #   1. calibration among villages with at least one positive: non-randomised
@@ -84,9 +83,7 @@ cv_fold <- function(fld, train, test) {
 
 set.seed(2026)
 nv <- nrow(v)
-folds <- list(
-  "random folds" = sample(rep(1:10, length.out = nv)),
-  "spatial blocks" = stats::kmeans(S_all$xy, centers = 10, nstart = 20)$cluster)
+folds <- list("random folds" = sample(rep(1:10, length.out = nv)))
 preds <- list()
 for (sch in names(folds)) for (m in names(models)) {
   f <- folds[[sch]]

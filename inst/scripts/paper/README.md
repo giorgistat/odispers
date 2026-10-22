@@ -33,7 +33,7 @@ and writes its results to `paper_results/` and `paper_figures/` in the current w
 | `09_variogram_z.R` | Variogram of the predicted village effects with a permutation envelope of spatial independence, with and without u |
 | `10_fit_s_vs_u.R` | Spatial random effect in the exposure (u on the river network) or in the intensity of transmission (Gaussian process S on the plane), each with and without the village effect |
 | `11_fit_u_s_z.R` | Full model with u in the exposure, S in the intensity and the village effect |
-| `12_cv_calibration.R` | Cross-validated calibration of the model of 08 (random folds and spatial blocks): non-randomised PIT among villages with at least one positive, and discrimination and reliability of the probability of at least one positive |
+| `12_cv_calibration.R` | Cross-validated calibration of the model of 08 (10 random folds): non-randomised PIT among villages with at least one positive, and discrimination and reliability of the probability of at least one positive |
 | `13_fit_zero_inflated.R` | Zero-inflated model: probability of a transmission zone 1 - exp(-alpha E) and force of infection E^gamma T, with u and the village effect; gamma free, 0 and 1 |
 | `14_cv_zero_inflated.R` | Cross-validated calibration of the zero-inflated model, compared with the model without zero inflation |
 | `15_fit_zi_aridity.R` | Zero-inflated model with aridity also in the probability of a transmission zone, 1 - exp(-alpha E AI^delta), and its cross-validated calibration |

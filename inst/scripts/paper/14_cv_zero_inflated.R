@@ -1,5 +1,5 @@
 ###############################################################################
-# Cross-validated calibration of the zero-inflated model of
+# Cross-validated calibration (10 random folds) of the zero-inflated model of
 # 13_fit_zero_inflated.R (gamma free), with the same folds and the same
 # assessment as 12_cv_calibration.R, and comparison with the model without
 # zero inflation (u + village effect).
@@ -81,7 +81,7 @@ cv_fold <- function(train, test) {
 }
 
 preds <- list()
-for (sch in names(cv12$folds)) {
+for (sch in "random folds") {                     # random folds only
   f <- cv12$folds[[sch]]
   cat(sprintf("%s, %s: ", sch, zi_label))
   out <- unlist(lapply(sort(unique(f)), function(k) { cat(k, ""); cv_fold(which(f != k), which(f == k)) }),
@@ -90,11 +90,11 @@ for (sch in names(cv12$folds)) {
   preds[[paste(sch, paste(zi_label, "u + village effect"), sep = " | ")]] <- out[order(sapply(out, `[[`, "village"))]
 }
 # the model without zero inflation, from 12_cv_calibration.R
-for (nm in grep("u \\+ village effect", names(cv12$preds), value = TRUE)) preds[[nm]] <- cv12$preds[[nm]]
+for (nm in grep("^random folds.*u \\+ village effect", names(cv12$preds), value = TRUE)) preds[[nm]] <- cv12$preds[[nm]]
 # and the zero-inflated model without aridity in pi, if assessing another one
 if (zi_file != "zi_fits.rds" && file.exists(file.path(out_dir, "cv_zero_inflated.rds"))) {
   prev <- readRDS(file.path(out_dir, "cv_zero_inflated.rds"))$preds
-  for (nm in grep("^[^|]*\\| zero-inflated u", names(prev), value = TRUE)) preds[[nm]] <- prev[[nm]]
+  for (nm in grep("^random folds \\| zero-inflated u", names(prev), value = TRUE)) preds[[nm]] <- prev[[nm]]
 }
 
 # ---- assessment, as in 12_cv_calibration.R ------------------------------------

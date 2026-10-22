@@ -12,7 +12,7 @@ odisp_fit_u(
   graph,
   pairs = NULL,
   phi = 40,
-  field = c("u", "S", "none"),
+  field = c("u", "S", "uS", "none"),
   range = 100,
   z = TRUE,
   trials = "n",
@@ -49,9 +49,11 @@ computed for \code{data}; computed if \code{NULL}.}
 
 \item{field}{The spatial random effect: \code{"u"} (on the river network,
 in the exposure), \code{"S"} (on the plane, in the intensity of
-transmission) or \code{"none"}.}
+transmission), \code{"uS"} (both) or \code{"none"}.}
 
-\item{range}{Range(s) of the field (km) to fit; one fit per value.}
+\item{range}{Range(s) of the field (km) to fit; one fit per value. For
+\code{field = "uS"}, a vector \code{c(range_u, range_S)} or a two-column
+matrix with one pair of ranges per row.}
 
 \item{z}{Logical; include the independent village effect \eqn{Z}.}
 
@@ -63,7 +65,7 @@ transmission) or \code{"none"}.}
 \item{prior_sd}{Prior standard deviation of \eqn{\beta} and \eqn{\theta}.}
 
 \item{start}{Optional starting values of the log standard deviations of
-the field and of \eqn{Z}, in that order, for those in the model.}
+\eqn{u}, \eqn{S} and \eqn{Z}, in that order, for those in the model.}
 
 \item{trace}{Logical; print progress.}
 

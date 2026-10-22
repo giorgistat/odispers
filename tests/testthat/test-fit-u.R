@@ -29,7 +29,7 @@ test_that("the Laplace mode is a stationary point of the log posterior", {
   S <- odispers:::odisp_u_setup(y ~ log(AI), ~ log(DIS_AV_CMS), v, tt$nodes, g, pairs,
                                 30, "n", "AI", 10)
   R <- wm_precision(g, 50); Rch <- Matrix::Cholesky(R, LDL = FALSE, perm = TRUE)
-  fld <- list(field = "u", R = R, Rch = Rch, sig_f = 0.7, sig_z = 0.4)
+  fld <- list(field = "u", R = R, Rch = Rch, sig_u = 0.7, sig_z = 0.4)
   x0 <- list(beta = S$m_beta, theta = S$m_theta, u = rep(0, g$nv), s = NULL, z = rep(0, length(S$y)))
   res <- odispers:::odisp_u_laplace(fld, S, x0)
   expect_true(is.finite(res$logLik))
@@ -67,7 +67,7 @@ test_that("the Laplace mode is stationary with a Gaussian process S and no villa
   S <- odispers:::odisp_u_setup(y ~ log(AI), ~ log(DIS_AV_CMS), v, tt$nodes, g, pairs,
                                 30, "n", "AI", 10)
   n <- length(S$y)
-  fld <- list(field = "S", LC = chol(odispers:::odisp_s_corr(S$xy, 60) + diag(1e-8, n)), sig_f = 0.8)
+  fld <- list(field = "S", LC = chol(odispers:::odisp_s_corr(S$xy, 60) + diag(1e-8, n)), sig_s = 0.8)
   x0 <- list(beta = S$m_beta, theta = S$m_theta, u = NULL, s = rep(0, n), z = NULL)
   res <- odispers:::odisp_u_laplace(fld, S, x0)
   expect_true(is.finite(res$logLik))
@@ -85,4 +85,40 @@ test_that("the Laplace mode is stationary with a Gaussian process S and no villa
   expect_equal(fs$field, "S")
   pr <- predict(fs, v, tt$nodes, g, pairs = pairs)
   expect_true(all(is.finite(pr$S)))
+})
+
+test_that("u and S together: stationary mode and a fit", {
+  tt <- toy_u_setup()
+  v <- tt$v[sapply(seq_len(nrow(tt$v)), function(i) any(tt$pairs$i == i & tt$pairs$r < 30)), ]
+  pairs <- river_pairs(v, tt$nodes, 40)
+  g <- river_graph(tt$nodes, vertex_spacing = 5)
+  S <- odispers:::odisp_u_setup(y ~ log(AI), ~ log(DIS_AV_CMS), v, tt$nodes, g, pairs,
+                                30, "n", "AI", 10)
+  n <- length(S$y)
+  R <- wm_precision(g, 50)
+  fld <- list(field = "uS", R = R, Rch = Matrix::Cholesky(R, LDL = FALSE, perm = TRUE),
+              LC = chol(odispers:::odisp_s_corr(S$xy, 60) + diag(1e-8, n)),
+              sig_u = 0.6, sig_s = 0.5, sig_z = 0.3)
+  x0 <- list(beta = S$m_beta, theta = S$m_theta, u = rep(0, g$nv), s = rep(0, n), z = rep(0, n))
+  res <- odispers:::odisp_u_laplace(fld, S, x0)
+  f <- function(v) {
+    x <- odispers:::odisp_u_unvec(v, x0)
+    odispers:::odisp_u_lik(odispers:::odisp_u_eta(x, S)$eta, S)$ll - 0.5 * odispers:::odisp_u_prior(x, S, fld)
+  }
+  xv <- odispers:::odisp_u_vec(res$x)
+  nu <- g$nv
+  idx <- c(1:3, 3 + c(1, 5), 3 + nu + c(1, 9), length(xv) - 0:1)
+  h <- 1e-5
+  num <- sapply(idx, function(k) { e <- replace(numeric(length(xv)), k, h); (f(xv + e) - f(xv - e)) / (2 * h) })
+  # the analytic gradient agrees with the numerical one, and is small at the mode
+  ev <- odispers:::odisp_u_eta(res$x, S); lk <- odispers:::odisp_u_lik(ev$eta, S)
+  ops <- odispers:::odisp_u_ops(res$x, ev, lk, S, fld)
+  m <- odispers:::odisp_u_vec(list(beta = S$m_beta, theta = S$m_theta, u = 0 * res$x$u, s = 0 * res$x$s, z = 0 * res$x$z))
+  ga <- ops$Jtw(lk$g) - ops$Pv(xv - m)
+  expect_lt(max(abs(ga[idx] - num)), 1e-5)
+  expect_lt(max(abs(num)), 5e-3)
+  fus <- odisp_fit_u(y ~ log(AI), ~ log(DIS_AV_CMS), v, tt$nodes, g, pairs, phi = 30,
+                     field = "uS", range = c(50, 60), z = TRUE, trace = FALSE)
+  expect_true(all(c("sigma_u", "sigma_s", "sigma_z") %in% names(fus$hyper)))
+  expect_true(all(is.finite(predict(fus, v, tt$nodes, g, pairs = pairs)$prevalence)))
 })

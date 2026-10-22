@@ -36,12 +36,14 @@
 #' @param phi Dispersal range (km), fixed.
 #' @param field The spatial random effect: \code{"u"} (on the river network,
 #'   in the exposure), \code{"S"} (on the plane, in the intensity of
-#'   transmission) or \code{"none"}.
-#' @param range Range(s) of the field (km) to fit; one fit per value.
+#'   transmission), \code{"uS"} (both) or \code{"none"}.
+#' @param range Range(s) of the field (km) to fit; one fit per value. For
+#'   \code{field = "uS"}, a vector \code{c(range_u, range_S)} or a two-column
+#'   matrix with one pair of ranges per row.
 #' @param z Logical; include the independent village effect \eqn{Z}.
 #' @param prior_sd Prior standard deviation of \eqn{\beta} and \eqn{\theta}.
 #' @param start Optional starting values of the log standard deviations of
-#'   the field and of \eqn{Z}, in that order, for those in the model.
+#'   \eqn{u}, \eqn{S} and \eqn{Z}, in that order, for those in the model.
 #' @param trace Logical; print progress.
 #' @param range_u,u Deprecated: \code{range_u} is \code{range} with
 #'   \code{field = "u"}, and \code{u = FALSE} is \code{field = "none"}.
@@ -49,7 +51,7 @@
 #'   value of \code{range}, with the profile in attribute \code{profile}).
 #' @export
 odisp_fit_u <- function(formula, breeding, data, nodes, graph, pairs = NULL, phi = 40,
-                        field = c("u", "S", "none"), range = 100, z = TRUE, trials = "n",
+                        field = c("u", "S", "uS", "none"), range = 100, z = TRUE, trials = "n",
                         aridity = "AI", prior_sd = 10, start = NULL, trace = TRUE,
                         range_u = NULL, u = TRUE) {
   field <- match.arg(field)
@@ -58,26 +60,36 @@ odisp_fit_u <- function(formula, breeding, data, nodes, graph, pairs = NULL, phi
   if (field == "none" && !z) stop("the model needs a field or the village effect")
   S <- odisp_u_setup(formula, breeding, data, nodes, graph, pairs, phi, trials, aridity, prior_sd)
   if (field == "none") return(odisp_u_optimise(S, "none", NULL, TRUE, start, trace))
+  nf <- if (field == "uS") 2 else 1
   if (is.null(start)) {
+    sf <- rep(log(if (nf == 2) 1.5 else 2), nf)
     if (z) {
       if (trace) cat("village effect only (to initialise sigma_z)\n")
       f_z <- odisp_u_optimise(S, "none", NULL, TRUE, NULL, trace)
       # the field typically takes over half of the village effect
-      start <- c(log(2), log(f_z$hyper[["sigma_z"]] / 2))
-    } else start <- log(2)
+      start <- c(sf, log(f_z$hyper[["sigma_z"]] / 2))
+    } else start <- sf
   }
-  fits <- lapply(range, function(r) {
-    if (trace) cat(sprintf("field %s, range = %g km%s\n", field, r, if (z) " (with village effect)" else ""))
+  ranges <- if (field == "uS") matrix(range, ncol = 2, dimnames = list(NULL, c("u", "S"))) else matrix(range, ncol = 1)
+  fits <- lapply(seq_len(nrow(ranges)), function(k) {
+    r <- ranges[k, ]
+    if (trace) cat(sprintf("field %s, range = %s km%s\n", field, paste(r, collapse = " (u), "),
+                           if (z) " (with village effect)" else ""))
+    if (trace && field == "uS") cat("  [ranges: u along the network, S straight-line]\n")
     f <- odisp_u_optimise(S, field, r, z, start, trace)
     start <<- f$log_hyper
     f
   })
   if (length(fits) == 1) return(fits[[1]])
-  names(fits) <- range
-  attr(fits, "profile") <- data.frame(range = range,
-                                      logLik = sapply(fits, `[[`, "logLik"),
-                                      sigma_field = sapply(fits, function(f) f$hyper["sigma_field"]),
-                                      sigma_z = sapply(fits, function(f) f$hyper["sigma_z"]))
+  names(fits) <- apply(ranges, 1, paste, collapse = "_")
+  prof <- data.frame(ranges, logLik = sapply(fits, `[[`, "logLik"))
+  names(prof)[seq_len(ncol(ranges))] <- if (field == "uS") c("range_u", "range_s") else "range"
+  if (field != "uS") prof$sigma_field <- sapply(fits, function(f) f$hyper[["sigma_field"]])
+  if (field %in% c("u", "uS")) prof$sigma_u <- sapply(fits, function(f) f$hyper[["sigma_u"]])
+  if (field %in% c("S", "uS")) prof$sigma_s <- sapply(fits, function(f) f$hyper[["sigma_s"]])
+  prof$sigma_z <- sapply(fits, function(f) f$hyper[["sigma_z"]])
+  rownames(prof) <- NULL
+  attr(fits, "profile") <- prof
   fits
 }
 
@@ -140,12 +152,12 @@ odisp_u_eta <- function(x, S) {
 # Random-effect structure for given standard deviations: `fld` is a list
 # with the field type, its unit-variance precision R (u, sparse) and Cholesky
 # factor Rch, or the Cholesky factor LC of the correlation matrix (S), and
-# the standard deviations sig_f (field) and sig_z (village effect, or NULL).
+# the standard deviations sig_u, sig_s (fields) and sig_z (village effect).
 odisp_u_prior <- function(x, S, fld) {
   q <- (sum((x$beta - S$m_beta)^2) + sum((x$theta - S$m_theta)^2)) / S$s2
   if (!is.null(x$z)) q <- q + sum(x$z^2) / fld$sig_z^2
-  if (!is.null(x$u)) q <- q + as.numeric(Matrix::crossprod(x$u, fld$R %*% x$u)) / fld$sig_f^2
-  if (!is.null(x$s)) q <- q + sum(backsolve(fld$LC, x$s, transpose = TRUE)^2) / fld$sig_f^2
+  if (!is.null(x$u)) q <- q + as.numeric(Matrix::crossprod(x$u, fld$R %*% x$u)) / fld$sig_u^2
+  if (!is.null(x$s)) q <- q + sum(backsolve(fld$LC, x$s, transpose = TRUE)^2) / fld$sig_s^2
   q
 }
 
@@ -172,12 +184,12 @@ odisp_u_ops <- function(x, ev, lk, S, fld) {
   Jt <- as.matrix(ev$V %*% S$B)
   M <- S$s2 * (tcrossprod(S$X) + tcrossprod(Jt))
   if (nz) M <- M + diag(fld$sig_z^2, n)
-  if (ns) M <- M + fld$sig_f^2 * crossprod(fld$LC)
+  if (ns) M <- M + fld$sig_s^2 * crossprod(fld$LC)
   Ju <- NULL
   if (nu) {
     Ju <- ev$V %*% S$A
     LW <- Matrix::solve(fld$Rch, Matrix::solve(fld$Rch, Matrix::t(Ju), system = "P"), system = "L")
-    M <- M + fld$sig_f^2 * as.matrix(Matrix::crossprod(LW))
+    M <- M + fld$sig_u^2 * as.matrix(Matrix::crossprod(LW))
   }
   sD <- sqrt(lk$D)
   cB <- chol(diag(n) + outer(sD, sD) * M)
@@ -194,12 +206,12 @@ odisp_u_ops <- function(x, ev, lk, S, fld) {
   Jtw <- function(w) c(as.vector(crossprod(S$X, w)), as.vector(crossprod(Jt, w)),
                        if (nu) as.vector(Matrix::crossprod(Ju, w)), if (ns) w, if (nz) w)
   Pinv <- function(r) c(S$s2 * r[ib], S$s2 * r[it],
-                        if (nu) fld$sig_f^2 * as.vector(Matrix::solve(fld$Rch, r[iu])),
-                        if (ns) fld$sig_f^2 * as.vector(crossprod(fld$LC, fld$LC %*% r[is])),
+                        if (nu) fld$sig_u^2 * as.vector(Matrix::solve(fld$Rch, r[iu])),
+                        if (ns) fld$sig_s^2 * as.vector(crossprod(fld$LC, fld$LC %*% r[is])),
                         if (nz) fld$sig_z^2 * r[iz])
   Pv <- function(v) c(v[ib] / S$s2, v[it] / S$s2,
-                      if (nu) as.vector(fld$R %*% v[iu]) / fld$sig_f^2,
-                      if (ns) backsolve(fld$LC, backsolve(fld$LC, v[is], transpose = TRUE)) / fld$sig_f^2,
+                      if (nu) as.vector(fld$R %*% v[iu]) / fld$sig_u^2,
+                      if (ns) backsolve(fld$LC, backsolve(fld$LC, v[is], transpose = TRUE)) / fld$sig_s^2,
                       if (nz) v[iz] / fld$sig_z^2)
   HGNinv <- function(r) {
     s0 <- Pinv(r)
@@ -324,22 +336,23 @@ odisp_s_corr <- function(xy, rho) exp(-2 * as.matrix(stats::dist(xy)) / rho)
 
 odisp_u_optimise <- function(S, field, range, z, start, trace) {
   n <- length(S$y)
+  has_u <- field %in% c("u", "uS"); has_s <- field %in% c("S", "uS")
+  r_u <- if (has_u) unname(range[1]) else NA
+  r_s <- if (has_s) unname(range[length(range)]) else NA
   x0 <- list(beta = S$m_beta, theta = S$m_theta,
-             u = if (field == "u") rep(0, S$graph$nv) else NULL,
-             s = if (field == "S") rep(0, n) else NULL,
+             u = if (has_u) rep(0, S$graph$nv) else NULL,
+             s = if (has_s) rep(0, n) else NULL,
              z = if (z) rep(0, n) else NULL)
   base <- list(field = field)
-  if (field == "u") {
-    base$R <- wm_precision(S$graph, range, 1)
+  if (has_u) {
+    base$R <- wm_precision(S$graph, r_u, 1)
     base$Rch <- Matrix::Cholesky(base$R, LDL = FALSE, perm = TRUE)
   }
-  if (field == "S") {
-    base$LC <- chol(odisp_s_corr(S$xy, range) + diag(1e-8, n))
-  }
-  has_f <- field != "none"
+  if (has_s) base$LC <- chol(odisp_s_corr(S$xy, r_s) + diag(1e-8, n))
   make_fld <- function(lh) {
     fld <- base; k <- 0
-    if (has_f) { k <- k + 1; fld$sig_f <- exp(lh[k]) }
+    if (has_u) { k <- k + 1; fld$sig_u <- exp(lh[k]) }
+    if (has_s) { k <- k + 1; fld$sig_s <- exp(lh[k]) }
     if (z) { k <- k + 1; fld$sig_z <- exp(lh[k]) }
     fld
   }
@@ -358,7 +371,7 @@ odisp_u_optimise <- function(S, field, range, z, start, trace) {
   # The approximate likelihood is computed to about 1e-6, so the optimisers
   # stop when the log-likelihood changes by less than about 1e-3: greater
   # precision in the standard deviations has no practical meaning.
-  npar <- has_f + z
+  npar <- has_u + has_s + z
   if (is.null(start)) start <- rep(log(0.5), npar)
   if (npar == 1) {
     lo <- start - 3; hi <- start + 3
@@ -374,13 +387,14 @@ odisp_u_optimise <- function(S, field, range, z, start, trace) {
   est <- c(res$x$beta, res$x$theta)
   names(est) <- c(paste0("beta.", colnames(S$X)), paste0("theta.", S$nodes_names))
   dimnames(res$Vfix) <- list(names(est), names(est))
+  sig_field <- if (field == "u") fld$sig_u else if (field == "S") fld$sig_s else NA
   structure(list(coefficients = est, vcov = res$Vfix, field = field,
-                 hyper = c(sigma_field = if (has_f) fld$sig_f else 0,
+                 hyper = c(sigma_u = if (has_u) fld$sig_u else 0, range_u = r_u,
+                           sigma_s = if (has_s) fld$sig_s else 0, range_s = r_s,
                            sigma_z = if (z) fld$sig_z else 0,
-                           range = if (has_f) range else NA,
-                           # names kept for compatibility
-                           sigma_u = if (field == "u") fld$sig_f else 0,
-                           range_u = if (field == "u") range else NA),
+                           # single field: its sd and range
+                           sigma_field = if (field %in% c("u", "S")) sig_field else NA,
+                           range = if (field == "u") r_u else if (field == "S") r_s else NA),
                  log_hyper = lh, logLik = res$logLik, u = res$x$u, s = res$x$s,
                  z = if (z) res$x$z else rep(0, n), eta = res$eta, E = res$E,
                  fitted = 1 - exp(-exp(res$eta)), setup = S, converged = res$converged),
@@ -391,12 +405,12 @@ odisp_u_optimise <- function(S, field, range, z, start, trace) {
 print.odisp_ufit <- function(x, ...) {
   cat("River-network dispersal model, range fixed at", x$setup$phi, "km\n")
   h <- x$hyper; fld <- if (is.null(x$field)) "u" else x$field
-  desc <- switch(fld, u = "Field u on the river network (in the exposure)",
-                 S = "Gaussian process S on the plane (in the intensity of transmission)",
-                 none = "No spatial field")
-  if (fld != "none") desc <- sprintf("%s: range %g km, sd %.3f", desc, h["range"], h["sigma_field"])
-  cat(desc, "\n")
-  cat(if (h["sigma_z"] > 0) sprintf("Village effect sd %.3f\n", h["sigma_z"]) else "No village effect\n")
+  if (fld %in% c("u", "uS"))
+    cat(sprintf("Field u on the river network (in the exposure): range %g km, sd %.3f\n", h[["range_u"]], h[["sigma_u"]]))
+  if (fld %in% c("S", "uS"))
+    cat(sprintf("Gaussian process S on the plane (in the intensity): range %g km, sd %.3f\n", h[["range_s"]], h[["sigma_s"]]))
+  if (fld == "none") cat("No spatial field\n")
+  cat(if (h[["sigma_z"]] > 0) sprintf("Village effect sd %.3f\n", h[["sigma_z"]]) else "No village effect\n")
   se <- sqrt(diag(x$vcov))
   print(round(cbind(estimate = x$coefficients, se = se), 3))
   cat("Laplace log-likelihood:", round(x$logLik, 2), "\n")
@@ -438,7 +452,7 @@ predict.odisp_ufit <- function(object, newdata, nodes, graph, pairs = NULL, ...)
   s_new <- NULL
   if (!is.null(object$s)) {
     xy_new <- sf::st_coordinates(sf::st_transform(sf::st_geometry(newdata), attr(nodes, "crs")))[, 1:2, drop = FALSE]
-    rho <- object$hyper[["range"]]
+    rho <- if ("range_s" %in% names(object$hyper)) object$hyper[["range_s"]] else object$hyper[["range"]]
     d_nv <- sqrt(outer(xy_new[, 1], S$xy[, 1], "-")^2 + outer(xy_new[, 2], S$xy[, 2], "-")^2)
     C <- odisp_s_corr(S$xy, rho) + diag(1e-8, nrow(S$xy))
     s_new <- as.vector(exp(-2 * d_nv / rho) %*% solve(C, object$s))

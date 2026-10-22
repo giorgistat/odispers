@@ -297,10 +297,15 @@ odisp_newton_max <- function(f, x, h = 0.05, radius = 0.5, tol = 1e-3, maxit = 2
     if (d > 1) for (k in 1:(d - 1)) for (l in (k + 1):d) {
       H[k, l] <- H[l, k] <- (f(x + E[, k] + E[, l]) - fp[k] - fp[l] + fx) / h^2
     }
+    # Newton step with the Hessian made negative definite (eigenvalues
+    # replaced by -max(|lambda|, 1)), so that directions in which the function
+    # is flat or convex, such as a standard deviation close to zero, give a
+    # step along the gradient, limited by the trust region
     ev <- eigen(H, symmetric = TRUE)
-    if (all(ev$values < 0)) step <- -solve(H, g) else step <- g / max(abs(diag(H)), 1)
+    Hm <- ev$vectors %*% diag(-pmax(abs(ev$values), 1), d) %*% t(ev$vectors)
+    step <- -solve(Hm, g)
     if (sqrt(sum(step^2)) > radius) step <- step * radius / sqrt(sum(step^2))
-    gain_pred <- sum(g * step) + 0.5 * sum(step * (H %*% step))
+    gain_pred <- sum(g * step) + 0.5 * sum(step * (Hm %*% step))
     if (gain_pred < tol) break
     repeat {
       fn <- f(x + step)

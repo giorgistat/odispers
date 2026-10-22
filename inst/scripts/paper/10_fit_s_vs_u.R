@@ -23,7 +23,7 @@ form_lin <- y ~ log(AI)
 breeding_lin <- ~ log(DIS_AV_CMS)
 fit <- function(...) odisp_fit_u(form_lin, breeding_lin, v, nodes, graph, pairs, phi = phi_main, ...)
 
-range_s <- c(10, 25, 50, 100, 200, 400)     # km, straight-line distance
+range_s <- c(10, 25, 50, 100, 200, 400, 800, 1600)   # km, straight-line distance
 range_u <- c(200, 400, 800, 1600)           # km, along the river network
 
 fits <- list()

@@ -2,10 +2,8 @@
 # Fit the river-network dispersal model (no latent fields) to REMO nodule
 # prevalence data for Sudan and South Sudan.
 #
-# Inputs (set the paths below):
-#   - REMO data (Remo_AllCountries.csv), columns country, village, lat, long, n, y
-#   - HydroRIVERS Africa shapefile (HydroRIVERS_v10_af.shp)
-#   - Global Aridity Index v3.1, annual GeoTIFF (from Global-AI_ET0__annual_v3_1.zip)
+# Inputs come with the package: data(remo), data(sudan_rivers),
+# data(sudan_aridity) and data(sudan_borders).
 #
 # Outputs: model comparison table, estimates, profile likelihood for gamma,
 # and maps of predicted prevalence, dispersal range and zero-exposure area,
@@ -17,10 +15,10 @@ library(sf)
 library(terra)
 library(ggplot2)
 
-remo_file   <- "Remo_AllCountries.csv"
-rivers_file <- "HydroRIVERS_v10_af_shp/HydroRIVERS_v10_af.shp"
-ai_file     <- list.files(".", pattern = "^ai.*yr.*\\.tif$", recursive = TRUE,
-                          full.names = TRUE, ignore.case = TRUE)[1]
+data(remo)            # REMO nodule survey data
+data(sudan_rivers)    # HydroRIVERS reaches with discharge >= 0.1 m3/s
+data(sudan_aridity)   # Global Aridity Index v3.1 (packed terra raster, AI x 10,000)
+data(sudan_borders)   # borders of Sudan and South Sudan
 out_dir     <- "odispers_results"
 dir.create(out_dir, showWarnings = FALSE)
 
@@ -39,16 +37,17 @@ agg_cell  <- 0     # km; > 0 merges nodes onto cells of this size to speed up fi
 grid_km   <- 20    # resolution of the prediction grid
 
 # ---- 1. Data -------------------------------------------------------------------
-remo <- read.csv(remo_file)
 v <- subset(remo, country == "SUDAN")
 v$y <- round(v$y)                       # a few counts in the file are not integers
 v <- st_as_sf(v, coords = c("long", "lat"), crs = 4326, remove = FALSE)
 
 bb <- st_bbox(st_buffer(st_as_sfc(st_bbox(v)), 1))           # 1 degree margin
-rivers <- st_read(rivers_file, wkt_filter = st_as_text(st_as_sfc(bb)), quiet = TRUE)
+s2 <- sf_use_s2(FALSE)                                         # planar bounding-box test
+rivers <- suppressMessages(st_filter(sudan_rivers, st_as_sfc(bb), .predicate = st_intersects))
+invisible(sf_use_s2(s2))
 rivers <- rivers[rivers$DIS_AV_CMS >= min_flow, c("HYRIV_ID", "DIS_AV_CMS")]
 
-v$AI <- extract_aridity(v, ai_file)
+v$AI <- extract_aridity(v, sudan_aridity)
 stopifnot(all(is.finite(v$AI)), all(v$AI > 0))
 
 # ---- 2. Network quadrature and village-node pairs -------------------------------
@@ -152,13 +151,12 @@ p_obs <- ggplot(v, aes(fitted, p_obs)) +
 ggsave(file.path(out_dir, "observed_vs_fitted.png"), p_obs, width = 5, height = 5, dpi = 200)
 
 # ---- 6. Prediction on a grid ---------------------------------------------------------
-sudans <- st_as_sf(rnaturalearth::ne_countries(scale = "medium", returnclass = "sf"))
-sudans <- sudans[sudans$admin %in% c("Sudan", "South Sudan"), ]
+sudans <- sudan_borders
 crs_km <- attr(nodes, "crs")
 grid <- st_make_grid(st_transform(sudans, crs_km), cellsize = grid_km, what = "centers")
 grid <- grid[lengths(st_intersects(grid, st_transform(st_union(sudans), crs_km))) > 0]
 grid <- st_sf(geometry = st_transform(grid, 4326))
-grid$AI <- extract_aridity(grid, ai_file, buffer_km = grid_km / 2)
+grid$AI <- extract_aridity(grid, sudan_aridity, buffer_km = grid_km / 2)
 grid <- grid[is.finite(grid$AI) & grid$AI > 0, ]
 grid$h <- pmax(log(grid$AI) - cp_hat, 0)   # spline term, if used by the best model
 pred <- predict(best, grid, nodes)

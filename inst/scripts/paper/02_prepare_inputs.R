@@ -7,6 +7,11 @@ library(odispers)
 library(sf)
 source("00_settings.R")
 
+data(remo)            # REMO nodule survey data
+data(sudan_rivers)    # HydroRIVERS reaches with discharge >= 0.1 m3/s
+data(sudan_aridity)   # Global Aridity Index v3.1 (packed terra raster, AI x 10,000)
+data(sudan_borders)   # borders of Sudan and South Sudan
+
 v <- subset(remo, country == "SUDAN")
 v$y <- round(v$y)                       # a few counts in the file are not integers
 v <- st_as_sf(v, coords = c("long", "lat"), crs = 4326, remove = FALSE)
@@ -25,7 +30,7 @@ print(nodes); print(pairs)
 v$dist_river_km <- nearest_node_distance(v, nodes)
 
 # prediction grid over the two countries
-sudans <- sudan_boundaries()
+sudans <- sudan_borders
 crs_km <- attr(nodes, "crs")
 grid <- st_make_grid(st_transform(sudans, crs_km), cellsize = grid_km, what = "centers")
 grid <- grid[lengths(st_intersects(grid, st_transform(st_union(sudans), crs_km))) > 0]

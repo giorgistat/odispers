@@ -4,11 +4,10 @@
 # (range fixed at 40 km, breeding intensity quadratic in log discharge,
 # aridity in the intensity of transmission as a linear spline in log AI).
 #
-# All inputs come with the package: data(remo), data(sudan_rivers),
-# data(sudan_aridity) and data(sudan_borders).
+# All inputs come with the package and are loaded with data() in the scripts
+# that use them: data(remo), data(sudan_rivers), data(sudan_aridity) and
+# data(sudan_borders).
 ###############################################################################
-
-data(remo, sudan_rivers, sudan_aridity, sudan_borders, package = "odispers")
 
 out_dir <- "paper_results"     # intermediate .rds files
 fig_dir <- "paper_figures"     # figures used in the paper
@@ -27,5 +26,3 @@ breeding <- ~ log(DIS_AV_CMS) + I(log(DIS_AV_CMS)^2)
 aridity_classes <- function(ai)
   cut(ai, c(0, 0.05, 0.2, 0.5, Inf),
       labels = c("Hyper-arid", "Arid", "Semi-arid", "Sub-humid/humid"))
-
-sudan_boundaries <- function() sudan_borders

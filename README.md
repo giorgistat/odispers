@@ -69,7 +69,7 @@ library(odispers)
 library(sf)
 
 # survey locations: an sf object with columns y (positives), n (examined) and AI (aridity)
-villages$AI <- extract_aridity(villages, "ai_v31_yr.tif")
+villages$AI <- extract_aridity(villages, sudan_aridity)   # data(sudan_aridity)
 
 # river network, e.g. HydroRIVERS, keeping reaches with some flow
 rivers <- rivers[rivers$DIS_AV_CMS >= 0.1, ]

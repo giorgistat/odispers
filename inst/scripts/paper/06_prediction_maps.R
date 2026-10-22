@@ -11,7 +11,8 @@ pg <- predict(f, grid, nodes, pairs = inp$grid_pairs)
 g <- cbind(grid, pg); xy <- st_coordinates(g); g$lon <- xy[, 1]; g$lat <- xy[, 2]
 g$T <- ifelse(g$E > 0, g$lambda / g$E, exp(coef(f)["beta.(Intercept)"] + coef(f)["beta.log(AI)"] * log(g$AI) + coef(f)["beta.h"] * g$h))
 cat("zero-exposure share:", round(mean(g$zero_exposure), 3), " max prevalence:", round(max(g$prevalence), 3), "\n")
-sud <- sudan_boundaries()
+data(sudan_borders)
+sud <- sudan_borders
 base <- list(geom_sf(data = sud, fill = NA, colour = "grey25", linewidth = 0.3), coord_sf(expand = FALSE),
              theme_minimal(base_size = 10), labs(x = NULL, y = NULL))
 tile <- function(var) geom_tile(aes(lon, lat, fill = .data[[var]]), width = 0.2, height = 0.2)

@@ -9,7 +9,7 @@
 # every derived variable to "sudan_villages_explore.csv".
 #
 # install.packages(c("sf", "terra", "ggplot2", "dplyr", "tidyr",
-#                    "rnaturalearth", "rnaturalearthdata", "scales"))
+#                    "scales"))
 ###############################################################################
 
 library(sf)
@@ -20,7 +20,11 @@ library(tidyr)
 
 
 # ---- 0. Settings ---------------------------------------------------------------
-data(remo, sudan_rivers, sudan_aridity, sudan_borders, package = "odispers")
+library(odispers)
+data(remo)            # REMO nodule survey data
+data(sudan_rivers)    # HydroRIVERS reaches with discharge >= 0.1 m3/s
+data(sudan_aridity)   # Global Aridity Index v3.1 (packed terra raster, AI x 10,000)
+data(sudan_borders)   # borders of Sudan and South Sudan
 out_dir     <- "figures"
 dir.create(out_dir, showWarnings = FALSE)
 

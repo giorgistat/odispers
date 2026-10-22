@@ -64,7 +64,8 @@ ll <- st_coordinates(st_transform(st_as_sf(as.data.frame(nodes)[, c("x", "y")], 
                                            crs = attr(nodes, "crs")), 4326))
 nodes$lon <- ll[, 1]; nodes$lat <- ll[, 2]
 near <- unique(pairs$j)                         # nodes within reach of a village
-sud <- sudan_boundaries()
+data(sudan_borders)
+sud <- sudan_borders
 vd <- st_drop_geometry(v)
 m_u <- ggplot() +
   geom_sf(data = sud, fill = "grey97", colour = "grey40", linewidth = 0.3) +

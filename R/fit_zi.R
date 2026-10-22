@@ -259,3 +259,44 @@ print.odisp_zifit <- function(x, ...) {
   cat("Laplace log-likelihood:", round(x$logLik, 2), "\n")
   invisible(x)
 }
+
+#' Predict from the zero-inflated river-network model
+#'
+#' Plug-in prediction at the posterior mode of the regression coefficients
+#' and of \eqn{u}, with the village effect set to zero: the probability of
+#' lying in a zone of transmission \eqn{\pi}, the prevalence within a zone
+#' \eqn{p}, and the expected prevalence \eqn{\pi p}.
+#'
+#' @param object An \code{odisp_zifit} object.
+#' @param newdata An \code{sf} object of prediction locations with the
+#'   covariates of the prevalence formula and the aridity index (column
+#'   \code{AI}).
+#' @param nodes,graph The network used in the fit.
+#' @param pairs Optional \code{odisp_pairs} for \code{newdata}.
+#' @param aridity Name of the aridity column of \code{newdata}.
+#' @param ... Not used.
+#' @return A data frame with columns \code{E}, \code{pi}, \code{p_zone}
+#'   (prevalence within a zone), \code{prevalence} (expected prevalence) and
+#'   \code{zero_exposure}.
+#' @export
+predict.odisp_zifit <- function(object, newdata, nodes, graph, pairs = NULL, aridity = "AI", ...) {
+  S <- object$setup; phi <- S$phi; h <- object$hyper
+  delta <- if ("delta" %in% names(h)) h[["delta"]] else 0
+  if (is.null(pairs)) pairs <- river_pairs(newdata, nodes, phi)
+  keep <- pairs$r < phi
+  i <- pairs$i[keep]; j <- pairs$j[keep]; t <- pairs$r[keep] / phi
+  Bn <- stats::model.matrix(S$breeding, as.data.frame(nodes)[j, , drop = FALSE])
+  Bn <- Bn[, colnames(Bn) != "(Intercept)", drop = FALSE]
+  q <- length(S$m_theta); p <- length(S$m_beta)
+  w <- exp(as.vector(Bn %*% object$coefficients[p + seq_len(q)]) +
+           as.vector(graph$A[j, , drop = FALSE] %*% object$u))
+  E <- as.vector(tapply(c(nodes$len[j] * (1 - t)^4 * (1 + 4 * t) / (2 / 3 * phi) * w, rep(0, pairs$m)),
+                        c(i, seq_len(pairs$m)), sum))
+  nd <- sf::st_drop_geometry(newdata)
+  X <- stats::model.matrix(stats::delete.response(stats::terms(S$formula)), nd)
+  b <- as.vector(X %*% object$coefficients[seq_len(p)])
+  lai <- log(nd[[aridity]])
+  pi_ <- ifelse(E > 0, -expm1(-h[["alpha"]] * E * exp(delta * lai)), 0)
+  pz <- ifelse(E > 0, -expm1(-exp(h[["gamma"]] * log(pmax(E, 1e-300)) + b)), 0)
+  data.frame(E = E, pi = pi_, p_zone = pz, prevalence = pi_ * pz, zero_exposure = E == 0)
+}

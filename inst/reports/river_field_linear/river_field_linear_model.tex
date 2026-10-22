@@ -151,11 +151,104 @@ Figure~\ref{fig:variogram} shows the result for the model with the village effec
 \label{fig:variogram}
 \end{figure}
 
+\section{Zero inflation}
+
+We assessed the predictions of the model of the previous sections by ten-fold cross-validation with villages assigned to folds at random. In each fold the latent effects were refitted to the training villages, with the variance parameters and the range of $u$ fixed at their estimates from all the data, and for each held-out village the predictive distribution of the number of positives was obtained by combining the Gaussian approximation to the posterior of the latent effects, a new village effect and binomial sampling. The assessment was split in two parts, as in a hurdle model: the ability to separate villages without positives from villages with at least one, through the predicted probability $P(Y \geq 1)$, and the calibration of the predicted number of positives among the villages with at least one, through the non-randomised probability integral transform (PIT) of \citet{czado2009} applied to the predictive distribution conditional on $Y \geq 1$. Under calibration the PIT histogram is flat; its expected variation was obtained by simulating counts from the predictive distributions.
+
+The model separated zero and positive villages well (area under the ROC curve 0.94) but predicted too few villages without positives, 480 against the 550 observed, almost all of the deficit being in the semi-arid class (219 expected against 275). Among villages with positives, the PIT histogram was hump-shaped, with too few values near 0 and 1 (Figure~\ref{fig:zi_cv}, left), so the predictive distributions were too wide. The two findings have a common explanation: the village effect, with a standard deviation of 0.89, must be wide enough to produce the many villages without positives, which makes it too wide for the villages where transmission occurs. This is the signature of zeros that arise from a separate process.
+
+We therefore let each village lie inside or outside a zone of local transmission. Outside, no individual can be infected; inside, the number of positives is binomial as before. The probability of lying inside a zone is determined by the exposure from the river network,
+\[
+\pi(x) = 1 - \exp\{-\alpha E(x)\},
+\]
+which is the probability that at least one breeding site able to sustain transmission is within reach if such sites occur along the rivers in proportion to the breeding intensity. Within a zone, the force of infection is
+\[
+\lambda(x) = E(x)^{\gamma} \exp\{\beta_0 + \beta_1 \log \AI(x) + Z(x)\},
+\]
+so that
+\[
+P(Y_i = 0) = 1 - \pi(x_i) + \pi(x_i)\{1 - p(x_i)\}^{n_i}, \qquad P(Y_i = y) = \pi(x_i) \binom{n_i}{y} p(x_i)^y \{1 - p(x_i)\}^{n_i - y} \ (y > 0),
+\]
+with $p(x) = 1 - \exp\{-\lambda(x)\}$. The exponent $\gamma$ determines how far exposure, beyond deciding whether a village is in a zone, also scales the intensity of transmission within it: with $\gamma = 0$ the rivers determine only whether transmission occurs and climate alone determines its intensity, with $\gamma = 1$ exposure enters the force of infection as in the model without zero inflation, and as $\alpha \to \infty$ that model is recovered. Exposure, with its field $u$ (range 800~km), and the village effect are as before. The latent effects are integrated out by the same Laplace approximation, extended to the two predictors $\log E(x_i)$ and $\beta_0 + \beta_1 \log \AI(x_i) + Z(x_i)$ of each village; for this likelihood the Hessian used in the approximation is the observed information of the two predictors, with eigenvalues bounded away from zero. The parameters $\alpha$, $\gamma$, $\sigma_u$ and $\sigma_Z$ maximise the approximate marginal likelihood.
+
+Table~\ref{tab:zi} compares the fits. Zero inflation raises the approximate log-likelihood by 103 units, for two additional parameters, and the estimate $\gamma = 0.19$ is clearly between the two extremes, both of which are rejected (by 37 units for $\gamma = 0$ and 57 units for $\gamma = 1$). The rivers therefore mainly determine whether a village lies in a zone of transmission, while within a zone exposure has a modest effect on intensity: doubling the exposure multiplies the force of infection by $2^{0.19} \approx 1.14$. The village effect is halved, from 0.89 to 0.50, now that it no longer has to produce the excess of zeros, while the field $u$ becomes more variable ($\sigma_u = 4.5$), since it now maps the zones of transmission along the network.
+
+\begin{table}[H]
+\centering
+\caption{Models with and without zero inflation (range of $u$ 800~km). Approximate log-likelihoods with the regression coefficients integrated out under diffuse priors; estimates (standard errors) of the regression coefficients at the posterior mode, conditional on the variance parameters.}
+\label{tab:zi}
+\begin{tabular}{lrrrr}
+\toprule
+ & No zero inflation & \multicolumn{3}{c}{Zero-inflated} \\
+\cmidrule(lr){3-5}
+ & & $\gamma$ estimated & $\gamma = 0$ & $\gamma = 1$ \\
+\midrule
+Log-likelihood & $-1365.36$ & $-1262.12$ & $-1298.82$ & $-1319.04$ \\
+$\alpha$ & -- & 0.28 & 0.31 & 0.28 \\
+$\gamma$ & 1 & 0.19 & 0 & 1 \\
+$\sigma_u$ & 2.76 & 4.48 & 3.61 & 1.86 \\
+$\sigma_Z$ & 0.89 & 0.50 & 0.66 & 0.51 \\
+Intercept $\beta_0$ & $-3.12$ (0.37) & $-1.98$ (0.07) & $-1.22$ (0.06) & $-3.60$ (0.11) \\
+$\log \AI$, $\beta_1$ & 1.41 (0.28) & 0.25 (0.06) & 0.45 (0.06) & 0.04 (0.09) \\
+$\log Q$, $\theta$ & $-0.29$ (0.11) & $-0.43$ (0.16) & $-0.33$ (0.14) & $-0.22$ (0.07) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The estimated probability of lying in a zone of transmission (Figure~\ref{fig:zi_pi}) averages 0.08 for the hyper-arid villages, 0.01 for the arid, 0.34 for the semi-arid and 0.95 for the sub-humid and humid villages. It is close to zero along almost the whole of the Nile and the White Nile in Sudan and across the northern Sahel, between 0.7 and 0.9 at the villages near Abu Hamad where infection was found in the desert, intermediate along the White Nile through the Sudd swamps, whose slow water offers little breeding habitat, and close to one over most of South Sudan.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.49\textwidth]{zi_pi_villages.png}\hfill
+\includegraphics[width=0.49\textwidth]{zi_prevalence_map.png}
+\caption{Zero-inflated model with $\gamma$ estimated. Left: probability that each village lies in a zone of local transmission (filled symbols: villages with positives). Right: expected prevalence $\pi(x) p(x)$ on a 20~km grid, at the posterior mode with the village effect set to zero.}
+\label{fig:zi_pi}
+\end{figure}
+
+The same random-fold cross-validation shows that zero inflation removes both deficiencies (Table~\ref{tab:zi_cv} and Figure~\ref{fig:zi_cv}). Among villages with positives, the PIT histogram becomes flat and lies within its expected variation, so the predicted numbers of positives are now calibrated. The predicted number of villages without positives rises from 480 to 532, against 550 observed, and in the semi-arid class from 219 to 265, against 275; the reliability diagram of $P(Y \geq 1)$ lies on the diagonal; and the Brier score and the mean logarithmic score both improve. The area under the ROC curve is practically unchanged, so the gain is in calibration rather than in discrimination. The one remaining discrepancy is a modest excess of predicted zeros among the humid villages, 28 against 14 observed.
+
+\begin{table}[H]
+\centering
+\caption{Ten-fold cross-validation with random folds: discrimination between villages with and without positives, overall predictive score, and observed and expected numbers of villages without positives, in total and by aridity class.}
+\label{tab:zi_cv}
+\begin{tabular}{lrr}
+\toprule
+ & No zero inflation & Zero-inflated \\
+\midrule
+Area under the ROC curve, $P(Y \geq 1)$ & 0.939 & 0.943 \\
+Brier score, $P(Y \geq 1)$ & 0.102 & 0.089 \\
+Mean logarithmic score of the count & $-1.452$ & $-1.342$ \\
+Villages without positives (550 observed) & 479.8 & 532.5 \\
+\quad Hyper-arid (154 observed) & 144.0 & 141.1 \\
+\quad Arid (107 observed) & 98.6 & 97.7 \\
+\quad Semi-arid (275 observed) & 219.2 & 265.3 \\
+\quad Sub-humid and humid (14 observed) & 18.1 & 28.5 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.62\textwidth]{zi_cv_pit_random.png}\hfill
+\includegraphics[width=0.36\textwidth]{zi_cv_reliability_random.png}
+\caption{Ten-fold cross-validation with random folds. Left: non-randomised PIT among villages with at least one positive, for the models without and with zero inflation; bars show the 95\% range expected under calibration. Right: reliability of the predicted probability of at least one positive (deciles of the predicted probability, with 95\% intervals).}
+\label{fig:zi_cv}
+\end{figure}
+
+One feature of the zero-inflated model requires care in interpretation and prediction. The effect of aridity on the intensity of transmission falls from 1.41 to 0.25: the contrast between the arid north and the humid south is now carried mainly by the probability of a zone of transmission, and therefore by the field $u$, which has no information that this contrast follows the climate rather than the rivers. Within the surveyed river systems this does not affect the predictions, as the cross-validation shows. Away from them, where $u$ returns to its mean, the probability of a zone is driven by the density of the river network alone, and the model predicts a high probability of transmission zones, and expected prevalences of 5 to 15\%, over parts of Darfur and Kordofan without survey data, some of them arid (Figure~\ref{fig:zi_pi_map}). Such predictions should not be trusted. Letting the climate enter the probability of a zone, $\pi(x) = 1 - \exp\{-\alpha E(x) \AI(x)^{\delta}\}$, would allow aridity to explain the absence of transmission in the north, leave $u$ with the effects of the rivers, and give more credible predictions where there are no data; this extension is being fitted.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.55\textwidth]{zi_pi_map.png}
+\caption{Probability of lying in a zone of local transmission on a 20~km grid (zero-inflated model, $\gamma$ estimated, at the posterior mode). Away from the surveyed rivers, where $u$ returns to its mean, the probability depends on the density of the river network alone.}
+\label{fig:zi_pi_map}
+\end{figure}
+
 \section{Comparison with the more flexible specification and discussion}
 
 The same model with a spline in log aridity and a quadratic in log discharge reaches an approximate log-likelihood of $-1360.80$, at a range of 400~km, against $-1365.36$ for the linear model, a difference of 4.6 units for two additional coefficients and an estimated change point. Since the regression coefficients are integrated out, these marginal likelihoods include a penalty for each coefficient that depends on its prior standard deviation, so the comparison is indicative; but both specifications describe the data similarly once the breeding field is included. In the flexible specification with $u$, the slope of the aridity effect below the change point is $-0.8$ with a standard error of about 0.5 and the quadratic term in discharge is not significant, so its additional features are no longer supported. We therefore prefer the linear model, which has a monotone effect of aridity with a clear interpretation, a single parameter for the effect of river size, and attributes the remaining variation to the rivers and to the villages.
 
-The decomposition of the force of infection into exposure and intensity of transmission is retained and sharpened. The exposure now depends on the rivers through both their discharge and the field $u$, which acts as a map of the suitability of the river network for breeding, and the intensity of transmission through aridity and a village effect. Places beyond 40~km of any river still have zero exposure. Several points need attention. First, $u$ is informed only on the rivers within reach of a village, so elsewhere its mode is close to zero and its uncertainty large; predictions in unsurveyed basins inherit this uncertainty, which the plug-in maps do not show. Second, the range of $u$ is large and its variance at the ends of the network is twice that in the interior, as implied by the Kirchhoff conditions; a field with smoothness $\alpha = 2$ or a stationary boundary correction could be considered. Third, the field may be partly explained by measured river characteristics, such as channel gradient and the seasonality of flow from RiverATLAS, which would turn part of $u$ into interpretable covariates. Fourth, the absence of spatial correlation in the village effects once $u$ is included indicates that a Gaussian process on the plane in the intensity of transmission is not needed; such a process would in any case be difficult to separate from $u$, whose contribution to the exposure is smooth over several tens of kilometres after the dispersal kernel is applied. Finally, predictive performance should be assessed by cross-validation, and uncertainty in predictions obtained by sampling from the Laplace approximation.
+The decomposition of the force of infection into exposure and intensity of transmission is retained and sharpened. The exposure now depends on the rivers through both their discharge and the field $u$, which acts as a map of the suitability of the river network for breeding, and the intensity of transmission through aridity and a village effect. Places beyond 40~km of any river still have zero exposure. Several points need attention. First, $u$ is informed only on the rivers within reach of a village, so elsewhere its mode is close to zero and its uncertainty large; predictions in unsurveyed basins inherit this uncertainty, which the plug-in maps do not show. Second, the range of $u$ is large and its variance at the ends of the network is twice that in the interior, as implied by the Kirchhoff conditions; a field with smoothness $\alpha = 2$ or a stationary boundary correction could be considered. Third, the field may be partly explained by measured river characteristics, such as channel gradient and the seasonality of flow from RiverATLAS, which would turn part of $u$ into interpretable covariates. Fourth, the absence of spatial correlation in the village effects once $u$ is included indicates that a Gaussian process on the plane in the intensity of transmission is not needed; such a process would in any case be difficult to separate from $u$, whose contribution to the exposure is smooth over several tens of kilometres after the dispersal kernel is applied. Fifth, the cross-validation shows that the excess of villages without positives is better described by a zero-inflated model, in which the rivers determine whether a village lies in a zone of transmission; its predictions are calibrated within the surveyed river systems, but should include the climate in the probability of a zone before they are used to map areas without data. Finally, uncertainty in predictions should be obtained by sampling from the Laplace approximation rather than shown at the posterior mode.
 
 
 \begin{thebibliography}{9}
@@ -169,6 +262,11 @@ Bolin, D., Simas, A.~B. and Wallin, J. (2024).
 Carnaghi, M. et al. (2024).
 \newblock Short- and long-range dispersal by members of the \textit{Simulium damnosum} complex (Diptera: Simuliidae), vectors of onchocerciasis: a review.
 \newblock \textit{Insects}, 15(8), 606.
+
+\bibitem[Czado et al.(2009)]{czado2009}
+Czado, C., Gneiting, T. and Held, L. (2009).
+\newblock Predictive model assessment for count data.
+\newblock \textit{Biometrics}, 65, 1254--1261.
 
 \bibitem[Lehner and Grill(2013)]{lehner2013}
 Lehner, B. and Grill, G. (2013).

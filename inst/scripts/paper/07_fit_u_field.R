@@ -10,8 +10,8 @@ library(sf)
 library(ggplot2)
 source(system.file("scripts/paper/00_settings.R", package = "odispers"))   # shared settings
 
-inp <- readRDS(file.path(out_dir, "inputs.rds"))
-spl <- readRDS(file.path(out_dir, "spline_fits.rds"))[[as.character(phi_main)]]
+inp <- load_result("inputs.rds")
+spl <- load_result("spline_fits.rds")[[as.character(phi_main)]]
 v <- inp$villages; nodes <- inp$nodes
 v$h <- pmax(log(v$AI) - spl$cp, 0)
 pairs <- river_pairs(v, nodes, phi_main)

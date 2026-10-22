@@ -4,8 +4,8 @@
 
 library(odispers); library(sf); library(ggplot2)
 source(system.file("scripts/paper/00_settings.R", package = "odispers"))   # shared settings
-out <- readRDS(file.path(out_dir, "spline_fits.rds")); f <- out[[as.character(phi_main)]]$fit; cp <- out[[as.character(phi_main)]]$cp
-inp <- readRDS(file.path(out_dir, "inputs.rds")); v <- inp$villages; nodes <- inp$nodes
+out <- load_result("spline_fits.rds"); f <- out[[as.character(phi_main)]]$fit; cp <- out[[as.character(phi_main)]]$cp
+inp <- load_result("inputs.rds"); v <- inp$villages; nodes <- inp$nodes
 grid <- inp$grid[, c("AI")]; grid$h <- pmax(log(grid$AI) - cp, 0)
 pg <- predict(f, grid, nodes, pairs = inp$grid_pairs)
 g <- cbind(grid, pg); xy <- st_coordinates(g); g$lon <- xy[, 1]; g$lat <- xy[, 2]

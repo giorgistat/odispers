@@ -19,9 +19,9 @@ v$AI <- extract_aridity(v, sudan_aridity)
 stopifnot(all(is.finite(v$AI)), all(v$AI > 0))
 
 bb <- st_bbox(st_buffer(st_as_sfc(st_bbox(v)), 1))           # 1 degree margin
-s2 <- sf_use_s2(FALSE)                                         # planar test, as GDAL's filter
+s2 <- suppressMessages(sf_use_s2(FALSE))                       # planar test, as GDAL's filter
 rivers <- suppressMessages(st_filter(sudan_rivers, st_as_sfc(bb), .predicate = st_intersects))
-invisible(sf_use_s2(s2))
+invisible(suppressMessages(sf_use_s2(s2)))
 rivers <- rivers[rivers$DIS_AV_CMS >= min_flow, c("HYRIV_ID", "NEXT_DOWN", "DIS_AV_CMS")]
 
 nodes <- river_nodes(rivers, spacing = spacing)

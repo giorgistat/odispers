@@ -31,6 +31,13 @@ and writes its results to `paper_results/` and `paper_figures/` in the current w
 | `07_fit_u_field.R` | Adds a Whittle–Matérn breeding field u on the river network and a village effect to the spline/quadratic model; profiles the range of u |
 | `08_fit_u_linear.R` | Simplified model with u: aridity linear in log AI and breeding linear in log discharge |
 
-Intermediate results are written to `paper_results/` and figures to `paper_figures/`. Script 03 fits the model about 110 times to profile the change point and takes some minutes.
+Intermediate results are written to `paper_results/` and figures to `paper_figures/`. Each script uses results of earlier scripts from `paper_results/` in the working folder:
+
+| Script | Needs |
+|---|---|
+| 03, 08 | `inputs.rds` (from 02; built automatically if missing) |
+| 04, 05, 06, 07 | `inputs.rds` and `spline_fits.rds` (from 03) |
+
+So the linear model with u can be run on its own with `08_fit_u_linear.R`. Script 03 fits the model about 110 times to profile the change point and takes some minutes; scripts 07 and 08 take about an hour each.
 
 `../extract_riveratlas_sudan.R` extracts RiverATLAS attributes for the study area, such as stream gradient and minimum and maximum monthly discharge. These are for planned breeding covariates.

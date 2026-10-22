@@ -4,8 +4,8 @@
 
 library(odispers); library(sf); library(ggplot2)
 source(system.file("scripts/paper/00_settings.R", package = "odispers"))   # shared settings
-out <- readRDS(file.path(out_dir, "spline_fits.rds")); f <- out[[as.character(phi_main)]]$fit
-v <- st_drop_geometry(readRDS(file.path(out_dir, "inputs.rds"))$villages)
+out <- load_result("spline_fits.rds"); f <- out[[as.character(phi_main)]]$fit
+v <- st_drop_geometry(load_result("inputs.rds")$villages)
 v$fitted <- f$fitted; v$obs <- v$y / v$n
 v$cls <- cut(v$AI, c(0, 0.05, 0.2, 0.5, Inf), labels = c("Hyper-arid (AI < 0.05)", "Arid (0.05-0.20)", "Semi-arid (0.20-0.50)", "Sub-humid / humid (AI > 0.50)"))
 cat("correlation obs vs fitted:", round(cor(v$obs, v$fitted), 3), "\n")

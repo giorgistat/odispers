@@ -26,3 +26,20 @@ breeding <- ~ log(DIS_AV_CMS) + I(log(DIS_AV_CMS)^2)
 aridity_classes <- function(ai)
   cut(ai, c(0, 0.05, 0.2, 0.5, Inf),
       labels = c("Hyper-arid", "Arid", "Semi-arid", "Sub-humid/humid"))
+
+# Results of earlier scripts, read from out_dir. The inputs are built by
+# 02_prepare_inputs.R if they are missing; other results must be created by
+# running the script that writes them.
+load_result <- function(name) {
+  f <- file.path(out_dir, name)
+  if (!file.exists(f) && name == "inputs.rds") {
+    message("paper_results/inputs.rds not found: running 02_prepare_inputs.R first")
+    source(system.file("scripts/paper/02_prepare_inputs.R", package = "odispers"), local = new.env())
+  }
+  if (!file.exists(f)) {
+    by <- c(spline_fits.rds = "03_fit_spline.R", u_fits.rds = "07_fit_u_field.R")[name]
+    stop(sprintf("%s not found in %s: run %s first", name, normalizePath(out_dir),
+                 if (is.na(by)) "the script that creates it" else by), call. = FALSE)
+  }
+  readRDS(f)
+}

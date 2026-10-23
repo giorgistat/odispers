@@ -134,9 +134,8 @@ m_Er <- ggplot() + geom_sf(data = sudan_borders, fill = "grey97", colour = "grey
   geom_point(data = er, aes(lon, lat, colour = E), size = 0.15) +
   scale_colour_viridis_c(option = "magma", direction = -1, trans = "log10", name = "Exposure E\n(log scale)",
                          labels = function(x) format(x, scientific = TRUE, digits = 1)) +
-  geom_point(data = vd, aes(long, lat), shape = 1, size = 0.6, colour = "grey30") +
   coord_sf(xlim = sf::st_bbox(sudan_borders)[c(1, 3)], ylim = sf::st_bbox(sudan_borders)[c(2, 4)], expand = FALSE) +
   theme_minimal(base_size = 10) + labs(x = NULL, y = NULL, title = "River exposure E along the river network",
-  subtitle = "Posterior mode, at points on the rivers 4-8 km apart; circles: surveyed villages")
+  subtitle = "Posterior mode, at points on the rivers 4-8 km apart")
 ggsave(file.path(fig_dir, "zil_exposure_rivers.png"), m_Er, width = 6.5, height = 7, dpi = 200, bg = "white")
 saveRDS(er, file.path(out_dir, "zil_exposure_rivers.rds"))

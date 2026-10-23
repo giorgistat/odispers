@@ -208,3 +208,22 @@ test_that("zero-inflated logit/log model: derivatives, stationary mode and fit",
   pr <- predict(fz, v, tt$nodes, g, pairs = pairs)
   expect_true(all(pr$pi >= 0 & pr$pi <= 1 & pr$prevalence >= 0 & pr$prevalence <= 1))
 })
+
+test_that("zero-inflated fit estimates the range of a directed field and resumes from a checkpoint", {
+  tt <- toy_u_setup()
+  v <- tt$v[sapply(seq_len(nrow(tt$v)), function(i) any(tt$pairs$i == i & tt$pairs$r < 30)), ]
+  pairs <- river_pairs(v, tt$nodes, 40)
+  g <- directed_graph(river_graph(tt$nodes, vertex_spacing = 5), "taildown")
+  ck <- tempfile(fileext = ".rds")
+  f1 <- odisp_fit_zil(y ~ log(AI), ~ log(DIS_AV_CMS), v, tt$nodes, g, pairs, phi = 30, range_u = 50,
+                      fixed = list(sigma_z = 0.4, a_E = 0.8, gamma = 0.4), start = c(log(0.6), log(0.4), 0.8, 0.4),
+                      estimate_range = TRUE, bfgs = TRUE, checkpoint = ck, trace = FALSE)
+  expect_true(file.exists(ck))
+  expect_true(is.finite(f1$logLik))
+  expect_true(f1$hyper[["range_u"]] > 0)
+  expect_equal(readRDS(ck)$logLik, f1$logLik, tolerance = 1e-6)
+  f2 <- odisp_fit_zil(y ~ log(AI), ~ log(DIS_AV_CMS), v, tt$nodes, g, pairs, phi = 30, range_u = 50,
+                      fixed = list(sigma_z = 0.4, a_E = 0.8, gamma = 0.4), start = c(log(0.6), log(0.4), 0.8, 0.4),
+                      estimate_range = TRUE, bfgs = TRUE, checkpoint = ck, trace = FALSE)
+  expect_gte(f2$logLik, f1$logLik - 1e-3)
+})

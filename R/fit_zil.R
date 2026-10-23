@@ -32,7 +32,8 @@
 #' @export
 odisp_fit_zil <- function(formula, breeding, data, nodes, graph, pairs = NULL, phi = 40,
                           range_u = 800, trials = "n", aridity = "AI", prior_sd = 10,
-                          start = NULL, fixed = list(), trace = TRUE) {
+                          start = NULL, fixed = list(), trace = TRUE, estimate_range = FALSE,
+                          checkpoint = NULL, bfgs = FALSE, range_up = range_u) {
   S <- odisp_u_setup(formula, breeding, data, nodes, graph, pairs, phi, trials, aridity, prior_sd)
   n <- length(S$y)
   S$m_c <- c(stats::qlogis(min(max(mean(S$y > 0), 0.05), 0.95)), rep(0, ncol(S$X) - 1))
@@ -43,39 +44,72 @@ odisp_fit_zil <- function(formula, breeding, data, nodes, graph, pairs = NULL, p
   base <- list(field = "u", R = R, Rch = Matrix::Cholesky(R, LDL = FALSE, perm = TRUE))
   if (is.null(start)) start <- c(log(3), log(0.6), 1, 0.3)
   if (has_mix && length(start) == 4) start <- c(start, 0)
-  names(start) <- c("sigma_u", "sigma_z", "a_E", "gamma", if (has_mix) "mix")
-  tr <- list(sigma_u = log, sigma_z = log, a_E = identity, gamma = identity, mix = stats::qlogis)
+  nm_start <- c("sigma_u", "sigma_z", "a_E", "gamma", if (has_mix) "mix")
+  start <- start[seq_along(nm_start)]; names(start) <- nm_start
+  if (estimate_range) start <- c(start, range_u = log(range_u))
+  # tail-up + tail-down with estimated ranges: a separate range for the
+  # tail-up part, started from range_up
+  if (estimate_range && has_mix) start <- c(start, range_up = log(range_up))
+  tr <- list(sigma_u = log, sigma_z = log, a_E = identity, gamma = identity, mix = stats::qlogis,
+             range_u = log, range_up = log)
   free <- setdiff(names(start), names(fixed))
+  x0 <- list(beta = S$m_beta, c = S$m_c, theta = S$m_theta, u = rep(0, graph$nv), z = rep(0, n))
+  # resume from a checkpoint: best parameters and latent mode found so far
+  if (!is.null(checkpoint) && file.exists(checkpoint)) {
+    ck <- readRDS(checkpoint)
+    if (all(names(ck$par) %in% names(start)) && length(ck$x$u) == graph$nv) {
+      start[names(ck$par)] <- ck$par; x0 <- ck$x
+      if (trace) cat(sprintf("  resuming from checkpoint, logLik %.3f\n", ck$logLik))
+    }
+  }
   make_fld <- function(par) {
     full <- start; full[free] <- par
     for (nm in names(fixed)) full[nm] <- tr[[nm]](fixed[[nm]])
     fb <- base
-    if (has_mix) {
-      fb$R <- wm_precision(graph, range_u, 1, mix = stats::plogis(full[["mix"]]))
+    r_u <- if (estimate_range) exp(full[["range_u"]]) else range_u
+    if (has_mix || estimate_range) {
+      mix <- if (has_mix) stats::plogis(full[["mix"]]) else 0.5
+      r_up <- if (estimate_range && has_mix) exp(full[["range_up"]]) else r_u
+      fb$R <- wm_precision(graph, r_u, 1, mix = mix, range_up = r_up)
+      fb$range_up <- r_up
       fb$Rch <- Matrix::update(base$Rch, fb$R)
-      fb$mix <- stats::plogis(full[["mix"]])
+      if (has_mix) fb$mix <- mix
     }
     c(fb, list(sig_u = exp(full[["sigma_u"]]), sig_z = exp(full[["sigma_z"]]),
-               aE = full[["a_E"]], gamma = full[["gamma"]]))
+               aE = full[["a_E"]], gamma = full[["gamma"]], range_u = r_u))
   }
-  x0 <- list(beta = S$m_beta, c = S$m_c, theta = S$m_theta, u = rep(0, graph$nv), z = rep(0, n))
-  state <- new.env(); state$x <- x0; state$cache <- list()
+  state <- new.env(); state$x <- x0; state$cache <- list(); state$best <- NULL
   eval_par <- function(par) {
     key <- paste(sprintf("%.6f", par), collapse = ",")
-    if (!is.null(state$cache[[key]])) return(state$cache[[key]])
+    if (!is.null(state$cache[[key]])) {
+      if (!is.null(state$best) && identical(state$best$key, key)) return(state$best$res)
+      return(state$cache[[key]])
+    }
     fld <- make_fld(par)
     res <- tryCatch(odisp_zil_laplace(fld, S, state$x), error = function(e) list(logLik = -Inf, msg = conditionMessage(e)))
     if (is.finite(res$logLik)) state$x <- res$x
-    state$cache[[key]] <- res
-    if (trace) cat(sprintf("  sigma_u %.3f  sigma_z %.3f  a_E %.3f  gamma %.3f%s  logLik = %.3f\n",
+    if (is.finite(res$logLik) && (is.null(state$best) || res$logLik > state$best$res$logLik)) {
+      state$best <- list(key = key, res = res)
+      if (!is.null(checkpoint)) saveRDS(list(par = par, x = res$x, logLik = res$logLik), checkpoint)
+    }
+    state$cache[[key]] <- list(logLik = res$logLik)          # latent modes are kept only for the best point
+    if (trace) cat(sprintf("  sigma_u %.3f  sigma_z %.3f  a_E %.3f  gamma %.3f%s%s  logLik = %.3f\n",
                            fld$sig_u, fld$sig_z, fld$aE, fld$gamma,
-                           if (has_mix) sprintf("  phi %.3f", fld$mix) else "", res$logLik))
+                           if (has_mix) sprintf("  phi %.3f", fld$mix) else "",
+                           if (estimate_range) sprintf("  range %.0f", fld$range_u) else "",
+                           if (estimate_range && has_mix) sprintf("  range_up %.0f", fld$range_up) else "", res$logLik))
+    if (is.null(res$x)) res$x <- state$x
     res
   }
   par <- start[free]
-  if (length(par)) par <- odisp_newton_max(function(p) eval_par(p)$logLik, par)
+  if (length(par)) par <- odisp_newton_max(function(p) eval_par(p)$logLik, par, bfgs = bfgs)
   res <- eval_par(par)
+  if (is.null(res$Vfix)) {                                  # make sure the returned point has its mode
+    par <- unlist(lapply(strsplit(state$best$key, ","), as.numeric)); names(par) <- free
+    res <- state$best$res
+  }
   fld <- make_fld(par)
+  range_u <- fld$range_u
   if (trace) cat(sprintf("  converged: logLik = %.3f, %d evaluations\n", res$logLik, length(state$cache)))
   p <- ncol(S$X)
   nm <- c(paste0("lambda.", colnames(S$X)), paste0("pi.", colnames(S$X)), paste0("theta.", S$nodes_names))
@@ -83,7 +117,7 @@ odisp_fit_zil <- function(formula, breeding, data, nodes, graph, pairs = NULL, p
   dimnames(res$Vfix) <- list(nm, nm)
   structure(list(coefficients = est, vcov = res$Vfix,
                  hyper = c(sigma_u = fld$sig_u, sigma_z = fld$sig_z, a_E = fld$aE, gamma = fld$gamma,
-                           range_u = range_u, if (has_mix) c(phi = fld$mix)),
+                           range_u = range_u, if (has_mix) c(phi = fld$mix, range_up = fld$range_up)),
                  field_type = if (is.null(graph$type)) "wm" else graph$type,
                  par = par, fixed = fixed, logLik = res$logLik, u = res$x$u, z = res$x$z,
                  E = exp(res$a), pi = stats::plogis(res$d), p = -expm1(-exp(res$e)),

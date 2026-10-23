@@ -298,16 +298,29 @@ odisp_u_laplace <- function(fld, S, x, maxit = 50, tol = 1e-7) {
 # smooth and close to quadratic in the log standard deviations but computed
 # with a small numerical error, and whose evaluations are cheap near the
 # current point (warm start) and expensive far from it.
-odisp_newton_max <- function(f, x, h = 0.05, radius = 0.5, tol = 1e-3, maxit = 20) {
-  d <- length(x); fx <- f(x)
+# With bfgs = TRUE the full finite-difference Hessian is computed at the first
+# iteration only and then updated by BFGS from the central-difference
+# gradients, which reduces the evaluations per iteration from about d^2 to 2d.
+odisp_newton_max <- function(f, x, h = 0.05, radius = 0.5, tol = 1e-3, maxit = 20, bfgs = FALSE) {
+  d <- length(x); fx <- f(x); H <- NULL; g_old <- NULL; s_old <- NULL
   for (it in seq_len(maxit)) {
     E <- diag(h, d)
     fp <- sapply(seq_len(d), function(k) f(x + E[, k]))
     fm <- sapply(seq_len(d), function(k) f(x - E[, k]))
     g <- (fp - fm) / (2 * h)
-    H <- diag((fp - 2 * fx + fm) / h^2, d)
-    if (d > 1) for (k in 1:(d - 1)) for (l in (k + 1):d) {
-      H[k, l] <- H[l, k] <- (f(x + E[, k] + E[, l]) - fp[k] - fp[l] + fx) / h^2
+    if (bfgs && !is.null(H)) {
+      B <- -H; y <- -(g - g_old); sy <- sum(s_old * y)
+      if (sy > 1e-8) {
+        Bs <- B %*% s_old
+        B <- B + tcrossprod(y) / sy - tcrossprod(Bs) / as.numeric(crossprod(s_old, Bs))
+      }
+      H <- -B; attr(H, "fresh") <- FALSE
+    } else {
+      H <- diag((fp - 2 * fx + fm) / h^2, d)
+      if (d > 1) for (k in 1:(d - 1)) for (l in (k + 1):d) {
+        H[k, l] <- H[l, k] <- (f(x + E[, k] + E[, l]) - fp[k] - fp[l] + fx) / h^2
+      }
+      attr(H, "fresh") <- TRUE
     }
     # Newton step with the Hessian made negative definite (eigenvalues
     # replaced by -max(|lambda|, 1)), so that directions in which the function
@@ -324,7 +337,13 @@ odisp_newton_max <- function(f, x, h = 0.05, radius = 0.5, tol = 1e-3, maxit = 2
       if (fn > fx || sqrt(sum(step^2)) < 1e-3) break
       step <- step / 2
     }
-    if (fn <= fx) break
+    if (fn <= fx) {
+      if (bfgs && it > 1 && !isTRUE(attr(H, "fresh"))) {   # retry once with a full Hessian
+        H <- NULL; next
+      }
+      break
+    }
+    g_old <- g; s_old <- step
     x <- x + step; done <- fn - fx < tol; fx <- fn
     if (done) break
   }

@@ -99,9 +99,9 @@ print.odisp_graph <- function(x, ...) {
 #' @param sigma Standard deviation \eqn{\sigma}.
 #' @return A sparse symmetric matrix.
 #' @export
-wm_precision <- function(graph, range, sigma = 1, mix = 0.5) {
+wm_precision <- function(graph, range, sigma = 1, mix = 0.5, range_up = range) {
   type <- if (is.null(graph$type)) "wm" else graph$type
-  if (type != "wm") return(directed_precision(graph, range, mix) / sigma^2)
+  if (type != "wm") return(directed_precision(graph, range, mix, range_up) / sigma^2)
   kappa <- 2 / range
   rho <- exp(-kappa * graph$length)
   c1 <- 1 / (-expm1(-2 * kappa * graph$length))           # 1 / (1 - rho^2)
@@ -138,7 +138,8 @@ wm_precision <- function(graph, range, sigma = 1, mix = 0.5) {
 #'     their confluence.}
 #'   \item{\code{"tailup+taildown"}}{Sum of independent tail-up and tail-down
 #'     fields with variances \eqn{\phi\sigma^2} and
-#'     \eqn{(1-\phi)\sigma^2}, with the same range.}
+#'     \eqn{(1-\phi)\sigma^2}, with ranges \code{range_up} and \code{range}
+#'     in \code{\link{wm_precision}}.}
 #' }
 #' The precision is \eqn{Q = L^\top W L}, where \eqn{L} contains the
 #' autoregressive recursions along the edges and \eqn{W} their conditional
@@ -192,12 +193,13 @@ directed_graph <- function(graph, type = c("taildown", "tailup", "tailup+taildow
 }
 
 # precision (sigma = 1) of the directed fields of directed_graph()
-directed_precision <- function(graph, range, mix = 0.5) {
-  kappa <- 2 / range
-  rho <- exp(-kappa * graph$length)
-  w <- 1 / (-expm1(-2 * kappa * graph$length))           # 1 / (1 - rho^2)
+# range_up: range of the tail-up part of a tail-up + tail-down field
+directed_precision <- function(graph, range, mix = 0.5, range_up = range) {
   ne <- length(graph$from)
+  rw <- function(r) { k <- 2 / r
+    list(rho = exp(-k * graph$length), w = 1 / (-expm1(-2 * k * graph$length))) }   # w = 1 / (1 - rho^2)
   Q_down <- function() {
+    rho <- rw(range)$rho; w <- rw(range)$w
     nv <- graph$nv_down; no <- length(graph$outlets)
     L <- Matrix::sparseMatrix(i = c(graph$from, graph$from, graph$outlets),
                               j = c(graph$from, graph$to, graph$outlets),
@@ -206,6 +208,8 @@ directed_precision <- function(graph, range, mix = 0.5) {
     Matrix::forceSymmetric(Matrix::crossprod(L, Matrix::Diagonal(nv, Wd) %*% L))
   }
   Q_up <- function() {
+    r_up <- if (graph$type == "tailup") range else range_up
+    rho <- rw(r_up)$rho; w <- rw(r_up)$w
     ns <- graph$n_src; n <- ns + ne
     L <- rbind(cbind(Matrix::Diagonal(ns), Matrix::sparseMatrix(i = integer(0), j = integer(0), dims = c(ns, ne))),
                cbind(Matrix::sparseMatrix(i = integer(0), j = integer(0), dims = c(ne, ns)), Matrix::Diagonal(ne)) -

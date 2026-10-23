@@ -54,7 +54,7 @@ and subdividing an edge by additional vertices leaves the field unchanged. The t
 
 \section{Estimation}
 
-The network is represented by a graph with a vertex at each end of every reach and additional vertices so that no edge is longer than 5~km. The exposure integral is computed by quadrature over nodes at most 2~km apart, with $u$ at each node interpolated linearly from its values at the two ends of the edge. The latent vector, consisting of the regression coefficients $a_0, a_1, b_0, b_1$, the breeding coefficient $\theta$, the values of $u$ at the vertices and the village effects, is integrated out by a Laplace approximation, with diffuse Gaussian priors (standard deviation 10) on the coefficients. Each village contributes through two linear predictors, $\mathrm{logit}\,\pi(x_i)$ and $\log\lambda(x_i)$; the Hessian used in the approximation is the observed information of these two predictors, with its eigenvalues bounded away from zero, and the mode is found by a truncated Newton method \citep{steihaug1983} with conjugate gradients preconditioned by the Gauss--Newton Hessian, inverted by the Woodbury identity and a sparse Cholesky factor of the precision of $u$. The coefficients $a_E$ and $\gamma$, which multiply a function of the latent field, are estimated together with $\sigma_u$ and $\sigma_Z$ by maximising the approximate marginal likelihood by a trust-region Newton method. The range of $u$ is fixed at 800~km, the value that maximised the profile likelihood of the corresponding model without zero inflation. Computations use the R package \texttt{odispers}.
+The network is represented by a graph with a vertex at each end of every reach and additional vertices so that no edge is longer than 5~km. The exposure integral is computed by quadrature over nodes at most 2~km apart, with $u$ at each node interpolated linearly from its values at the two ends of the edge. The latent vector, consisting of the regression coefficients $a_0, a_1, b_0, b_1$, the breeding coefficient $\theta$, the values of $u$ at the vertices and the village effects, is integrated out by a Laplace approximation, with diffuse Gaussian priors (standard deviation 10) on the coefficients. Each village contributes through two linear predictors, $\mathrm{logit}\,\pi(x_i)$ and $\log\lambda(x_i)$; the Hessian used in the approximation is the observed information of these two predictors, with its eigenvalues bounded away from zero, and the mode is found by a truncated Newton method \citep{steihaug1983} with conjugate gradients preconditioned by the Gauss--Newton Hessian, inverted by the Woodbury identity and a sparse Cholesky factor of the precision of $u$. The coefficients $a_E$ and $\gamma$, which multiply a function of the latent field, are estimated together with $\sigma_u$ and $\sigma_Z$ by maximising the approximate marginal likelihood by a trust-region Newton method. The range of $u$ is fixed at 800~km, the value that maximised the profile likelihood of the corresponding model without zero inflation. Confidence intervals for the regression coefficients are Wald intervals from the Gaussian approximation to their posterior at the mode, conditional on the other parameters; for $a_E$, $\gamma$, $\sigma_u$ and $\sigma_Z$ they are Wald intervals from the observed information of the approximate marginal likelihood, obtained by central finite differences, on the log scale for the standard deviations. The marginal likelihood is flat along a ridge on which $\sigma_u$ increases as $a_E$ and $\gamma$ decrease (correlations of the estimates $-0.77$ and $-0.86$), and it is not quadratic in $\gamma$, so these intervals are approximate; along this ridge the estimates lie within half a unit of log-likelihood of the maximum, a distance well inside the intervals. Computations use the R package \texttt{odispers}.
 
 Predictions are evaluated in two ways. In-sample predictions are at the posterior mode of $u$ and of the coefficients with the village effect set to zero. For cross-validated predictions, the villages are assigned at random to ten folds; for each fold the latent effects are refitted to the remaining villages, with $a_E$, $\gamma$, $\sigma_u$ and $\sigma_Z$ fixed at their estimates from all the data, and the predictive distribution of the number of positives at each held-out village is obtained by combining the Gaussian approximation to the posterior of the two linear predictors, a new village effect and the zero-inflated binomial distribution, by two-dimensional Gauss--Hermite quadrature. The assessment is split in two parts, as in a hurdle model: the ability to separate villages without positives from villages with at least one, through the predicted probability $P(Y \geq 1)$, and the calibration of the predicted number of positives among the villages with at least one, through the non-randomised probability integral transform (PIT) of \citet{czado2009}. For a village with $y_i \geq 1$ and predictive distribution function $F_i$ conditional on $Y \geq 1$, the non-randomised PIT is the distribution
 \[
@@ -64,25 +64,25 @@ and the PIT histogram is the average of these distributions over the villages, e
 
 \section{Results}
 
-Table~\ref{tab:zil} gives the estimates. The probability of lying in a zone of transmission increases steeply with humidity, $a_1 = 2.05$ (0.47), so that the odds of a zone are multiplied by $2^{2.05} \approx 4.1$ when the aridity index doubles, and with river exposure, $a_E = 0.58$, so that doubling the exposure multiplies the odds by $2^{0.58} \approx 1.5$. Within a zone, the force of infection increases more moderately with humidity, $b_1 = 0.58$ (0.11), and only weakly with exposure, $\gamma = 0.12$. Rivers and climate therefore act mainly on whether transmission occurs, and to a lesser degree on its intensity. The breeding intensity declines with discharge, $\theta = -0.59$ (0.33): a tenfold increase in discharge reduces the breeding intensity per kilometre of river by a factor of about four, consistent with small, fast-flowing streams being the main breeding habitat. The field $u$ is very variable, $\sigma_u = 7.5$, while the village effect is moderate, $\sigma_Z = 0.47$.
+Table~\ref{tab:zil} gives the estimates. The probability of lying in a zone of transmission increases steeply with humidity, $a_1 = 2.05$ (95\% interval 1.14 to 2.97), so that the odds of a zone are multiplied by $2^{2.05} \approx 4.1$ when the aridity index doubles, and with river exposure, $a_E = 0.58$ (0.35 to 0.81), so that doubling the exposure multiplies the odds by $2^{0.58} \approx 1.5$. Within a zone, the force of infection increases more moderately with humidity, $b_1 = 0.58$ (0.37 to 0.79), and only weakly with exposure, $\gamma = 0.12$ (0.06 to 0.18). Rivers and climate therefore act mainly on whether transmission occurs, and to a lesser degree on its intensity. The breeding intensity declines with discharge, $\theta = -0.59$ ($-1.23$ to 0.05): at the estimate, a tenfold increase in discharge reduces the breeding intensity per kilometre of river by a factor of about four, consistent with small, fast-flowing streams being the main breeding habitat, although the interval just includes zero. The field $u$ is very variable, $\sigma_u = 7.5$ (4.9 to 11.5), while the village effect is moderate, $\sigma_Z = 0.47$ (0.40 to 0.56).
 
 \begin{table}[H]
 \centering
-\caption{Estimates (standard errors) of the zero-inflated model. Regression coefficients at the posterior mode, with standard errors conditional on $a_E$, $\gamma$ and the variance parameters, which maximise the approximate marginal likelihood. Approximate (Laplace) log-likelihood $-1237.12$.}
+\caption{Estimates and 95\% confidence intervals for the zero-inflated model. Regression coefficients: posterior mode and Wald intervals from the Laplace approximation, conditional on $a_E$, $\gamma$ and the standard deviations. $a_E$, $\gamma$, $\sigma_u$ and $\sigma_Z$: maximum approximate marginal likelihood estimates and Wald intervals from the observed information of the approximate marginal likelihood, computed by finite differences, on the log scale for the standard deviations. Approximate (Laplace) log-likelihood $-1237.12$.}
 \label{tab:zil}
-\begin{tabular}{llr}
+\begin{tabular}{llrr}
 \toprule
-Part & Parameter & Estimate (s.e.) \\
+Part & Parameter & Estimate & 95\% interval \\
 \midrule
-Zone of transmission, $\mathrm{logit}\,\pi$ & intercept $a_0$ & 1.63 (0.67) \\
- & $\log \AI$, $a_1$ & 2.05 (0.47) \\
- & $\log E$, $a_E$ & 0.58 \\
-Force of infection, $\log\lambda$ & intercept $b_0$ & $-1.68$ (0.14) \\
- & $\log \AI$, $b_1$ & 0.58 (0.11) \\
- & $\log E$, $\gamma$ & 0.12 \\
-Breeding intensity & $\log Q$, $\theta$ & $-0.59$ (0.33) \\
-Random effects & $\sigma_u$ (range 800~km fixed) & 7.51 \\
- & $\sigma_Z$ & 0.47 \\
+Zone of transmission, $\mathrm{logit}\,\pi$ & intercept $a_0$ & 1.63 & (0.32, 2.94) \\
+ & $\log \AI$, $a_1$ & 2.05 & (1.14, 2.97) \\
+ & $\log E$, $a_E$ & 0.58 & (0.35, 0.81) \\
+Force of infection, $\log\lambda$ & intercept $b_0$ & $-1.68$ & ($-1.95$, $-1.40$) \\
+ & $\log \AI$, $b_1$ & 0.58 & (0.37, 0.79) \\
+ & $\log E$, $\gamma$ & 0.12 & (0.06, 0.18) \\
+Breeding intensity & $\log Q$, $\theta$ & $-0.59$ & ($-1.23$, 0.05) \\
+Random effects & $\sigma_u$ (range 800~km fixed) & 7.51 & (4.91, 11.49) \\
+ & $\sigma_Z$ & 0.47 & (0.40, 0.56) \\
 \bottomrule
 \end{tabular}
 \end{table}

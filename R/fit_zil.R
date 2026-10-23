@@ -93,7 +93,7 @@ odisp_fit_zil <- function(formula, breeding, data, nodes, graph, pairs = NULL, p
       if (!is.null(checkpoint)) saveRDS(list(par = par, x = res$x, logLik = res$logLik), checkpoint)
     }
     state$cache[[key]] <- list(logLik = res$logLik)          # latent modes are kept only for the best point
-    if (trace) cat(sprintf("  sigma_u %.3f  sigma_z %.3f  a_E %.3f  gamma %.3f%s%s  logLik = %.3f\n",
+    if (trace) cat(sprintf("  sigma_u %.3f  sigma_z %.3f  a_E %.3f  gamma %.3f%s%s%s  logLik = %.3f\n",
                            fld$sig_u, fld$sig_z, fld$aE, fld$gamma,
                            if (has_mix) sprintf("  phi %.3f", fld$mix) else "",
                            if (estimate_range) sprintf("  range %.0f", fld$range_u) else "",

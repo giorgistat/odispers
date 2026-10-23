@@ -113,3 +113,30 @@ p_rel <- ggplot(rel, aes(pred, obs)) + geom_abline(linetype = 2) +
   theme_minimal(base_size = 11)
 ggsave(file.path(fig_dir, "zil_only_reliability.png"), p_rel, width = 4.8, height = 5, dpi = 200, bg = "white")
 saveRDS(list(pit = pt, reliability = rel), file.path(out_dir, "zil_report.rds"))
+
+# ---- exposure E along the river network -------------------------------------------
+# E evaluated at points on the rivers (every 4th quadrature node, about 4-8 km
+# apart, within Sudan and South Sudan), in chunks to limit memory
+sel <- seq(1, nrow(nodes), by = 4)
+pts <- st_as_sf(data.frame(x = nodes$x[sel], y = nodes$y[sel]), coords = c("x", "y"), crs = attr(nodes, "crs"))
+inside <- lengths(st_intersects(st_transform(pts, st_crs(sudan_borders)), sudan_borders)) > 0
+sel <- sel[inside]; pts <- pts[inside, ]
+chunks <- split(seq_along(sel), ceiling(seq_along(sel) / 5000))
+Er <- unlist(lapply(chunks, function(k) {
+  pk <- pts[k, ]; pk$AI <- 1          # AI is not used by E; needed only for the design matrix
+  predict(fit, pk, nodes, graph, pairs = river_pairs(pk, nodes, fit$setup$phi))$E
+}))
+er <- data.frame(lon = ll[sel, 1], lat = ll[sel, 2], E = Er)
+cat(sprintf("\nExposure on the rivers (%d points): quantiles 1%%, 50%%, 99%%: %s\n", nrow(er),
+            paste(signif(quantile(er$E, c(0.01, 0.5, 0.99)), 3), collapse = ", ")))
+er <- er[order(er$E), ]
+m_Er <- ggplot() + geom_sf(data = sudan_borders, fill = "grey97", colour = "grey40", linewidth = 0.3) +
+  geom_point(data = er, aes(lon, lat, colour = E), size = 0.15) +
+  scale_colour_viridis_c(option = "magma", direction = -1, trans = "log10", name = "Exposure E\n(log scale)",
+                         labels = function(x) format(x, scientific = TRUE, digits = 1)) +
+  geom_point(data = vd, aes(long, lat), shape = 1, size = 0.6, colour = "grey30") +
+  coord_sf(xlim = sf::st_bbox(sudan_borders)[c(1, 3)], ylim = sf::st_bbox(sudan_borders)[c(2, 4)], expand = FALSE) +
+  theme_minimal(base_size = 10) + labs(x = NULL, y = NULL, title = "River exposure E along the river network",
+  subtitle = "Posterior mode, at points on the rivers 4-8 km apart; circles: surveyed villages")
+ggsave(file.path(fig_dir, "zil_exposure_rivers.png"), m_Er, width = 6.5, height = 7, dpi = 200, bg = "white")
+saveRDS(er, file.path(out_dir, "zil_exposure_rivers.rds"))

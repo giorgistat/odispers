@@ -40,7 +40,7 @@ and writes its results to `paper_results/` and `paper_figures/` in the current w
 | `16_zi_report_figures.R` | Report figures for the zero-inflated model: maps of the probability of a transmission zone and of expected prevalence, and random-fold calibration |
 | `17_fit_zil.R` | Zero-inflated model with log river exposure and log aridity in both parts (logit for the zone of transmission, log for the force of infection), on the full river network; maps and random-fold calibration |
 | `18_variogram_z_zil.R` | Variogram of the village effect in the model of 17 among villages with at least one positive, with a 9999-permutation envelope, a global test and a one-sided test of positive correlation; observed against predicted prevalence, in-sample and cross-validated |
-| `19_zil_report.R` | Figures for the stand-alone report on the model of 17 (`inst/reports/zero_inflated/`): maps of u, exposure, probability of a zone, prevalence within a zone and expected prevalence, and the cross-validated non-randomised PIT and reliability of this model alone |
+| `19_zil_report.R` | Figures for the stand-alone report on the model of 17 (`inst/reports/zero_inflated/`): maps of u, exposure on the grid and along the river network, probability of a zone, prevalence within a zone and expected prevalence, and the cross-validated non-randomised PIT and reliability of this model alone |
 
 Intermediate results are written to `paper_results/` and figures to `paper_figures/`. Each script uses results of earlier scripts from `paper_results/` in the working folder:
 

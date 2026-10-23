@@ -36,17 +36,27 @@ odisp_fit_zil <- function(formula, breeding, data, nodes, graph, pairs = NULL, p
   S <- odisp_u_setup(formula, breeding, data, nodes, graph, pairs, phi, trials, aridity, prior_sd)
   n <- length(S$y)
   S$m_c <- c(stats::qlogis(min(max(mean(S$y > 0), 0.05), 0.95)), rep(0, ncol(S$X) - 1))
+  # with a sum of tail-up and tail-down fields, the share of variance of the
+  # tail-up field, phi = plogis(mix), is a further parameter
+  has_mix <- identical(graph$type, "tailup+taildown")
   R <- wm_precision(graph, range_u, 1)
   base <- list(field = "u", R = R, Rch = Matrix::Cholesky(R, LDL = FALSE, perm = TRUE))
   if (is.null(start)) start <- c(log(3), log(0.6), 1, 0.3)
-  names(start) <- c("sigma_u", "sigma_z", "a_E", "gamma")
-  tr <- list(sigma_u = log, sigma_z = log, a_E = identity, gamma = identity)
+  if (has_mix && length(start) == 4) start <- c(start, 0)
+  names(start) <- c("sigma_u", "sigma_z", "a_E", "gamma", if (has_mix) "mix")
+  tr <- list(sigma_u = log, sigma_z = log, a_E = identity, gamma = identity, mix = stats::qlogis)
   free <- setdiff(names(start), names(fixed))
   make_fld <- function(par) {
     full <- start; full[free] <- par
     for (nm in names(fixed)) full[nm] <- tr[[nm]](fixed[[nm]])
-    c(base, list(sig_u = exp(full[["sigma_u"]]), sig_z = exp(full[["sigma_z"]]),
-                 aE = full[["a_E"]], gamma = full[["gamma"]]))
+    fb <- base
+    if (has_mix) {
+      fb$R <- wm_precision(graph, range_u, 1, mix = stats::plogis(full[["mix"]]))
+      fb$Rch <- Matrix::update(base$Rch, fb$R)
+      fb$mix <- stats::plogis(full[["mix"]])
+    }
+    c(fb, list(sig_u = exp(full[["sigma_u"]]), sig_z = exp(full[["sigma_z"]]),
+               aE = full[["a_E"]], gamma = full[["gamma"]]))
   }
   x0 <- list(beta = S$m_beta, c = S$m_c, theta = S$m_theta, u = rep(0, graph$nv), z = rep(0, n))
   state <- new.env(); state$x <- x0; state$cache <- list()
@@ -57,8 +67,9 @@ odisp_fit_zil <- function(formula, breeding, data, nodes, graph, pairs = NULL, p
     res <- tryCatch(odisp_zil_laplace(fld, S, state$x), error = function(e) list(logLik = -Inf, msg = conditionMessage(e)))
     if (is.finite(res$logLik)) state$x <- res$x
     state$cache[[key]] <- res
-    if (trace) cat(sprintf("  sigma_u %.3f  sigma_z %.3f  a_E %.3f  gamma %.3f  logLik = %.3f\n",
-                           fld$sig_u, fld$sig_z, fld$aE, fld$gamma, res$logLik))
+    if (trace) cat(sprintf("  sigma_u %.3f  sigma_z %.3f  a_E %.3f  gamma %.3f%s  logLik = %.3f\n",
+                           fld$sig_u, fld$sig_z, fld$aE, fld$gamma,
+                           if (has_mix) sprintf("  phi %.3f", fld$mix) else "", res$logLik))
     res
   }
   par <- start[free]
@@ -72,7 +83,8 @@ odisp_fit_zil <- function(formula, breeding, data, nodes, graph, pairs = NULL, p
   dimnames(res$Vfix) <- list(nm, nm)
   structure(list(coefficients = est, vcov = res$Vfix,
                  hyper = c(sigma_u = fld$sig_u, sigma_z = fld$sig_z, a_E = fld$aE, gamma = fld$gamma,
-                           range_u = range_u),
+                           range_u = range_u, if (has_mix) c(phi = fld$mix)),
+                 field_type = if (is.null(graph$type)) "wm" else graph$type,
                  par = par, fixed = fixed, logLik = res$logLik, u = res$x$u, z = res$x$z,
                  E = exp(res$a), pi = stats::plogis(res$d), p = -expm1(-exp(res$e)),
                  setup = S, fld = fld),

@@ -39,7 +39,8 @@ and writes its results to `paper_results/` and `paper_figures/` in the current w
 | `15_fit_zi_aridity.R` | Zero-inflated model with aridity also in the probability of a transmission zone, 1 - exp(-alpha E AI^delta), and its cross-validated calibration |
 | `16_zi_report_figures.R` | Report figures for the zero-inflated model: maps of the probability of a transmission zone and of expected prevalence, and random-fold calibration |
 | `17_fit_zil.R` | Zero-inflated model with log river exposure and log aridity in both parts (logit for the zone of transmission, log for the force of infection), on the full river network; maps and random-fold calibration |
-| `18_variogram_z_zil.R` | Variogram of the village effect in the model of 17 (all villages and villages with positives), with permutation envelopes, a global test and a one-sided test of positive correlation; observed against predicted prevalence, in-sample and cross-validated |
+| `18_variogram_z_zil.R` | Variogram of the village effect in the model of 17 among villages with at least one positive, with a 9999-permutation envelope, a global test and a one-sided test of positive correlation; observed against predicted prevalence, in-sample and cross-validated |
+| `19_zil_report.R` | Figures for the stand-alone report on the model of 17 (`inst/reports/zero_inflated/`): maps of u, exposure, probability of a zone, prevalence within a zone and expected prevalence, and the cross-validated non-randomised PIT and reliability of this model alone |
 
 Intermediate results are written to `paper_results/` and figures to `paper_figures/`. Each script uses results of earlier scripts from `paper_results/` in the working folder:
 
@@ -56,7 +57,8 @@ Intermediate results are written to `paper_results/` and figures to `paper_figur
 | 15 | `inputs.rds`, `cv_calibration.rds` (from 12); starts from `zi_fits.rds` (13) if present |
 | 16 | `zi_fits.rds` (13) and `cv_zero_inflated.rds` (14) |
 | 17 | `inputs.rds`, `cv_calibration.rds` (12); compares with `cv_zero_inflated.rds` (14) if present |
-| 18 | `zil_fit.rds` and `cv_zil.rds` (17); adds the model of 08 from `u_fits_linear.rds` if present |
+| 18 | `zil_fit.rds` and `cv_zil.rds` (17) |
+| 19 | `zil_fit.rds`, `cv_zil.rds` (17) and `inputs_full_network.rds` (17) |
 
 So the linear model with u can be run on its own with `08_fit_u_linear.R`. Script 03 fits the model about 110 times to profile the change point and takes some minutes; scripts 07 and 08 take about an hour each.
 

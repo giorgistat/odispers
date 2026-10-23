@@ -1,9 +1,9 @@
 ###############################################################################
 # Residual spatial correlation of the village effect Z in the zero-inflated
 # model of 17_fit_zil.R (log E and log AI in both parts), compared with the
-# model without zero inflation of 08_fit_u_linear.R. Empirical variogram of
+# villages with at least one positive. Empirical variogram of
 # the predicted village effects (posterior modes), with a 95% envelope under
-# spatial independence from 999 random permutations of the effects among the
+# spatial independence from 9999 random permutations of the effects among the
 # villages and a global permutation test (as in 09_variogram_z.R).
 ###############################################################################
 
@@ -13,8 +13,7 @@ library(ggplot2)
 source(system.file("scripts/paper/00_settings.R", package = "odispers"))   # shared settings
 
 zil <- load_result("zil_fit.rds")$fit
-f08 <- file.path(out_dir, "u_fits_linear.rds")
-n_perm <- 999
+n_perm <- 9999
 breaks <- c(0, 10, 25, 50, 75, 100, 150, 200, 250, 300)   # km
 set.seed(2026)
 
@@ -45,27 +44,19 @@ variogram_perm <- function(z, xy, breaks, n_perm) {
 
 # In the zero-inflated model Z acts only inside zones of transmission, so for
 # villages without positives the data carry almost no information on it and
-# its prediction is shrunk to about 0; as these villages cluster in space,
-# the variogram over all villages is pulled down at short distances. The
-# variogram is therefore also shown for the villages with positives only.
+# its prediction is shrunk to about 0; as these villages cluster in space, a
+# variogram over all villages would be pulled down at short distances by the
+# shrinkage alone. The variogram is therefore computed for the villages with
+# at least one positive, where Z is informed by the data.
 pos <- zil$setup$y > 0
-models <- list("Zero-inflated, all villages" = list(z = zil$z, xy = zil$setup$xy),
-               "Zero-inflated, villages with positives" = list(z = zil$z[pos], xy = zil$setup$xy[pos, ]))
-if (file.exists(f08)) {
-  b <- readRDS(f08)$best
-  xy08 <- b$setup$xy
-  if (is.null(xy08)) {            # fits made before the coordinates were stored
-    inp <- load_result("inputs.rds")
-    xy08 <- st_coordinates(st_transform(st_geometry(inp$villages), attr(inp$nodes, "crs")))[b$setup$has, 1:2]
-  }
-  models <- c(list("No zero inflation (u + village effect)" = list(z = b$z, xy = xy08)), models)
-}
+models <- list("Villages with at least one positive (n = 350)" =
+                 list(z = zil$z[pos], xy = zil$setup$xy[pos, ]))
 out <- lapply(names(models), function(nm) {
   vp <- variogram_perm(models[[nm]]$z, models[[nm]]$xy, breaks, n_perm)
   cat(sprintf("\n%s: variance of predicted Z %.4f; global permutation test p = %.3f; one-sided test of positive correlation up to 100 km p = %.3f\n",
               nm, stats::var(models[[nm]]$z), vp$p_value, vp$p_positive))
   print(round(vp$table, 3), row.names = FALSE)
-  cbind(model = sprintf("%s\nglobal test p = %.3f; test of positive correlation p = %.3f",
+  cbind(model = sprintf("%s\nglobal test p = %.3f; one-sided test of positive correlation p = %.3f",
                         nm, vp$p_value, vp$p_positive), vp$table)
 })
 tab <- do.call(rbind, out); tab$model <- factor(tab$model, levels = unique(tab$model))
@@ -75,13 +66,13 @@ p <- ggplot(tab, aes(distance)) +
   geom_line(aes(y = perm_mean), colour = "grey50", linetype = 2) +
   geom_line(aes(y = semivariance), colour = "#1b7837") +
   geom_point(aes(y = semivariance), colour = "#1b7837", size = 1.8) +
-  facet_wrap(~ model, scales = "free_y") +
+  facet_wrap(~ model) +
   labs(x = "Distance between villages (km)", y = "Semivariance of the predicted village effect",
        title = "Empirical variogram of the village effect Z",
-       subtitle = sprintf("Grey band: 95%% envelope under spatial independence (%d permutations); dashed: permutation mean",
+       subtitle = sprintf("Grey band: 95%% envelope under spatial independence\n(%d permutations); dashed: permutation mean",
                           n_perm)) +
   theme_minimal(base_size = 11)
-ggsave(file.path(fig_dir, "variogram_z_zil.png"), p, width = 13, height = 4.6, dpi = 200, bg = "white")
+ggsave(file.path(fig_dir, "variogram_z_zil.png"), p, width = 7, height = 5, dpi = 200, bg = "white")
 saveRDS(tab, file.path(out_dir, "variogram_z_zil.rds"))
 
 # ---- observed against predicted prevalence ---------------------------------------

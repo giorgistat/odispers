@@ -69,9 +69,12 @@ if (step == "profile") {
 # ---- joint estimation of the range ----------------------------------------------------
 if (step == "joint") {
   if (type == "tailup+taildown") {
-    td <- readRDS(joint_file("taildown")); tu <- readRDS(joint_file("tailup"))
+    td <- readRDS(joint_file("taildown"))
+    # tail-up range: from its joint fit, or else from the maximum of its profile
+    ru0 <- if (file.exists(joint_file("tailup"))) readRDS(joint_file("tailup"))$hyper[["range_u"]] else {
+      fu <- grid_fits("tailup"); as.numeric(names(fu))[which.max(sapply(fu, `[[`, "logLik"))] }
     st <- c(td$par[c("sigma_u", "sigma_z", "a_E", "gamma")], mix = stats::qlogis(0.05))
-    r0 <- td$hyper[["range_u"]]; ru0 <- tu$hyper[["range_u"]]
+    r0 <- td$hyper[["range_u"]]
   } else {
     fits <- grid_fits(type); ll <- sapply(fits, `[[`, "logLik")
     b <- fits[[which.max(ll)]]; st <- b$par; r0 <- b$hyper[["range_u"]]; ru0 <- r0

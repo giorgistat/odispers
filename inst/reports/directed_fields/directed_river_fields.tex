@@ -179,6 +179,31 @@ Approximate log-likelihood & $-1226.12$ & $-1253.17$ & $-1225.29$ \\
 \end{tabular}
 \end{table}
 
+Table~\ref{tab:ci} gives 95\% confidence intervals for the tail-down model. For the regression coefficients they are Wald intervals from the Laplace approximation, conditional on the other parameters; for $\sigma_u$, $\sigma_Z$, $a_E$, $\gamma$ and the range they are Wald intervals from the observed information of the approximate marginal likelihood, computed by central finite differences with the latent effects started at the mode of the fit, on the log scale for the standard deviations and the range. The observed information is positive definite, and the Wald interval for the range, 477 to 2{,}165~km, agrees with the profile-likelihood interval, 434 to 2{,}602~km, which is preferable because the profile is not symmetric in $\log r$. The intervals confirm that the probability of a zone of transmission increases with humidity and with river exposure, that the force of infection increases with both, more weakly with exposure, and that the effect of discharge on breeding is negative but not clearly different from zero. For the tail-up model the observed information at the estimate is not negative definite, consistent with the several modes of its latent posterior, so that Wald intervals for its variance and exposure parameters are not available; its regression intervals are $(0.73, 1.16)$ for $b_1$, $(2.66, 4.58)$ for $a_1$ and $(-0.08, 0.56)$ for $\theta$, and its profile interval for the range is 377 to 767~km. For the summed field, the profile over the tail-up share $\phi_\uparrow$ at the other estimates, which is maximal at about 0.05 and 1.9 units below its maximum at about 0.3, gives an approximate interval from 0 to 0.3.
+
+\begin{table}[H]
+\centering
+\caption{Estimates and 95\% confidence intervals for the zero-inflated model with the tail-down field. Regression coefficients: Wald intervals conditional on the other parameters. Variance and exposure parameters and range: Wald intervals from the observed information of the approximate marginal likelihood (log scale for $\sigma_u$, $\sigma_Z$ and $r$); for the range, the profile-likelihood interval is also given.}
+\label{tab:ci}
+\begin{tabular}{llrr}
+\toprule
+Part & Parameter & Estimate & 95\% interval \\
+\midrule
+Zone of transmission, $\mathrm{logit}\,\pi$ & intercept $a_0$ & 1.97 & (0.15, 3.79) \\
+ & $\log \AI$, $a_1$ & 1.89 & (0.80, 2.98) \\
+ & $\log E$, $a_E$ & 0.50 & (0.29, 0.70) \\
+Force of infection, $\log\lambda$ & intercept $b_0$ & $-1.61$ & ($-1.98$, $-1.24$) \\
+ & $\log \AI$, $b_1$ & 0.53 & (0.29, 0.77) \\
+ & $\log E$, $\gamma$ & 0.10 & (0.06, 0.15) \\
+Breeding intensity & $\log Q$, $\theta$ & $-0.48$ & ($-1.11$, 0.16) \\
+Breeding field $u$ & $\sigma_u$ & 7.47 & (4.72, 11.82) \\
+ & range $r$ (km), Wald & 1017 & (477, 2165) \\
+ & range $r$ (km), profile & 1357 & (434, 2602) \\
+Village effect & $\sigma_Z$ & 0.50 & (0.43, 0.58) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 The cross-validation (Table~\ref{tab:cv}) agrees with the likelihood. The tail-down and summed fields have the same scores to the second or third decimal place: the sum of the logarithmic scores over the 900 villages differs by 0.8, the same amount as the approximate log-likelihood. The tail-up field is worse on every measure of discrimination and overall fit: its total logarithmic score is about 20 units lower, its area under the ROC curve and Brier score are worse, the correlation between observed and predicted prevalence is lower, and it predicts 31 villages without positives among the humid villages, against 14 observed and 22 for the tail-down field. Among villages with at least one positive, the PIT histogram of the tail-up field is the flattest (Figure~\ref{fig:pit}), with all ten bins inside their expected range, whereas the tail-down and summed fields each have three bins just outside it, with a slight excess between 0.4 and 0.5 and a deficit between 0.6 and 0.8; this departure is modest and has no clear shape of over- or under-dispersion. The advantage of the tail-down field therefore lies in separating villages with and without transmission, and in predicting where infection occurs, rather than in the calibration of the numbers of positives.
 
 \begin{table}[H]

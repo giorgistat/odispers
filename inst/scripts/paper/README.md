@@ -46,6 +46,7 @@ and writes its results to `paper_results/` and `paper_figures/` in the current w
 | `23_directed_profiles.R` | Fair comparison of the directed fields (symmetric field dropped): dense range profiles, joint estimation of the range (separate ranges for the two parts of the summed field), random-fold cross-validation and comparison; restartable from checkpoints |
 | `24_tailup_joint_warm.R` | Joint fit of the tail-up model started from the latent mode of its best profile fit (its latent posterior has several modes) |
 | `25_directed_maps.R` | Maps of u and of expected prevalence for the joint fits of the three directed fields |
+| `26_directed_intervals.R` | 95% confidence intervals for the joint tail-down and tail-up fits (Wald, from the finite-difference observed information of the approximate marginal likelihood) |
 | `20_zil_intervals.R` | 95% confidence intervals for all parameters of the model of 17: Wald intervals for the regression coefficients, and for a_E, gamma, sigma_u and sigma_Z from the finite-difference observed information of the approximate marginal likelihood (about 15 minutes) |
 
 Intermediate results are written to `paper_results/` and figures to `paper_figures/`. Each script uses results of earlier scripts from `paper_results/` in the working folder:

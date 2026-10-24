@@ -78,10 +78,14 @@ if (step == "joint") {
   } else {
     fits <- grid_fits(type); ll <- sapply(fits, `[[`, "logLik")
     b <- fits[[which.max(ll)]]; st <- b$par; r0 <- b$hyper[["range_u"]]; ru0 <- r0
+    # start from the latent mode of the best profile fit: the latent posterior
+    # of the tail-up model has several modes (see 24_tailup_joint_warm.R)
+    xs <- list(beta = b$coefficients[1:2], c = b$coefficients[3:4], theta = b$coefficients[5], u = b$u, z = b$z)
   }
   cat(sprintf("\n==== %s, joint estimation from range %g km ====\n", type, r0))
   t0 <- Sys.time()
-  f <- fit_one(type, r0, st, estimate_range = TRUE, range_up = ru0, checkpoint = ck_file(type, "joint"))
+  f <- fit_one(type, r0, st, estimate_range = TRUE, range_up = ru0, checkpoint = ck_file(type, "joint"),
+               x_start = if (type == "tailup+taildown") NULL else xs)
   f$time <- as.numeric(difftime(Sys.time(), t0, units = "mins"))
   print(f); print(f$hyper)
   saveRDS(f, joint_file(type))

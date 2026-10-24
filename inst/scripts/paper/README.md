@@ -43,6 +43,9 @@ and writes its results to `paper_results/` and `paper_figures/` in the current w
 | `19_zil_report.R` | Figures for the stand-alone report on the model of 17 (`inst/reports/zero_inflated/`): maps of u, exposure on the grid and along the river network, probability of a zone, prevalence within a zone and expected prevalence, and the cross-validated non-randomised PIT and reliability of this model alone |
 | `21_fit_directed.R` | Directed breeding fields (tail-down, tail-up with discharge-weighted mixing, and their sum; `directed_graph()`) in the model of 17, compared with the symmetric field over ranges of u, with random-fold cross-validation (several hours; restartable) |
 | `22_profile_phi.R` | Profile of the likelihood over the tail-up share of variance in the tail-up + tail-down field, at the tail-down estimates (needs `directed_taildown.rds` from 21) |
+| `23_directed_profiles.R` | Fair comparison of the directed fields (symmetric field dropped): dense range profiles, joint estimation of the range (separate ranges for the two parts of the summed field), random-fold cross-validation and comparison; restartable from checkpoints |
+| `24_tailup_joint_warm.R` | Joint fit of the tail-up model started from the latent mode of its best profile fit (its latent posterior has several modes) |
+| `25_directed_maps.R` | Maps of u and of expected prevalence for the joint fits of the three directed fields |
 | `20_zil_intervals.R` | 95% confidence intervals for all parameters of the model of 17: Wald intervals for the regression coefficients, and for a_E, gamma, sigma_u and sigma_Z from the finite-difference observed information of the approximate marginal likelihood (about 15 minutes) |
 
 Intermediate results are written to `paper_results/` and figures to `paper_figures/`. Each script uses results of earlier scripts from `paper_results/` in the working folder:

@@ -33,7 +33,8 @@
 odisp_fit_zil <- function(formula, breeding, data, nodes, graph, pairs = NULL, phi = 40,
                           range_u = 800, trials = "n", aridity = "AI", prior_sd = 10,
                           start = NULL, fixed = list(), trace = TRUE, estimate_range = FALSE,
-                          checkpoint = NULL, bfgs = FALSE, range_up = range_u) {
+                          checkpoint = NULL, bfgs = FALSE, range_up = range_u, x_start = NULL,
+                          multistart = TRUE) {
   S <- odisp_u_setup(formula, breeding, data, nodes, graph, pairs, phi, trials, aridity, prior_sd)
   n <- length(S$y)
   S$m_c <- c(stats::qlogis(min(max(mean(S$y > 0), 0.05), 0.95)), rep(0, ncol(S$X) - 1))
@@ -54,6 +55,7 @@ odisp_fit_zil <- function(formula, breeding, data, nodes, graph, pairs = NULL, p
              range_u = log, range_up = log)
   free <- setdiff(names(start), names(fixed))
   x0 <- list(beta = S$m_beta, c = S$m_c, theta = S$m_theta, u = rep(0, graph$nv), z = rep(0, n))
+  if (!is.null(x_start)) x0 <- x_start                      # latent starting point, e.g. a neighbouring fit
   # resume from a checkpoint: best parameters and latent mode found so far
   if (!is.null(checkpoint) && file.exists(checkpoint)) {
     ck <- readRDS(checkpoint)
@@ -86,7 +88,14 @@ odisp_fit_zil <- function(formula, breeding, data, nodes, graph, pairs = NULL, p
       return(state$cache[[key]])
     }
     fld <- make_fld(par)
-    res <- tryCatch(odisp_zil_laplace(fld, S, state$x), error = function(e) list(logLik = -Inf, msg = conditionMessage(e)))
+    lap <- function(x) tryCatch(odisp_zil_laplace(fld, S, x), error = function(e) list(logLik = -Inf, logpost = -Inf))
+    res <- lap(state$x)
+    # the posterior of the latent effects can have several modes: also start
+    # from the mode of the best point so far and keep the higher mode
+    if (multistart && !is.null(state$best) && !identical(state$best$res$x, state$x)) {
+      r2 <- lap(state$best$res$x)
+      if (isTRUE(r2$logpost > res$logpost + 1e-6)) res <- r2
+    }
     if (is.finite(res$logLik)) state$x <- res$x
     if (is.finite(res$logLik) && (is.null(state$best) || res$logLik > state$best$res$logLik)) {
       state$best <- list(key = key, res = res)
@@ -276,7 +285,7 @@ odisp_zil_laplace <- function(fld, S, x, maxit = 50, tol = 1e-7) {
   logdet <- 2 * sum(log(diag(ops$cC)))
   idx <- c(ops$ib, ops$ic, ops$it)
   Vf <- sapply(idx, function(k) { e <- numeric(length(odisp_zil_vec(x))); e[k] <- 1; ops$HGNinv(e)[idx] })
-  list(logLik = fx$f - 0.5 * logdet, x = x, a = fx$ev$a, d = fx$ev$d, e = fx$ev$e, iterations = it,
+  list(logLik = fx$f - 0.5 * logdet, logpost = fx$f, x = x, a = fx$ev$a, d = fx$ev$d, e = fx$ev$e, iterations = it,
        Vfix = (Vf + t(Vf)) / 2)
 }
 

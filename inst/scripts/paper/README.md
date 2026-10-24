@@ -48,6 +48,7 @@ and writes its results to `paper_results/` and `paper_figures/` in the current w
 | `25_directed_maps.R` | Maps of u and of expected prevalence for the joint fits of the three directed fields |
 | `26_directed_intervals.R` | 95% confidence intervals for the joint tail-down and tail-up fits (Wald, from the finite-difference observed information of the approximate marginal likelihood) |
 | `27_variogram_z_taildown.R` | Variogram of the village effect in the tail-down model among villages with at least one positive, with a 9999-permutation envelope and tests |
+| `28_pit_cdf.R` | Non-randomised PIT of the directed fields as a mean distribution function against the identity, with a simulation band and a test of the largest deviation |
 | `20_zil_intervals.R` | 95% confidence intervals for all parameters of the model of 17: Wald intervals for the regression coefficients, and for a_E, gamma, sigma_u and sigma_Z from the finite-difference observed information of the approximate marginal likelihood (about 15 minutes) |
 
 Intermediate results are written to `paper_results/` and figures to `paper_figures/`. Each script uses results of earlier scripts from `paper_results/` in the working folder:

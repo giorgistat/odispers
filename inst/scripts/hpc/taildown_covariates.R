@@ -19,6 +19,8 @@
 #   M0  log discharge only (the selected tail-down model without covariates)
 #   M1  + log(1 + channel slope, dm/km) + min{log(1 + upstream inundation %), 1.5}
 #   M2  + hard rock (reach on basement or volcanic rock, GLiM classes)
+#   M3  slope and inundation only (M1 without log discharge, whose effect in M1
+#       is nil)
 #
 # Steps for each model:
 #   1. fit: Laplace approximation of the marginal likelihood; sigma_u,
@@ -42,7 +44,7 @@
 # Usage:
 #   Rscript taildown_covariates.R [out_dir] [models]
 #     out_dir  folder for the results (default taildown_covariates_results)
-#     models   comma-separated subset of M0,M1,M2 (default all, in order)
+#     models   comma-separated subset of M0,M1,M2,M3 (default all, in order)
 # Each model warm-starts from the largest nested model already fitted in
 # out_dir (M2 from M1, else M0), so running M0 first is fastest. Fits are
 # checkpointed and every completed stage is saved: a job that is stopped
@@ -51,12 +53,12 @@
 #   #!/bin/bash
 #   #SBATCH --time=12:00:00 --mem=8G --cpus-per-task=1
 #   module load R
-#   Rscript taildown_covariates.R results M0,M1,M2
+#   Rscript taildown_covariates.R results M0,M1,M2,M3
 ###############################################################################
 suppressPackageStartupMessages({ library(odispers); library(sf); library(Matrix) })
 args <- commandArgs(trailingOnly = TRUE)
 out_dir <- if (length(args) >= 1) args[1] else "taildown_covariates_results"
-run_models <- if (length(args) >= 2) strsplit(args[2], ",")[[1]] else c("M0", "M1", "M2")
+run_models <- if (length(args) >= 2) strsplit(args[2], ",")[[1]] else c("M0", "M1", "M2", "M3")
 dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
 phi <- 40           # km, dispersal range of the kernel
 log_msg <- function(...) cat(format(Sys.time(), "%H:%M:%S"), sprintf(...), "\n")
@@ -83,8 +85,9 @@ log_msg("data: %d villages (%d with positives), %d nodes, %d graph vertices", nr
 
 breeding <- list(M0 = ~ log(DIS_AV_CMS),
                  M1 = ~ log(DIS_AV_CMS) + log_slope + inundation,
-                 M2 = ~ log(DIS_AV_CMS) + log_slope + inundation + hard_rock)
-parent <- list(M0 = character(0), M1 = "M0", M2 = c("M1", "M0"))
+                 M2 = ~ log(DIS_AV_CMS) + log_slope + inundation + hard_rock,
+                 M3 = ~ log_slope + inundation)
+parent <- list(M0 = character(0), M1 = "M0", M2 = c("M1", "M0"), M3 = c("M1", "M0"))
 res_file <- function(m) file.path(out_dir, sprintf("fit_%s.rds", m))
 
 # ---- helpers: cross-validation (predictive distributions) -----------------------------
@@ -247,8 +250,9 @@ for (m in run_models) {
     start <- c(log(5), log(0.6), 0.8, 0.2); r0 <- 800; xs <- NULL   # generic starting values
     if (!is.null(prev)) {
       start <- prev$par[1:4]; r0 <- prev$hyper[["range_u"]]; cf <- prev$coefficients
-      q_new <- length(attr(terms(breeding[[m]]), "term.labels")); th <- cf[grep("^theta\\.", names(cf))]
-      xs <- list(beta = cf[1:2], c = cf[3:4], theta = c(th, rep(0, q_new - length(th))), u = prev$u, z = prev$z)
+      th_new <- paste0("theta.", attr(terms(breeding[[m]]), "term.labels"))   # matched by name, 0 if new
+      th <- ifelse(th_new %in% names(cf), cf[th_new], 0)
+      xs <- list(beta = cf[1:2], c = cf[3:4], theta = unname(th), u = prev$u, z = prev$z)
       log_msg("warm start from the fit of %s", prev_name)
     }
     t0 <- Sys.time()

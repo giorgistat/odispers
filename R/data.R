@@ -70,3 +70,38 @@
 #' @source Natural Earth, 1:50m admin-0 countries (public domain),
 #'   \url{https://www.naturalearthdata.com}.
 "sudan_borders"
+
+#' RiverATLAS attributes of the Sudan and South Sudan river network
+#'
+#' Hydro-environmental attributes of the reaches in \code{\link{sudan_rivers}}
+#' (same rows, same order), extracted from RiverATLAS, the river-reach layer of
+#' HydroATLAS v1.0. They describe the larval habitat of the vector and are used
+#' as breeding covariates: channel slope (a proxy for water speed), dry-season
+#' discharge (flow permanence), inundation, lakes, regulation, forest cover and
+#' lithology. Missing values are \code{NA}.
+#'
+#' @format A data frame with 93,094 rows and 15 columns:
+#' \describe{
+#'   \item{HYRIV_ID}{Reach identifier, as in \code{sudan_rivers}.}
+#'   \item{sgr_dk_rav}{Channel slope of the reach (decimetres per km).}
+#'   \item{dis_m3_pyr, dis_m3_pmn, dis_m3_pmx}{Natural discharge (m\eqn{^3}/s):
+#'     annual mean, minimum month and maximum month.}
+#'   \item{run_mm_cyr}{Land surface runoff in the reach catchment (mm per year).}
+#'   \item{inu_pc_umn, inu_pc_umx, inu_pc_ult}{Inundated area in the upstream
+#'     catchment (percent): minimum month, maximum month, long-term maximum.}
+#'   \item{lka_pc_use}{Lake area in the upstream catchment (percent).}
+#'   \item{dor_pc_pva}{Degree of regulation by dams (percent).}
+#'   \item{for_pc_use}{Forest cover in the upstream catchment (percent).}
+#'   \item{lit_cl_cmj}{Lithology class, majority in the reach catchment (HydroATLAS codes).}
+#'   \item{ele_mt_cav}{Mean elevation of the reach catchment (m).}
+#'   \item{riv_tc_usu}{River volume upstream (thousand m\eqn{^3}).}
+#' }
+#' @source Linke, S. et al. (2019). Global hydro-environmental sub-basin and
+#'   river reach characteristics at high spatial resolution. Scientific Data 6,
+#'   283. \url{https://www.hydrosheds.org/hydroatlas}. Distributed under the
+#'   HydroSHEDS licence (CC BY 4.0), which requires this citation.
+#' @examples
+#' data(sudan_rivers); data(sudan_river_covariates)
+#' stopifnot(identical(sudan_rivers$HYRIV_ID, sudan_river_covariates$HYRIV_ID))
+#' summary(sudan_river_covariates$sgr_dk_rav)
+"sudan_river_covariates"

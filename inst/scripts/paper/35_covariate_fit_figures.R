@@ -13,9 +13,10 @@ library(ggplot2)
 source(system.file("scripts/paper/00_settings.R", package = "odispers"))
 res_dir <- commandArgs(trailingOnly = TRUE)[1]
 data(sudan_borders); data(sudan_rivers); data(sudan_river_covariates)
-models <- c("M0", "M1", "M2")
-labels <- c(M0 = "M0: discharge only", M1 = "M1: + slope, inundation", M2 = "M2: + slope, inundation, hard rock")
-R <- list(); for (m in models) { f <- file.path(res_dir, sprintf("fit_%s.rds", m)); if (file.exists(f)) R[[m]] <- readRDS(f) }
+models <- c("M0", "M1", "M2", "M3")
+labels <- c(M0 = "M0: discharge only", M1 = "M1: + slope, inundation", M2 = "M2: + slope, inundation, hard rock", M3 = "M3: slope, inundation (no discharge)")
+R <- list(); for (m in models) { f <- file.path(res_dir, sprintf("fit_%s.rds", m))
+  if (file.exists(f)) { r <- readRDS(f); if (!is.null(r$grid)) R[[m]] <- r } }   # completed models only
 models <- names(R)
 
 # PIT distribution functions

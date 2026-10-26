@@ -74,3 +74,5 @@ Intermediate results are written to `paper_results/` and figures to `paper_figur
 So the linear model with u can be run on its own with `08_fit_u_linear.R`. Script 03 fits the model about 110 times to profile the change point and takes some minutes; scripts 07 and 08 take about an hour each.
 
 `../extract_riveratlas_sudan.R` extracts RiverATLAS attributes for the study area, such as stream gradient and minimum and maximum monthly discharge. These are for planned breeding covariates.
+
+The RiverATLAS covariates are in `data(sudan_river_covariates)`, built by `data-raw/make_river_covariates.R`. `31_covariates_eda.R` is the model-free exploratory analysis. It turns each river covariate into a village average over the rivers within 40 km, weighted by the kernel, plots it against the share of villages with positives and against the prevalence among villages with positives, overall and within terciles of aridity, and writes `cov_eda.rds`. The report is in `inst/reports/covariates/`. `29_covariates_explore.R` checks the covariates against the breeding field u of the fitted tail-down model. `30_covariates_refit.R` refits the tail-down model with selected covariates.

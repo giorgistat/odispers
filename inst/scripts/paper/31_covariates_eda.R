@@ -16,8 +16,9 @@
 # (c) the pooled prevalence among villages with positives (intensity), by
 # quintile of xbar_i, overall and within terciles of aridity. A summary table
 # gives Spearman correlations with 95% spatial block-bootstrap intervals
-# (1-degree cells), the sign within aridity terciles, the sensitivity to the
-# kernel range (20, 40, 60 km) and theta, and the correlations between the
+# (1-degree cells), the sign within aridity terciles, the sensitivity to
+# theta, and, in panels (d)-(e), the correlations for kernel ranges from 5 to
+# 100 km, and the correlations between the
 # xbar_i of different covariates. These feed the inclusion criterion.
 ###############################################################################
 library(odispers)
@@ -65,9 +66,12 @@ xbar_of <- function(pairs, phi, theta) {
   out[!is.finite(den) | den == 0, ] <- NA
   out
 }
-pairs60 <- river_pairs(v, nodes, max_range = 60)
-X <- list(main = xbar_of(net$pairs, 40, 0), phi20 = xbar_of(net$pairs, 20, 0),
-          phi60 = xbar_of(pairs60, 60, 0), theta = xbar_of(net$pairs, 40, -0.9))
+# kernel range phi (km): 40 km is the range of the fitted models; the grid shows
+# how the associations change with the scale over which rivers are averaged
+phis <- c(5, 10, 20, 30, 40, 60, 80, 100)
+pairs_max <- river_pairs(v, nodes, max_range = max(phis))
+Xphi <- lapply(phis, function(ph) xbar_of(pairs_max, ph, 0)); names(Xphi) <- phis
+X <- list(main = Xphi[["40"]], phi20 = Xphi[["20"]], phi60 = Xphi[["60"]], theta = xbar_of(net$pairs, 40, -0.9))
 ok <- complete.cases(X$main)
 cat("villages with river within 40 km:", sum(ok), "of", nrow(v), "; positives among the others:",
     sum(v$y[!ok] > 0), "\n")
@@ -104,6 +108,21 @@ for (k in names(cv)) {
       rho_dry = strat[part, 1], rho_mid = strat[part, 2], rho_humid = strat[part, 3],
       rho_phi20 = sens[part, "phi20"], rho_phi60 = sens[part, "phi60"], rho_theta = sens[part, "theta"],
       cor_main_phi20 = cor(x, X$phi20[ok, k], use = "complete.obs"), cor_main_phi60 = cor(x, X$phi60[ok, k])))
+}
+# associations as a function of the kernel range: pooled (with block-bootstrap
+# intervals) and within the middle and humid terciles of aridity
+cat("villages with river within phi km:", sapply(Xphi, function(z) sum(complete.cases(z[ok, ]))), "\n")
+curves <- NULL
+for (k in names(cv)) for (ph in names(Xphi)) {
+  x <- Xphi[[ph]][ok, k]
+  r0 <- rho(x, d)
+  bs <- sapply(boot_idx[1:1000], function(id) rho(x[id], d[id, ]))
+  ci <- apply(bs, 1, quantile, c(0.025, 0.975), na.rm = TRUE)
+  strat <- sapply(c("middle tercile", "humid tercile"), function(a) { s <- d$aridity == a; rho(x[s], d[s, ]) })
+  for (part in c("zone", "intensity"))
+    curves <- rbind(curves, data.frame(covariate = k, phi = as.numeric(ph), part = part,
+      stratum = c("all villages", "middle tercile", "humid tercile"),
+      rho = c(r0[[part]], strat[part, ]), lower = c(ci[1, part], NA, NA), upper = c(ci[2, part], NA, NA)))
 }
 summ <- merge(summ, info[, c("covariate", "expected", "rationale")], sort = FALSE)
 print(summ[, 1:6], digits = 2, row.names = FALSE)
@@ -159,15 +178,33 @@ for (k in names(cv)) {
   sub <- sprintf("expected sign: %s (%s rationale).   Spearman, zone: %.2f (%.2f, %.2f);   intensity: %.2f (%.2f, %.2f)",
                  info$expected[info$covariate == k], info$rationale[info$covariate == k],
                  s$rho[1], s$lower[1], s$upper[1], s$rho[2], s$lower[2], s$upper[2])
-  png(file.path(fig_dir, "eda", sprintf("eda_%s.png", k)), width = 13, height = 4.5, units = "in", res = 170)
+  cu <- subset(curves, covariate == k)
+  cu$stratum <- factor(cu$stratum, c("all villages", "middle tercile", "humid tercile"))
+  pcurve <- function(pt, ttl) {
+    dd <- subset(cu, part == pt)
+    ggplot(dd, aes(phi, rho, colour = stratum)) + geom_hline(yintercept = 0, colour = "grey60") +
+      geom_vline(xintercept = 40, linetype = 2, colour = "grey50") +
+      geom_ribbon(data = subset(dd, stratum == "all villages"), aes(ymin = lower, ymax = upper),
+                  fill = "grey80", colour = NA) +
+      geom_line(aes(linewidth = stratum == "all villages")) + geom_point(size = 1) +
+      scale_linewidth_manual(values = c(`TRUE` = 0.9, `FALSE` = 0.5), guide = "none") +
+      scale_colour_manual(values = cols, name = NULL) + scale_x_log10(breaks = phis) +
+      coord_cartesian(ylim = c(-0.7, 0.7)) + theme_minimal(base_size = 9) +
+      labs(x = "kernel range (km)", y = "Spearman correlation", title = ttl)
+  }
+  pd <- pcurve("zone", "(d) zone: association by kernel range")
+  pe <- pcurve("intensity", "(e) intensity: association by kernel range")
+  png(file.path(fig_dir, "eda", sprintf("eda_%s.png", k)), width = 13, height = 8.2, units = "in", res = 170)
   grid::grid.newpage()
-  lay <- grid::grid.layout(2, 3, heights = grid::unit(c(0.6, 3.9), "in"), widths = grid::unit(c(4.6, 4.2, 4.2), "in"))
+  lay <- grid::grid.layout(3, 3, heights = grid::unit(c(0.6, 3.9, 3.7), "in"), widths = grid::unit(c(4.6, 4.2, 4.2), "in"))
   grid::pushViewport(grid::viewport(layout = lay))
   grid::grid.text(lab, x = 0.01, y = 0.68, hjust = 0, gp = grid::gpar(fontsize = 12, fontface = "bold"),
                   vp = grid::viewport(layout.pos.row = 1, layout.pos.col = 1:3))
   grid::grid.text(sub, x = 0.01, y = 0.25, hjust = 0, gp = grid::gpar(fontsize = 9),
                   vp = grid::viewport(layout.pos.row = 1, layout.pos.col = 1:3))
   for (q in 1:3) print(list(pa, pb, pc)[[q]], vp = grid::viewport(layout.pos.row = 2, layout.pos.col = q))
+  print(pd, vp = grid::viewport(layout.pos.row = 3, layout.pos.col = 1))
+  print(pe, vp = grid::viewport(layout.pos.row = 3, layout.pos.col = 2))
   dev.off()
 }
-saveRDS(list(summary = summ, cor = cmat, xbar = X, ok = ok, villages = d), file.path(out_dir, "cov_eda.rds"))
+saveRDS(list(summary = summ, curves = curves, cor = cmat, xbar = X, ok = ok, villages = d), file.path(out_dir, "cov_eda.rds"))

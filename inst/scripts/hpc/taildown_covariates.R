@@ -297,14 +297,16 @@ for (m in run_models) {
 # ---- comparison -----------------------------------------------------------------------
 done <- Filter(file.exists, sapply(names(breeding), res_file))
 if (length(done)) {
-  cmp <- do.call(rbind, lapply(names(done), function(m) {
+  cmp <- lapply(names(done), function(m) {
     r <- readRDS(done[[m]]); f <- r$fit; h <- f$hyper
     row <- data.frame(model = m, breeding = deparse(breeding[[m]]), logLik = f$logLik,
                       n_theta = sum(grepl("^theta\\.", names(f$coefficients))),
                       sigma_u = h[["sigma_u"]], sigma_z = h[["sigma_z"]], a_E = h[["a_E"]], gamma = h[["gamma"]],
                       range_km = h[["range_u"]])
     if (!is.null(r$cv_scores)) row <- cbind(row, r$cv_scores$table)
-    row }))
+    row })
+  cols <- Reduce(union, lapply(cmp, names))
+  cmp <- do.call(rbind, lapply(cmp, function(r) { r[setdiff(cols, names(r))] <- NA; r[cols] }))
   cmp$d_logLik <- cmp$logLik - cmp$logLik[1]
   print(cmp, digits = 4, row.names = FALSE)
   write.csv(cmp, file.path(out_dir, "comparison.csv"), row.names = FALSE)

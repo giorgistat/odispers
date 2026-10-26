@@ -4,7 +4,7 @@
 \alias{wm_precision}
 \title{Precision matrix of a Whittle-Matern field on a river graph}
 \usage{
-wm_precision(graph, range, sigma = 1)
+wm_precision(graph, range, sigma = 1, mix = 0.5, range_up = range)
 }
 \arguments{
 \item{graph}{An \code{odisp_graph} object.}

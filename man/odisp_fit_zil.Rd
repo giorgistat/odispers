@@ -18,7 +18,13 @@ odisp_fit_zil(
   prior_sd = 10,
   start = NULL,
   fixed = list(),
-  trace = TRUE
+  trace = TRUE,
+  estimate_range = FALSE,
+  checkpoint = NULL,
+  bfgs = FALSE,
+  range_up = range_u,
+  x_start = NULL,
+  multistart = TRUE
 )
 }
 \arguments{

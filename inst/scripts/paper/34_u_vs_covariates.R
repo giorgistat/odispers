@@ -6,8 +6,9 @@
 # Nodes: those within 40 km of a village (the only ones the data inform).
 # Each panel: 2-d histogram of the nodes, weighted means of u in 20 bins of
 # the covariate (weights: kernel weight summed over villages, i.e. how much
-# the data see the node) and a weighted GAM smooth. For discharge, a second
-# panel shows the total log breeding intensity theta log Q + u.
+# the data see the node). For discharge, a second panel shows the total log
+# breeding intensity theta log Q + u. Hard rock (a class per reach) is shown
+# as box plots of u by class.
 ###############################################################################
 library(odispers)
 library(Matrix)
@@ -28,9 +29,8 @@ covs <- list(
   "log discharge (m3/s): theta log Q + u" = list(x = lq, y = theta * lq + u),
   "log(1 + slope, dm/km)" = list(x = log1p(rc$sgr_dk_rav[used]), y = u),
   "log(1 + upstream inundation %)" = list(x = log1p(rc$inu_pc_ult[used]), y = u),
-  "hard rock (0 = sediments, 1 = basement/volcanic)" =
-    list(x = as.numeric(rc$lit_cl_cmj[used] %in% c(2, 4, 7, 8, 9, 10, 12, 13)), y = u),
-  "upstream forest cover % (not selected)" = list(x = rc$for_pc_use[used], y = u))
+  "log(1 + upstream inundation %), capped at 1.5" = list(x = pmin(log1p(rc$inu_pc_ult[used]), 1.5), y = u))
+hard <- as.numeric(rc$lit_cl_cmj[used] %in% c(2, 4, 7, 8, 9, 10, 12, 13))
 pts <- NULL; bins <- NULL; sm <- NULL; tab <- NULL
 for (nm in names(covs)) {
   x <- covs[[nm]]$x; y <- covs[[nm]]$y
@@ -40,24 +40,31 @@ for (nm in names(covs)) {
   for (lv in levels(b)) { s <- b == lv; if (!any(s)) next
     ww <- wt[s] / sum(wt[s]); mu <- sum(ww * y[s]); se <- sqrt(sum(ww * (y[s] - mu)^2) * sum(ww^2))
     bins <- rbind(bins, data.frame(panel = nm, x = sum(ww * x[s]), y = mu, lo = mu - 1.96 * se, hi = mu + 1.96 * se)) }
-  if (!binary) {
-    gm <- mgcv::gam(y ~ s(x, k = 10), weights = wt / mean(wt), data = data.frame(x = x, y = y), method = "REML")
-    xs <- seq(quantile(x, 0.005), quantile(x, 0.995), length.out = 200)
-    sm <- rbind(sm, data.frame(panel = nm, x = xs, y = predict(gm, data.frame(x = xs))))
-  }
   tab <- rbind(tab, data.frame(panel = nm, weighted_cor = cov.wt(cbind(x, y), wt = wt / sum(wt), cor = TRUE)$cor[1, 2],
                                spearman = cor(x, y, method = "spearman")))
 }
 pts$panel <- factor(pts$panel, names(covs)); bins$panel <- factor(bins$panel, names(covs))
-sm$panel <- factor(sm$panel, names(covs))
+tab <- rbind(tab, data.frame(panel = "hard rock", weighted_cor = cov.wt(cbind(hard, u), wt = wt / sum(wt), cor = TRUE)$cor[1, 2],
+                             spearman = cor(hard, u, method = "spearman")))
 print(tab, digits = 2, row.names = FALSE)
+cat("weighted mean of u by hard rock class:", round(tapply(u * wt, hard, sum) / tapply(wt, hard, sum), 2), "\n")
 p <- ggplot(pts, aes(x, y)) + geom_bin2d(bins = 60) +
   scale_fill_gradient(low = "grey90", high = "grey20", trans = "log10", name = "nodes") +
   geom_hline(yintercept = 0, colour = "grey50", linewidth = 0.3) +
-  geom_line(data = sm, colour = "#b2182b", linewidth = 0.9) +
   geom_pointrange(data = bins, aes(ymin = lo, ymax = hi), colour = "#2166ac", size = 0.2) +
   facet_wrap(~ panel, scales = "free", ncol = 3) + theme_minimal(base_size = 9) +
-  labs(x = "covariate at the river node", y = "posterior mode of u (or theta log Q + u)",
-       caption = "Nodes within 40 km of a village. Blue: weighted means of u in 20 bins (weights = kernel weight summed over villages). Red: weighted GAM smooth.")
-ggsave(file.path(fig_dir, "u_vs_covariates.png"), p, width = 12, height = 7.5, dpi = 180, bg = "white")
-saveRDS(list(bins = bins, smooth = sm, cor = tab), file.path(out_dir, "u_vs_covariates.rds"))
+  labs(x = "covariate at the river node", y = "posterior mode of u (or theta log Q + u)")
+pb <- ggplot(data.frame(class = factor(hard, 0:1, c("sediments", "basement / volcanic")), u = u), aes(class, u)) +
+  geom_boxplot(fill = "grey85", outlier.size = 0.3, outlier.alpha = 0.3) +
+  geom_hline(yintercept = 0, colour = "grey50", linewidth = 0.3) + theme_minimal(base_size = 9) +
+  labs(x = NULL, y = "posterior mode of u", title = "hard rock")
+png(file.path(fig_dir, "u_vs_covariates.png"), width = 12, height = 7.5, units = "in", res = 180)
+grid::grid.newpage()
+lay <- grid::grid.layout(2, 3)
+grid::pushViewport(grid::viewport(layout = lay))
+print(p, vp = grid::viewport(layout.pos.row = 1:2, layout.pos.col = 1:3))
+print(pb + theme(plot.background = element_rect(fill = "white", colour = NA)),
+      vp = grid::viewport(x = 5 / 6, y = 0.25, width = 1 / 3 - 0.01, height = 0.47))
+dev.off()
+cat("Blue: weighted means of u in 20 bins (weights = kernel weight summed over villages).\n")
+saveRDS(list(bins = bins, cor = tab), file.path(out_dir, "u_vs_covariates.rds"))

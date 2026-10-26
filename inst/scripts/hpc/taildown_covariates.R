@@ -23,7 +23,8 @@
 # Steps for each model:
 #   1. fit: Laplace approximation of the marginal likelihood; sigma_u,
 #      sigma_z, a_E, gamma and the range of u estimated jointly
-#   2. confidence intervals: Wald intervals for the regression coefficients
+#   2. refinement of the maximum (Newton steps with a finite-difference
+#      Hessian scaled to each parameter) and confidence intervals: Wald intervals for the regression coefficients
 #      (from the Laplace approximation, conditional on the other
 #      parameters); for sigma_u, sigma_z, a_E, gamma and the range, Wald
 #      intervals from the observed information of the approximate marginal
@@ -153,36 +154,72 @@ cv_scores <- function(pr, AI) {
        pit = data.frame(u = ug, Fbar = Fbar, lower = apply(sims, 1, quantile, 0.025), upper = apply(sims, 1, quantile, 0.975)))
 }
 
-# ---- helper: intervals for the hyperparameters ----------------------------------------
-hyper_intervals <- function(fit) {
-  S <- fit$setup; cf <- fit$coefficients; p <- ncol(S$X); q <- ncol(S$B)
-  x_mode <- list(beta = cf[seq_len(p)], c = cf[p + seq_len(p)], theta = cf[2 * p + seq_len(q)], u = fit$u, z = fit$z)
-  p0 <- fit$par                                    # log sigma_u, log sigma_z, a_E, gamma, log range
-  ll_at <- function(par) {
-    R <- wm_precision(graph, exp(par[5]), 1)
-    fld <- list(field = "u", R = R, Rch = Matrix::Cholesky(R, LDL = FALSE, perm = TRUE),
-                sig_u = exp(par[1]), sig_z = exp(par[2]), aE = par[3], gamma = par[4])
-    odispers:::odisp_zil_laplace(fld, S, x_mode)$logLik
-  }
-  k <- length(p0); h <- c(0.05, 0.05, 0.02, 0.02, 0.05)
-  f0 <- ll_at(p0); H <- matrix(0, k, k); fp <- fm <- numeric(k)
-  for (i in 1:k) { e <- replace(numeric(k), i, h[i]); fp[i] <- ll_at(p0 + e); fm[i] <- ll_at(p0 - e)
+# ---- helper: refinement of the maximum and intervals for the hyperparameters --------
+# The outer optimiser of odisp_fit_zil stops when a proposed step fails to
+# improve the approximate likelihood, which can leave it a few tenths of a unit
+# short of the maximum. Starting from its result, Newton steps are taken with
+# the gradient and Hessian of the approximate marginal likelihood from central
+# finite differences with steps scaled to each parameter (0.05 on the log
+# scale of sigma_u, sigma_z and the range, 0.02 for a_E and gamma), with a line
+# search, until the predicted gain is below 0.01. The intervals come from the
+# Hessian at the final point.
+lap_at <- function(S, x_mode, par) {
+  R <- wm_precision(graph, exp(par[5]), 1)
+  fld <- list(field = "u", R = R, Rch = Matrix::Cholesky(R, LDL = FALSE, perm = TRUE),
+              sig_u = exp(par[1]), sig_z = exp(par[2]), aE = par[3], gamma = par[4])
+  odispers:::odisp_zil_laplace(fld, S, x_mode)
+}
+hessian_at <- function(S, x_mode, p0, h = c(0.05, 0.05, 0.02, 0.02, 0.05)) {
+  c0 <- lap_at(S, x_mode, p0); x_mode <- c0$x; f0 <- c0$logLik
+  ll <- function(par) lap_at(S, x_mode, par)$logLik
+  k <- length(p0); H <- matrix(0, k, k); fp <- fm <- numeric(k)
+  for (i in 1:k) { e <- replace(numeric(k), i, h[i]); fp[i] <- ll(p0 + e); fm[i] <- ll(p0 - e)
                    H[i, i] <- (fp[i] - 2 * f0 + fm[i]) / h[i]^2 }
   for (i in 1:(k - 1)) for (j in (i + 1):k) {
     ei <- replace(numeric(k), i, h[i]); ej <- replace(numeric(k), j, h[j])
-    H[i, j] <- H[j, i] <- (ll_at(p0 + ei + ej) - ll_at(p0 + ei - ej) - ll_at(p0 - ei + ej) + ll_at(p0 - ei - ej)) /
-      (4 * h[i] * h[j])
+    H[i, j] <- H[j, i] <- (ll(p0 + ei + ej) - ll(p0 + ei - ej) - ll(p0 - ei + ej) + ll(p0 - ei - ej)) / (4 * h[i] * h[j])
   }
-  ev <- eigen(-H, symmetric = TRUE)$values
-  V <- solve(-H); se <- sqrt(pmax(diag(V), 0)); z <- stats::qnorm(0.975)
+  list(p = p0, f0 = f0, g = (fp - fm) / (2 * h), H = H, x = x_mode)
+}
+refine_and_intervals <- function(fit, form, maxit = 6) {
+  S <- fit$setup; cf <- fit$coefficients; np <- ncol(S$X); q <- ncol(S$B)
+  x_mode <- list(beta = cf[seq_len(np)], c = cf[np + seq_len(np)], theta = cf[2 * np + seq_len(q)], u = fit$u, z = fit$z)
+  p <- fit$par; f_start <- NA
+  for (it in seq_len(maxit)) {
+    hs <- hessian_at(S, x_mode, p); x_mode <- hs$x
+    if (is.na(f_start)) f_start <- hs$f0
+    e <- eigen(-hs$H, symmetric = TRUE)
+    Bm <- e$vectors %*% diag(pmax(e$values, 1), length(p)) %*% t(e$vectors)   # positive definite
+    step <- as.vector(solve(Bm, hs$g))
+    if (sqrt(sum(step^2)) > 0.5) step <- step * 0.5 / sqrt(sum(step^2))
+    gain <- sum(hs$g * step) - 0.5 * sum(step * (Bm %*% step))
+    log_msg("  refinement %d: logLik %.3f, gradient %s, predicted gain %.3f", it, hs$f0,
+            paste(sprintf("%.2f", hs$g), collapse = " "), gain)
+    if (gain < 0.01) break
+    t <- 1; ok <- FALSE
+    while (t >= 1 / 16) { ft <- lap_at(S, x_mode, p + t * step)
+      if (ft$logLik > hs$f0 + 1e-3) { ok <- TRUE; break }; t <- t / 2 }
+    if (!ok) break
+    p <- p + t * step; x_mode <- ft$x
+  }
+  if (!identical(hs$p, p)) { hs <- hessian_at(S, x_mode, p); x_mode <- hs$x }
+  # model object at the refined point: all hyperparameters fixed, latent mode recomputed
+  pu <- unname(p)
+  f <- odisp_fit_zil(y ~ log(AI), form, v, nodes, graph, pairs, phi = phi, range_u = exp(pu[5]),
+                     fixed = list(sigma_u = exp(pu[1]), sigma_z = exp(pu[2]), a_E = pu[3], gamma = pu[4]),
+                     estimate_range = FALSE, x_start = x_mode, multistart = FALSE, trace = FALSE)
+  f$par <- p
+  ev <- eigen(-hs$H, symmetric = TRUE)$values
+  V <- solve(-hs$H); se <- sqrt(pmax(diag(V), 0)); z <- stats::qnorm(0.975)
   logsc <- c(TRUE, TRUE, FALSE, FALSE, TRUE)
   hyp <- data.frame(parameter = c("sigma_u", "sigma_z", "a_E", "gamma", "range_u (km)"),
-                    estimate = ifelse(logsc, exp(p0), p0),
-                    lower = ifelse(logsc, exp(p0 - z * se), p0 - z * se), upper = ifelse(logsc, exp(p0 + z * se), p0 + z * se))
-  sec <- sqrt(diag(fit$vcov))
+                    estimate = ifelse(logsc, exp(p), p),
+                    lower = ifelse(logsc, exp(p - z * se), p - z * se), upper = ifelse(logsc, exp(p + z * se), p + z * se))
+  cf <- f$coefficients; sec <- sqrt(diag(f$vcov))
   reg <- data.frame(parameter = names(cf), estimate = cf, lower = cf - z * sec, upper = cf + z * sec)
   tab <- rbind(reg, hyp); rownames(tab) <- NULL
-  list(table = tab, hessian = H, eigen = ev, gradient = (fp - fm) / (2 * h), logLik_check = f0)
+  list(fit = f, intervals = list(table = tab, hessian = hs$H, eigen = ev, gradient = hs$g, refined = TRUE,
+                                 logLik_start = f_start, logLik = f$logLik))
 }
 
 # ---- prediction grid (20 km) ----------------------------------------------------------
@@ -227,11 +264,17 @@ for (m in run_models) {
     log_msg("%s: fit loaded (logLik %.3f)", m, fit$logLik)
   }
 
-  if (is.null(res$intervals)) {
-    t0 <- Sys.time(); res$intervals <- hyper_intervals(fit)
-    log_msg("%s intervals in %.1f min; eigenvalues of the observed information: %s", m,
-            as.numeric(difftime(Sys.time(), t0, units = "mins")), paste(signif(res$intervals$eigen, 3), collapse = " "))
+  if (!isTRUE(res$intervals$refined)) {
+    t0 <- Sys.time(); ri <- refine_and_intervals(fit, breeding[[m]])
+    log_msg("%s refinement and intervals in %.1f min: logLik %.3f -> %.3f; eigenvalues of the observed information: %s",
+            m, as.numeric(difftime(Sys.time(), t0, units = "mins")), fit$logLik, ri$fit$logLik,
+            paste(signif(ri$intervals$eigen, 3), collapse = " "))
+    if (abs(ri$fit$logLik - fit$logLik) > 1e-3 || !isTRUE(all.equal(ri$fit$par, fit$par))) {
+      res$cv <- NULL; res$cv_scores <- NULL; res$grid <- NULL    # recomputed at the refined fit
+    }
+    fit <- ri$fit; res$fit <- slim(fit); res$intervals <- ri$intervals
     saveRDS(res, res_file(m))
+    print(fit)
   }
   print(res$intervals$table, digits = 3)
   write.csv(res$intervals$table, file.path(out_dir, sprintf("intervals_%s.csv", m)), row.names = FALSE)

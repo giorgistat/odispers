@@ -207,7 +207,7 @@ for (m in run_models) {
   if (is.null(res$fit)) {
     prev <- NULL; prev_name <- NA
     for (pm_ in parent[[m]]) if (file.exists(res_file(pm_))) { prev <- readRDS(res_file(pm_))$fit; prev_name <- pm_; break }
-    start <- c(log(7.5), log(0.5), 0.5, 0.1); r0 <- 1000; xs <- NULL
+    start <- c(log(5), log(0.6), 0.8, 0.2); r0 <- 800; xs <- NULL   # generic starting values
     if (!is.null(prev)) {
       start <- prev$par[1:4]; r0 <- prev$hyper[["range_u"]]; cf <- prev$coefficients
       q_new <- length(attr(terms(breeding[[m]]), "term.labels")); th <- cf[grep("^theta\\.", names(cf))]

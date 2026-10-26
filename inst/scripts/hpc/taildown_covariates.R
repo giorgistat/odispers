@@ -44,7 +44,8 @@
 #     models   comma-separated subset of M0,M1,M2 (default all, in order)
 # Each model warm-starts from the largest nested model already fitted in
 # out_dir (M2 from M1, else M0), so running M0 first is fastest. Fits are
-# checkpointed: a job that is stopped resumes from its best point.
+# checkpointed and every completed stage is saved: a job that is stopped
+# resumes from its best point and skips the stages already done.
 # Example SLURM job (one process; about 1-2 h per model on one core):
 #   #!/bin/bash
 #   #SBATCH --time=12:00:00 --mem=8G --cpus-per-task=1
@@ -197,41 +198,57 @@ set.seed(2026)
 folds <- sample(rep(1:10, length.out = nrow(v)))   # identical to the folds of the earlier analyses
 
 # ---- run the models -------------------------------------------------------------------
+# Each stage (fit, intervals, cross-validation, predictions) is saved in
+# fit_<model>.rds as soon as it is done; a rerun skips the stages already there.
+slim <- function(f) { f$setup$graph <- NULL; f$fld$Rch <- NULL; f }
 for (m in run_models) {
   log_msg("==== %s: breeding %s", m, deparse(breeding[[m]]))
-  prev <- NULL; prev_name <- NA
-  for (pm_ in parent[[m]]) if (file.exists(res_file(pm_))) { prev <- readRDS(res_file(pm_))$fit; prev_name <- pm_; break }
-  start <- c(log(7.5), log(0.5), 0.5, 0.1); r0 <- 1000; xs <- NULL
-  if (!is.null(prev)) {
-    start <- prev$par[1:4]; r0 <- prev$hyper[["range_u"]]; cf <- prev$coefficients
-    q_new <- length(attr(terms(breeding[[m]]), "term.labels")); th <- cf[grep("^theta\\.", names(cf))]
-    xs <- list(beta = cf[1:2], c = cf[3:4], theta = c(th, rep(0, q_new - length(th))), u = prev$u, z = prev$z)
-    log_msg("warm start from the fit of %s", prev_name)
+  res <- if (file.exists(res_file(m))) readRDS(res_file(m)) else list()
+  if (is.null(res$fit)) {
+    prev <- NULL; prev_name <- NA
+    for (pm_ in parent[[m]]) if (file.exists(res_file(pm_))) { prev <- readRDS(res_file(pm_))$fit; prev_name <- pm_; break }
+    start <- c(log(7.5), log(0.5), 0.5, 0.1); r0 <- 1000; xs <- NULL
+    if (!is.null(prev)) {
+      start <- prev$par[1:4]; r0 <- prev$hyper[["range_u"]]; cf <- prev$coefficients
+      q_new <- length(attr(terms(breeding[[m]]), "term.labels")); th <- cf[grep("^theta\\.", names(cf))]
+      xs <- list(beta = cf[1:2], c = cf[3:4], theta = c(th, rep(0, q_new - length(th))), u = prev$u, z = prev$z)
+      log_msg("warm start from the fit of %s", prev_name)
+    }
+    t0 <- Sys.time()
+    fit <- odisp_fit_zil(y ~ log(AI), breeding[[m]], v, nodes, graph, pairs, phi = phi, range_u = r0,
+                         start = start, estimate_range = TRUE, bfgs = TRUE, x_start = xs, multistart = FALSE,
+                         checkpoint = file.path(out_dir, sprintf("checkpoint_%s.rds", m)))
+    res$time <- as.numeric(difftime(Sys.time(), t0, units = "mins"))
+    print(fit)
+    log_msg("%s fitted in %.1f min, logLik %.3f", m, res$time, fit$logLik)
+    res$fit <- slim(fit); saveRDS(res, res_file(m))
+  } else {
+    fit <- res$fit; fit$fld$Rch <- Matrix::Cholesky(fit$fld$R, LDL = FALSE, perm = TRUE)
+    log_msg("%s: fit loaded (logLik %.3f)", m, fit$logLik)
   }
-  t0 <- Sys.time()
-  fit <- odisp_fit_zil(y ~ log(AI), breeding[[m]], v, nodes, graph, pairs, phi = phi, range_u = r0,
-                       start = start, estimate_range = TRUE, bfgs = TRUE, x_start = xs, multistart = FALSE,
-                       checkpoint = file.path(out_dir, sprintf("checkpoint_%s.rds", m)))
-  fit_time <- as.numeric(difftime(Sys.time(), t0, units = "mins"))
-  print(fit)
-  log_msg("%s fitted in %.1f min, logLik %.3f", m, fit_time, fit$logLik)
-  slim <- function(f) { f$setup$graph <- NULL; f$fld$Rch <- NULL; f }
-  saveRDS(list(fit = slim(fit), time = fit_time), res_file(m))
 
-  t0 <- Sys.time(); ci <- hyper_intervals(fit)
-  log_msg("%s intervals in %.1f min; eigenvalues of the observed information: %s", m,
-          as.numeric(difftime(Sys.time(), t0, units = "mins")), paste(signif(ci$eigen, 3), collapse = " "))
-  print(ci$table, digits = 3)
-  write.csv(ci$table, file.path(out_dir, sprintf("intervals_%s.csv", m)), row.names = FALSE)
+  if (is.null(res$intervals)) {
+    t0 <- Sys.time(); res$intervals <- hyper_intervals(fit)
+    log_msg("%s intervals in %.1f min; eigenvalues of the observed information: %s", m,
+            as.numeric(difftime(Sys.time(), t0, units = "mins")), paste(signif(res$intervals$eigen, 3), collapse = " "))
+    saveRDS(res, res_file(m))
+  }
+  print(res$intervals$table, digits = 3)
+  write.csv(res$intervals$table, file.path(out_dir, sprintf("intervals_%s.csv", m)), row.names = FALSE)
 
-  t0 <- Sys.time(); pr <- cv_zil(fit, folds); sc <- cv_scores(pr, v$AI[fit$setup$has])
-  log_msg("%s cross-validation in %.1f min", m, as.numeric(difftime(Sys.time(), t0, units = "mins")))
-  print(sc$table, digits = 4)
+  if (is.null(res$cv_scores)) {
+    t0 <- Sys.time(); res$cv <- cv_zil(fit, folds); res$cv_scores <- cv_scores(res$cv, v$AI[fit$setup$has])
+    log_msg("%s cross-validation in %.1f min", m, as.numeric(difftime(Sys.time(), t0, units = "mins")))
+    saveRDS(res, res_file(m))
+  }
+  print(res$cv_scores$table, digits = 4)
 
-  pg <- predict(fit, grid, nodes, graph, pairs = grid_pairs)
-  xy <- st_coordinates(grid)
-  pred <- data.frame(lon = xy[, 1], lat = xy[, 2], AI = grid$AI, pg)
-  saveRDS(list(fit = slim(fit), time = fit_time, intervals = ci, cv = pr, cv_scores = sc, grid = pred), res_file(m))
+  if (is.null(res$grid)) {
+    pg <- predict(fit, grid, nodes, graph, pairs = grid_pairs)
+    xy <- st_coordinates(grid)
+    res$grid <- data.frame(lon = xy[, 1], lat = xy[, 2], AI = grid$AI, pg)
+    saveRDS(res, res_file(m))
+  }
 }
 
 # ---- comparison -----------------------------------------------------------------------

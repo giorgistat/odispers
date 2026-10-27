@@ -12,7 +12,9 @@
 #' the regression coefficients held fixed, and the likelihood is maximised over
 #' all the parameters by a trust-region Newton method with finite-difference
 #' derivatives and BFGS updates, followed by Newton refinement with the full
-#' finite-difference Hessian. Wald intervals for every parameter come from the
+#' finite-difference Hessian, taken along the eigenvectors of the previous
+#' Hessian with steps of half a standard error (the curvature differs by orders
+#' of magnitude between directions). Wald intervals for every parameter come from the
 #' observed information, the negative Hessian of the log-likelihood at the
 #' maximum.
 #'
@@ -60,7 +62,7 @@ odisp_fit_zil_ml <- function(formula, breeding, data, nodes, graph, pairs = NULL
   state$x <- list(beta = cf0[idx_b], c = cf0[idx_c], theta = cf0[idx_t],
                   u = if (!is.null(start$u)) start$u else rep(0, graph$nv),
                   z = if (!is.null(start$z)) start$z else rep(0, n))
-  state$best <- -Inf; state$n_eval <- 0; state$stage <- "optimise"; state$cache <- list(); state$refine_th <- NULL
+  state$best <- -Inf; state$n_eval <- 0; state$stage <- "optimise"; state$cache <- list(); state$refine_th <- NULL; state$refine_x <- NULL; state$A <- NULL
   cache_file <- if (!is.null(checkpoint)) sub("\\.rds$", "_evaluations.rds", checkpoint) else NULL
   if (!is.null(checkpoint) && file.exists(checkpoint)) {
     ck <- readRDS(checkpoint)
@@ -68,7 +70,7 @@ odisp_fit_zil_ml <- function(formula, breeding, data, nodes, graph, pairs = NULL
       if (!is.null(ck$stage)) state$stage <- ck$stage
       # in the refinement, resume at the point where the last Hessian was started (its finite
       # differences are in the cache), not at the best perturbed point
-      if (state$stage == "refine" && !is.null(ck$refine_th)) { th0 <- ck$refine_th; state$refine_th <- th0 }
+      if (state$stage == "refine" && !is.null(ck$refine_th)) { th0 <- ck$refine_th; state$refine_th <- th0; state$refine_x <- ck$refine_x; state$A <- ck$A }
       if (trace) cat(sprintf("  resuming from checkpoint (stage %s), logLik %.3f\n", state$stage, ck$logLik)) }
   }
   # likelihood values already computed (e.g. by a job that was stopped), keyed by parameter value
@@ -78,7 +80,7 @@ odisp_fit_zil_ml <- function(formula, breeding, data, nodes, graph, pairs = NULL
   }
   save_ck <- function() if (!is.null(checkpoint) && is.finite(state$best))
     saveRDS(list(theta = state$best_th, x = state$best_x, logLik = state$best, stage = state$stage,
-                 refine_th = state$refine_th), checkpoint)
+                 refine_th = state$refine_th, refine_x = state$refine_x, A = state$A), checkpoint)
   make_fld <- function(ps) {
     R <- wm_precision(graph, exp(ps[5]), 1)
     list(field = "u", R = R, Rch = Matrix::Cholesky(R, LDL = FALSE, perm = TRUE),
@@ -130,44 +132,63 @@ odisp_fit_zil_ml <- function(formula, breeding, data, nodes, graph, pairs = NULL
     state$stage <- "refine"; save_ck()
   } else th <- th0
   if (trace) cat(sprintf("  optimiser: logLik %.3f after %d evaluations\n", state$best, state$n_eval))
-  # Newton refinement and observed information (central differences, step 0.05 on the optimisation scale)
-  # mode of (u, Z) at th: the best of the starting points; all the finite differences around
-  # th start from it (one branch of the inner mode)
+  # Newton refinement and observed information. The log-likelihood is far more curved in some
+  # directions than in others (gamma and the intercepts are nearly confounded, because log E is not
+  # centred), so that finite differences with equal steps in every parameter give a wrong Hessian.
+  # The differences are therefore taken along the eigenvectors of the previous Hessian, each
+  # scaled to half a standard error (th = th_c + A psi, step 0.5 in psi), and the Hessian is
+  # transformed back; the first Hessian, with steps of 0.05, only provides the scaling.
+  # All the finite differences around a point start from the mode of (u, Z) at that point; on
+  # resume this mode is the one saved with the checkpoint.
   centre <- function(th) {
-    r0 <- lap(th); state$x <- r0$x
+    x0 <- if (!is.null(state$refine_x) && identical(key_of(th), key_of(state$refine_th))) state$refine_x else NULL
+    r0 <- lap(th, branch = x0); state$x <- r0$x
+    state$refine_x <- r0$x; save_ck()
     list(x = r0$x, f0 = r0$logLik, tag = paste0("branch[", key_of(th), "]:"))
   }
-  hess <- function(th, h = 0.05) {
+  hess <- function(th, A = NULL) {
+    d <- length(th); h <- if (is.null(A)) 0.05 else 0.5
+    if (is.null(A)) A <- diag(d)
     ce <- centre(th); f0 <- ce$f0
-    lb <- function(t) ll(t, branch = ce$x, tag = ce$tag)
-    d <- length(th); H <- matrix(0, d, d); fp <- fm <- numeric(d)
-    for (i in 1:d) { e <- replace(numeric(d), i, h); fp[i] <- lb(th + e); fm[i] <- lb(th - e)
-                     H[i, i] <- (fp[i] - 2 * f0 + fm[i]) / h^2 }
+    lb <- function(p) ll(th + as.vector(A %*% p), branch = ce$x, tag = ce$tag)
+    Hp <- matrix(0, d, d); fp <- fm <- numeric(d)
+    for (i in 1:d) { e <- replace(numeric(d), i, h); fp[i] <- lb(e); fm[i] <- lb(-e)
+                     Hp[i, i] <- (fp[i] - 2 * f0 + fm[i]) / h^2 }
     for (i in 1:(d - 1)) for (j in (i + 1):d) {
       ei <- replace(numeric(d), i, h); ej <- replace(numeric(d), j, h)
-      H[i, j] <- H[j, i] <- (lb(th + ei + ej) - lb(th + ei - ej) - lb(th - ei + ej) + lb(th - ei - ej)) / (4 * h^2)
+      Hp[i, j] <- Hp[j, i] <- (lb(ei + ej) - lb(ei - ej) - lb(-ei + ej) + lb(-ei - ej)) / (4 * h^2)
     }
-    list(th = th, f0 = f0, g = (fp - fm) / (2 * h), H = H, x = ce$x)
+    Ai <- solve(A)
+    list(th = th, f0 = f0, g = as.vector(crossprod(Ai, (fp - fm) / (2 * h))), H = t(Ai) %*% Hp %*% Ai, x = ce$x)
+  }
+  whiten <- function(H) { e <- eigen(-H, symmetric = TRUE)
+    e$vectors %*% diag(1 / sqrt(pmax(abs(e$values), 1e-2)), nrow(H)) }
+  at_th <- function(th) {                                 # Hessian at th, whitened by the latest scaling
+    if (!identical(key_of(th), key_of(state$refine_th))) state$refine_x <- NULL
+    state$refine_th <- th; save_ck()
+    if (is.null(state$A)) { h0 <- hess(th); state$A <- whiten(h0$H); save_ck() }
+    hs <- hess(th, state$A); state$A <- whiten(hs$H); save_ck()
+    hs
   }
   hs <- NULL
   for (it in seq_len(refine)) {
     if (!intervals && it > 1) break
-    state$refine_th <- th; save_ck()
-    hs <- hess(th)
+    hs <- at_th(th)
     e <- eigen(-hs$H, symmetric = TRUE)
     Bm <- e$vectors %*% diag(pmax(e$values, 1e-3 * max(e$values)), length(th)) %*% t(e$vectors)
     step <- as.vector(solve(Bm, hs$g))
-    if (sqrt(sum(step^2)) > 1) step <- step / sqrt(sum(step^2))
+    nrm <- sqrt(sum((solve(state$A, step))^2))                # length in standard errors
+    if (nrm > 4) step <- step * 4 / nrm
     gain <- sum(hs$g * step) - 0.5 * sum(step * (Bm %*% step))
-    if (trace) cat(sprintf("  refinement %d: logLik %.3f, predicted gain %.3f\n", it, hs$f0, gain))
-    if (gain < 0.01) break
+    if (trace) cat(sprintf("  refinement %d: logLik %.4f, predicted gain %.4f\n", it, hs$f0, gain))
+    if (gain < 0.02) break
     t <- 1; ok <- FALSE
     while (t >= 1 / 16) { if (ll(th + t * step) > hs$f0 + 1e-3) { ok <- TRUE; break }; t <- t / 2 }
     if (!ok) break
     th <- th + t * step
   }
   if (!is.null(cache_file)) saveRDS(state$cache, cache_file)
-  if (is.null(hs) || !identical(hs$th, th)) hs <- hess(th)
+  if (is.null(hs) || !identical(hs$th, th)) hs <- at_th(th)
   fin <- lap(th, branch = hs$x)                             # the mode at which the Hessian was taken
   v <- th * sc; cf <- v[seq_along(cf0)]; names(cf) <- nm_cf; ps <- v[idx_p]; names(ps) <- nm_ps
   # observed information on the original scale of (coefficients, log sigma_u, log sigma_z, a_E, gamma, log range)

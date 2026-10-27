@@ -53,12 +53,21 @@ odisp_fit_zil_ml <- function(formula, breeding, data, nodes, graph, pairs = NULL
   state$x <- list(beta = cf0[idx_b], c = cf0[idx_c], theta = cf0[idx_t],
                   u = if (!is.null(start$u)) start$u else rep(0, graph$nv),
                   z = if (!is.null(start$z)) start$z else rep(0, n))
-  state$best <- -Inf; state$n_eval <- 0
+  state$best <- -Inf; state$n_eval <- 0; state$stage <- "optimise"; state$cache <- list()
+  cache_file <- if (!is.null(checkpoint)) sub("\\.rds$", "_evaluations.rds", checkpoint) else NULL
   if (!is.null(checkpoint) && file.exists(checkpoint)) {
     ck <- readRDS(checkpoint)
     if (length(ck$theta) == length(th0)) { th0 <- ck$theta; state$x <- ck$x
-      if (trace) cat(sprintf("  resuming from checkpoint, logLik %.3f\n", ck$logLik)) }
+      if (!is.null(ck$stage)) state$stage <- ck$stage
+      if (trace) cat(sprintf("  resuming from checkpoint (stage %s), logLik %.3f\n", state$stage, ck$logLik)) }
   }
+  # likelihood values already computed (e.g. by a job that was stopped), keyed by parameter value
+  if (!is.null(cache_file) && file.exists(cache_file)) {
+    state$cache <- readRDS(cache_file)
+    if (trace) cat(sprintf("  %d likelihood values loaded from %s\n", length(state$cache), cache_file))
+  }
+  save_ck <- function() if (!is.null(checkpoint) && is.finite(state$best))
+    saveRDS(list(theta = state$best_th, x = state$best_x, logLik = state$best, stage = state$stage), checkpoint)
   make_fld <- function(ps) {
     R <- wm_precision(graph, exp(ps[5]), 1)
     list(field = "u", R = R, Rch = Matrix::Cholesky(R, LDL = FALSE, perm = TRUE),
@@ -76,21 +85,31 @@ odisp_fit_zil_ml <- function(formula, breeding, data, nodes, graph, pairs = NULL
       state$x <- r$x
       if (r$logLik > state$best) {
         state$best <- r$logLik; state$best_th <- th; state$best_x <- r$x
-        if (!is.null(checkpoint)) saveRDS(list(theta = th, x = r$x, logLik = r$logLik), checkpoint)
+        save_ck()
       }
     }
     if (trace && state$n_eval %% 10 == 0) cat(sprintf("  %d evaluations, best logLik %.3f\n", state$n_eval, state$best))
     r$fld <- fld; r$S2 <- S2
     r
   }
-  ll <- function(th) lap(th)$logLik
+  ll <- function(th) {
+    key <- paste(sprintf("%.8f", th), collapse = ",")
+    if (!is.null(state$cache[[key]])) return(state$cache[[key]])
+    val <- lap(th)$logLik
+    state$cache[[key]] <- val
+    if (!is.null(cache_file) && length(state$cache) %% 5 == 0) saveRDS(state$cache, cache_file)
+    val
+  }
   t0 <- Sys.time()
-  th <- odisp_newton_max(ll, th0, bfgs = TRUE)
-  if (state$best > ll(th)) th <- state$best_th
+  if (state$stage == "optimise") {
+    th <- odisp_newton_max(ll, th0, bfgs = TRUE, maxit = 50)
+    if (state$best > ll(th)) th <- state$best_th
+    state$stage <- "refine"; save_ck()
+  } else th <- th0
   if (trace) cat(sprintf("  optimiser: logLik %.3f after %d evaluations\n", state$best, state$n_eval))
   # Newton refinement and observed information (central differences, step 0.05 on the optimisation scale)
   hess <- function(th, h = 0.05) {
-    state$x <- state$best_x
+    if (!is.null(state$best_x)) state$x <- state$best_x
     f0 <- ll(th); d <- length(th); H <- matrix(0, d, d); fp <- fm <- numeric(d)
     for (i in 1:d) { e <- replace(numeric(d), i, h); fp[i] <- ll(th + e); fm[i] <- ll(th - e)
                      H[i, i] <- (fp[i] - 2 * f0 + fm[i]) / h^2 }
@@ -116,6 +135,7 @@ odisp_fit_zil_ml <- function(formula, breeding, data, nodes, graph, pairs = NULL
     if (!ok) break
     th <- th + t * step
   }
+  if (!is.null(cache_file)) saveRDS(state$cache, cache_file)
   if (is.null(hs) || !identical(hs$th, th)) hs <- hess(th)
   fin <- lap(th)
   v <- th * sc; cf <- v[seq_along(cf0)]; names(cf) <- nm_cf; ps <- v[idx_p]; names(ps) <- nm_ps

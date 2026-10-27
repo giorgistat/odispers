@@ -60,12 +60,15 @@ odisp_fit_zil_ml <- function(formula, breeding, data, nodes, graph, pairs = NULL
   state$x <- list(beta = cf0[idx_b], c = cf0[idx_c], theta = cf0[idx_t],
                   u = if (!is.null(start$u)) start$u else rep(0, graph$nv),
                   z = if (!is.null(start$z)) start$z else rep(0, n))
-  state$best <- -Inf; state$n_eval <- 0; state$stage <- "optimise"; state$cache <- list()
+  state$best <- -Inf; state$n_eval <- 0; state$stage <- "optimise"; state$cache <- list(); state$refine_th <- NULL
   cache_file <- if (!is.null(checkpoint)) sub("\\.rds$", "_evaluations.rds", checkpoint) else NULL
   if (!is.null(checkpoint) && file.exists(checkpoint)) {
     ck <- readRDS(checkpoint)
     if (length(ck$theta) == length(th0)) { th0 <- ck$theta; state$x <- ck$x
       if (!is.null(ck$stage)) state$stage <- ck$stage
+      # in the refinement, resume at the point where the last Hessian was started (its finite
+      # differences are in the cache), not at the best perturbed point
+      if (state$stage == "refine" && !is.null(ck$refine_th)) { th0 <- ck$refine_th; state$refine_th <- th0 }
       if (trace) cat(sprintf("  resuming from checkpoint (stage %s), logLik %.3f\n", state$stage, ck$logLik)) }
   }
   # likelihood values already computed (e.g. by a job that was stopped), keyed by parameter value
@@ -74,7 +77,8 @@ odisp_fit_zil_ml <- function(formula, breeding, data, nodes, graph, pairs = NULL
     if (trace) cat(sprintf("  %d likelihood values loaded from %s\n", length(state$cache), cache_file))
   }
   save_ck <- function() if (!is.null(checkpoint) && is.finite(state$best))
-    saveRDS(list(theta = state$best_th, x = state$best_x, logLik = state$best, stage = state$stage), checkpoint)
+    saveRDS(list(theta = state$best_th, x = state$best_x, logLik = state$best, stage = state$stage,
+                 refine_th = state$refine_th), checkpoint)
   make_fld <- function(ps) {
     R <- wm_precision(graph, exp(ps[5]), 1)
     list(field = "u", R = R, Rch = Matrix::Cholesky(R, LDL = FALSE, perm = TRUE),
@@ -148,6 +152,7 @@ odisp_fit_zil_ml <- function(formula, breeding, data, nodes, graph, pairs = NULL
   hs <- NULL
   for (it in seq_len(refine)) {
     if (!intervals && it > 1) break
+    state$refine_th <- th; save_ck()
     hs <- hess(th)
     e <- eigen(-hs$H, symmetric = TRUE)
     Bm <- e$vectors %*% diag(pmax(e$values, 1e-3 * max(e$values)), length(th)) %*% t(e$vectors)

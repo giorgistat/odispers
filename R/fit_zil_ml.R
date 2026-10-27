@@ -16,6 +16,13 @@
 #' observed information, the negative Hessian of the log-likelihood at the
 #' maximum.
 #'
+#' The inner problem can have several local modes of \eqn{(u, Z)}. Each
+#' evaluation starts the inner Newton from the mode at the previous evaluation
+#' and from the mode at the best point so far, and the Laplace approximation is
+#' taken at the mode with the higher log-posterior. The finite differences for
+#' the Hessian all start from the mode at the point where the Hessian is taken,
+#' so that they follow a single smooth branch.
+#'
 #' @inheritParams odisp_fit_zil
 #' @param start Named list with optional starting values: \code{coefficients}
 #'   (named as in an \code{odisp_zilfit}, matched by name, 0 when absent),
@@ -73,16 +80,27 @@ odisp_fit_zil_ml <- function(formula, breeding, data, nodes, graph, pairs = NULL
     list(field = "u", R = R, Rch = Matrix::Cholesky(R, LDL = FALSE, perm = TRUE),
          sig_u = exp(ps[1]), sig_z = exp(ps[2]), aE = ps[3], gamma = ps[4], range_u = exp(ps[5]))
   }
-  lap <- function(th) {
+  # The objective of the inner problem (u, Z given the parameters) can have several local
+  # modes. The Laplace approximation is taken at the mode with the highest log-posterior
+  # among those reached from the starting points: the mode at the last evaluation and the
+  # mode at the best point so far. With `branch` given, the inner Newton starts from that
+  # mode only, so that nearby evaluations (finite differences) follow one smooth branch.
+  lap <- function(th, branch = NULL) {
     v <- th * sc; cf <- v[seq_along(cf0)]; ps <- v[idx_p]
     S2 <- S; S2$m_beta <- cf[idx_b]; S2$m_c <- cf[idx_c]; S2$m_theta <- cf[idx_t]
     S2$s2 <- 1e-10                                           # coefficients held fixed
-    x <- state$x; x$beta <- cf[idx_b]; x$c <- cf[idx_c]; x$theta <- cf[idx_t]
     fld <- make_fld(ps)
-    r <- tryCatch(odisp_zil_laplace(fld, S2, x), error = function(e) list(logLik = -Inf))
+    starts <- if (!is.null(branch)) list(branch) else {
+      s <- list(state$x); if (!is.null(state$best_x) && !identical(state$best_x$u, state$x$u)) s <- c(s, list(state$best_x)); s }
+    r <- list(logLik = -Inf, logpost = -Inf)
+    for (x in starts) {
+      x$beta <- cf[idx_b]; x$c <- cf[idx_c]; x$theta <- cf[idx_t]
+      rk <- tryCatch(odisp_zil_laplace(fld, S2, x), error = function(e) list(logLik = -Inf, logpost = -Inf))
+      if (is.finite(rk$logpost) && rk$logpost > r$logpost) r <- rk
+    }
     state$n_eval <- state$n_eval + 1
     if (is.finite(r$logLik)) {
-      state$x <- r$x
+      if (is.null(branch)) state$x <- r$x
       if (r$logLik > state$best) {
         state$best <- r$logLik; state$best_th <- th; state$best_x <- r$x
         save_ck()
@@ -92,10 +110,11 @@ odisp_fit_zil_ml <- function(formula, breeding, data, nodes, graph, pairs = NULL
     r$fld <- fld; r$S2 <- S2
     r
   }
-  ll <- function(th) {
-    key <- paste(sprintf("%.8f", th), collapse = ",")
+  key_of <- function(th) paste(sprintf("%.8f", th), collapse = ",")
+  ll <- function(th, branch = NULL, tag = "") {
+    key <- paste0(tag, key_of(th))
     if (!is.null(state$cache[[key]])) return(state$cache[[key]])
-    val <- lap(th)$logLik
+    val <- lap(th, branch)$logLik
     state$cache[[key]] <- val
     if (!is.null(cache_file) && length(state$cache) %% 5 == 0) saveRDS(state$cache, cache_file)
     val
@@ -108,16 +127,23 @@ odisp_fit_zil_ml <- function(formula, breeding, data, nodes, graph, pairs = NULL
   } else th <- th0
   if (trace) cat(sprintf("  optimiser: logLik %.3f after %d evaluations\n", state$best, state$n_eval))
   # Newton refinement and observed information (central differences, step 0.05 on the optimisation scale)
+  # mode of (u, Z) at th: the best of the starting points; all the finite differences around
+  # th start from it (one branch of the inner mode)
+  centre <- function(th) {
+    r0 <- lap(th); state$x <- r0$x
+    list(x = r0$x, f0 = r0$logLik, tag = paste0("branch[", key_of(th), "]:"))
+  }
   hess <- function(th, h = 0.05) {
-    if (!is.null(state$best_x)) state$x <- state$best_x
-    f0 <- ll(th); d <- length(th); H <- matrix(0, d, d); fp <- fm <- numeric(d)
-    for (i in 1:d) { e <- replace(numeric(d), i, h); fp[i] <- ll(th + e); fm[i] <- ll(th - e)
+    ce <- centre(th); f0 <- ce$f0
+    lb <- function(t) ll(t, branch = ce$x, tag = ce$tag)
+    d <- length(th); H <- matrix(0, d, d); fp <- fm <- numeric(d)
+    for (i in 1:d) { e <- replace(numeric(d), i, h); fp[i] <- lb(th + e); fm[i] <- lb(th - e)
                      H[i, i] <- (fp[i] - 2 * f0 + fm[i]) / h^2 }
     for (i in 1:(d - 1)) for (j in (i + 1):d) {
       ei <- replace(numeric(d), i, h); ej <- replace(numeric(d), j, h)
-      H[i, j] <- H[j, i] <- (ll(th + ei + ej) - ll(th + ei - ej) - ll(th - ei + ej) + ll(th - ei - ej)) / (4 * h^2)
+      H[i, j] <- H[j, i] <- (lb(th + ei + ej) - lb(th + ei - ej) - lb(th - ei + ej) + lb(th - ei - ej)) / (4 * h^2)
     }
-    list(th = th, f0 = f0, g = (fp - fm) / (2 * h), H = H)
+    list(th = th, f0 = f0, g = (fp - fm) / (2 * h), H = H, x = ce$x)
   }
   hs <- NULL
   for (it in seq_len(refine)) {
@@ -137,7 +163,7 @@ odisp_fit_zil_ml <- function(formula, breeding, data, nodes, graph, pairs = NULL
   }
   if (!is.null(cache_file)) saveRDS(state$cache, cache_file)
   if (is.null(hs) || !identical(hs$th, th)) hs <- hess(th)
-  fin <- lap(th)
+  fin <- lap(th, branch = hs$x)                             # the mode at which the Hessian was taken
   v <- th * sc; cf <- v[seq_along(cf0)]; names(cf) <- nm_cf; ps <- v[idx_p]; names(ps) <- nm_ps
   # observed information on the original scale of (coefficients, log sigma_u, log sigma_z, a_E, gamma, log range)
   Hn <- hs$H / outer(sc, sc)

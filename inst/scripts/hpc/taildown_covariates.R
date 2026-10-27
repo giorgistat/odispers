@@ -15,9 +15,9 @@
 # u: tail-down Gaussian field on the river network (exponential covariance in
 # river distance), Z_i ~ N(0, sigma_z^2) independent village effects.
 #
-# Models (breeding covariates h):
-#   M1  log discharge + log(1 + channel slope, dm/km) + min{log(1 + upstream inundation %), 1.5}
-#   M3  log(1 + channel slope) + min{log(1 + upstream inundation %), 1.5}   (M1 without discharge)
+# Model (breeding covariates h):
+#   M3  log(1 + channel slope, dm/km) + min{log(1 + upstream inundation %), 1.5}
+# (an earlier candidate, M1, also had log discharge; it is no longer fitted)
 #
 # Estimation: maximum likelihood, with no prior on any parameter. The
 # likelihood of the fixed parameters (regression coefficients of both parts
@@ -34,14 +34,13 @@
 # refitted to the training villages: log score, AUC and Brier score for any
 # positive, expected zeros, non-randomised PIT (mean distribution function and
 # its largest deviation from uniform, with a simulated p-value); (3)
-# predictions on a 20 km grid. Then a comparison table, with the likelihood
-# ratio test of M3 against M1.
+# predictions on a 20 km grid. Then a summary table.
 #
 # Usage:
 #   Rscript taildown_covariates.R [out_dir] [models]
 #     out_dir  folder for the results (default taildown_covariates_results)
-#     models   comma-separated subset of M1,M3 (default both, in order)
-# M3 starts from the M1 fit when it is in out_dir. A file start_<model>.rds in
+#     models   model to fit (default M3)
+# A file start_<model>.rds in
 # out_dir (a list with coefficients, par, u, z) is used as starting point if
 # present. The fit is checkpointed and every completed stage is saved: a job
 # that is stopped resumes and skips the stages already done.
@@ -49,12 +48,12 @@
 #   #!/bin/bash
 #   #SBATCH --time=24:00:00 --mem=8G --cpus-per-task=1
 #   module load R
-#   Rscript taildown_covariates.R results M1
+#   Rscript taildown_covariates.R results M3
 ###############################################################################
 suppressPackageStartupMessages({ library(odispers); library(sf); library(Matrix) })
 args <- commandArgs(trailingOnly = TRUE)
 out_dir <- if (length(args) >= 1) args[1] else "taildown_covariates_results"
-run_models <- if (length(args) >= 2) strsplit(args[2], ",")[[1]] else c("M1", "M3")
+run_models <- if (length(args) >= 2) strsplit(args[2], ",")[[1]] else "M3"
 dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
 phi <- 40           # km, dispersal range of the kernel
 log_msg <- function(...) cat(format(Sys.time(), "%H:%M:%S"), sprintf(...), "\n")
@@ -79,9 +78,8 @@ graph <- directed_graph(river_graph(nodes, vertex_spacing = 5), "taildown")
 log_msg("data: %d villages (%d with positives), %d nodes, %d graph vertices", nrow(v), sum(v$y > 0),
         nrow(nodes), graph$nv)
 
-breeding <- list(M1 = ~ log(DIS_AV_CMS) + log_slope + inundation,
-                 M3 = ~ log_slope + inundation)
-parent <- list(M1 = character(0), M3 = "M1")
+breeding <- list(M3 = ~ log_slope + inundation)
+parent <- list(M3 = character(0))
 res_file <- function(m) file.path(out_dir, sprintf("fit_%s.rds", m))
 
 # ---- helpers: cross-validation (predictive distributions) -----------------------------
@@ -219,11 +217,6 @@ if (length(done)) {
   cmp <- do.call(rbind, lapply(cmp, function(r) { r[setdiff(cols, names(r))] <- NA; r[cols] }))
   cmp$n_par <- cmp$n_theta + 4 + 5                     # coefficients of both parts, breeding, 5 others
   print(cmp, digits = 5, row.names = FALSE)
-  if (all(c("M1", "M3") %in% cmp$model)) {
-    lr <- 2 * (cmp$logLik[cmp$model == "M1"] - cmp$logLik[cmp$model == "M3"])
-    log_msg("likelihood ratio test of M3 against M1 (log discharge): statistic %.3f on 1 df, p = %.3f",
-            lr, stats::pchisq(max(lr, 0), 1, lower.tail = FALSE))
-  }
   write.csv(cmp, file.path(out_dir, "comparison.csv"), row.names = FALSE)
 }
 log_msg("done")

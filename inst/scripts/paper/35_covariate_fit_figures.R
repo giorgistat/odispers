@@ -1,8 +1,8 @@
 ###############################################################################
 # Figures and tables for the tail-down model with habitat covariates, from
 # the output folder of inst/scripts/hpc/taildown_covariates.R:
-#   - mean PIT distribution functions of the fitted models
-#   - expected prevalence maps (M0 and the model with covariates)
+#   - mean PIT distribution function of M3 (maximum likelihood fit)
+#   - expected prevalence map of M3
 #   - breeding intensity along the rivers implied by the covariates
 #   - LaTeX rows of the estimates with 95% intervals
 # Usage: Rscript 35_covariate_fit_figures.R <results folder>
@@ -13,8 +13,8 @@ library(ggplot2)
 source(system.file("scripts/paper/00_settings.R", package = "odispers"))
 res_dir <- commandArgs(trailingOnly = TRUE)[1]
 data(sudan_borders); data(sudan_rivers); data(sudan_river_covariates)
-models <- c("M0", "M1", "M2", "M3")
-labels <- c(M0 = "M0: discharge only", M1 = "M1: + slope, inundation", M2 = "M2: + slope, inundation, hard rock", M3 = "M3: slope, inundation (no discharge)")
+models <- "M3"
+labels <- c(M3 = "M3: slope, inundation")
 R <- list(); for (m in models) { f <- file.path(res_dir, sprintf("fit_%s.rds", m))
   if (file.exists(f)) { r <- readRDS(f); if (!is.null(r$grid)) R[[m]] <- r } }   # completed models only
 models <- names(R)
@@ -32,7 +32,7 @@ if (!is.null(pit)) {
               hjust = 0, vjust = 1, size = 3) +
     facet_wrap(~ model, nrow = 1) + coord_equal(xlim = c(0, 1), ylim = c(0, 1)) +
     labs(x = "u", y = "Mean PIT distribution function") + theme_minimal(base_size = 10)
-  ggsave(file.path(fig_dir, "cov_fit_pit.png"), p, width = 10, height = 3.9, dpi = 200, bg = "white")
+  ggsave(file.path(fig_dir, "cov_fit_pit.png"), p, width = 4.2, height = 4.2, dpi = 200, bg = "white")
 }
 
 # prevalence maps
@@ -43,13 +43,13 @@ mp <- ggplot() + geom_tile(data = subset(pm, zero_exposure), aes(lon, lat), fill
   scale_fill_viridis_c(option = "inferno", direction = -1, name = "Expected\nprevalence", limits = c(0, NA)) +
   geom_sf(data = sudan_borders, fill = NA, colour = "grey25", linewidth = 0.3) + facet_wrap(~ model, nrow = 1) +
   coord_sf(expand = FALSE) + theme_minimal(base_size = 9) + labs(x = NULL, y = NULL)
-ggsave(file.path(fig_dir, "cov_fit_prevalence_maps.png"), mp, width = 13, height = 5, dpi = 200, bg = "white")
+ggsave(file.path(fig_dir, "cov_fit_prevalence_maps.png"), mp, width = 7, height = 6, dpi = 200, bg = "white")
 w <- split(pm$prevalence, pm$model)
 if (length(w) > 1) for (k in 2:length(w))
   cat(sprintf("prevalence on the grid, %s vs %s: correlation %.3f, max |difference| %.3f\n", names(w)[1], names(w)[k],
               cor(w[[1]], w[[k]]), max(abs(w[[1]] - w[[k]]))))
 
-# breeding multiplier from the covariates, exp(beta' h), along the rivers, for the last model
+# breeding multiplier from the covariates, exp(beta' h), along the rivers
 mlast <- tail(models, 1); cf <- R[[mlast]]$fit$coefficients
 riv <- sudan_rivers[sudan_rivers$DIS_AV_CMS >= 0.1, ]
 rc <- as.data.frame(sudan_river_covariates)[match(riv$HYRIV_ID, sudan_river_covariates$HYRIV_ID), ]
@@ -68,4 +68,5 @@ ggsave(file.path(fig_dir, "cov_fit_breeding_multiplier.png"), mb, width = 7, hei
 
 # table rows with intervals
 fmt <- function(e, l, u) sprintf("%.2f (%.2f, %.2f)", e, l, u)
-for (m in models) if (!is.null(R[[m]]$intervals)) { cat("\n", m, "\n"); print(R[[m]]$intervals$table, digits = 3) }
+for (m in models) { iv <- R[[m]]$fit$intervals; cat("\n", m, "\n"); print(iv, digits = 3)
+  cat(sprintf("%s & %s \\\\\n", iv$parameter, fmt(iv$estimate, iv$lower, iv$upper)), sep = "") }

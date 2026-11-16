@@ -5,3 +5,5 @@
 ^\.Rproj\.user$
 ^inst/reports$
 ^data-raw$
+^jonas_local$
+^reference-builds$

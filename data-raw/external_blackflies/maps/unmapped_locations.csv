@@ -1,0 +1,665 @@
+study,site,reason,source_file
+Sudan: seasonal biting study,Mograt,coordinates outside geographic range,sudan_seasonality_2016/originals/article.xml
+DRC: human infection surveys,GONO 1,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,GONO 1,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,GONO 1,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,GONO 1,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,GONO 1,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,GONO 1,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,GONO 1,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,GONO 1,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,GONO 1,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,GONO 1,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,GONO 1,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,GONO 1,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,KERI,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,KERI,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,KERI,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,KPAGBOMA 1,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,KPAGBOMA 1,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,KPAGBOMA 1,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,KPAGBOMA 1,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,KPAGBOMA 1,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,KPAGBOMA 1,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,KPAGBOMA 1,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,KPAGBOMA 1,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,KPAGBOMA 1,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,Kpandroma,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,kpandroma,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,"NA, check 1.1",could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDEKE 2,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDEKE 2,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDEKE 2,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDEKE 2,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDEKE 2,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDEKE 2,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDEKE 2,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDEKE 2,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDEKE 2,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDEKE 2,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDEKE 2,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDEKE 2,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDEKE 2,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDEKE 2,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDEKE 2,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDEKE 2,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDEKE 2,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDEKE 2,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDEKE 2,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDEKE 2,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDEKE 2,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDEKE 2,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDEKE 2,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDEKE 2,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDEKE 2,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDEKE 3,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDEKE 3,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDEKE 3,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDEKE 3,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDEKE 3,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDEKE 3,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDEKE 3,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDEKE 3,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDEKE 3,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDEKE 3,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDEKE 3,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDEKE 3,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDEKE 3,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDEKE 3,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDEKE 3,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDEKE 3,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDEKE 3,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDRULI,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDRULI,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDRULI,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDRULI,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDRULI,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDRULI,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDRULI,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDRULI,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDRULI,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDRULI,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,UPENJI,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,UPENJI,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,UPENJI,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,UPENJI,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,UPENJI,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,UPENJI,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,UPENJI,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,UPENJI,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,UPENJI,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,UPENJI,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,UPENJI,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,UPENJI,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,UPENJI,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,UPENJI,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,UPENJI,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,UPENJI,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,UPENJI,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,UPENJI,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,UPENJI,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,UPENJI,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDROY,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDROY,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDROY,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDROY,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDROY,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDROY,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDROY,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDROY,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDROY,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDROY,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NDROY,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,JUPUKELO,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,KANGA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,KANGA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,NGUU,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,KANGA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,JABI,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,JABI,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,JABI,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,JABI,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,JABI,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,JABI,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,JABI,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,JABI,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,JABI,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,WI-MOO,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,WI-MOO,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,WI-MOO,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,WI-MOO,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,WI-MOO,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,WI-MOO,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,WI-MOO,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,WI-MOO,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,WI-MOO,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,WI-MOO,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,WI-MOO,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,WI-MOO,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,WI-MOO,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,WI-MOO,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,KANGA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,KANGA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,KANGA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,KANGA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,KANGA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,KANGA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,KANGA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,KANGA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,KANGA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,GOMA,could not convert string to float: 'NA',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,GOMA,could not convert string to float: '',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,GOMA,could not convert string to float: '',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,GOMA,could not convert string to float: '',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,GOMA,could not convert string to float: '',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,GOMA,could not convert string to float: '',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,GOMA,could not convert string to float: '',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,GOMA,could not convert string to float: '',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,GOMA,could not convert string to float: '',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,GOMA,could not convert string to float: '',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,GOMA,could not convert string to float: '',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,GOMA,could not convert string to float: '',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,GOMA,could not convert string to float: '',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,GOMA,could not convert string to float: '',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,GOMA,could not convert string to float: '',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,GOMA,could not convert string to float: '',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,GOMA,could not convert string to float: '',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,GOMA,could not convert string to float: '',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,GOMA,could not convert string to float: '',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,GOMA,could not convert string to float: '',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,GOMA,could not convert string to float: '',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,GOMA,could not convert string to float: '',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,GOMA,could not convert string to float: '',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,GOMA,could not convert string to float: '',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,GOMA,could not convert string to float: '',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,GOMA,could not convert string to float: '',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,GOMA,could not convert string to float: '',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,GOMA,could not convert string to float: '',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,GOMA,could not convert string to float: '',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,GOMA,could not convert string to float: '',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,KPANA,could not convert string to float: '',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,KPANA,could not convert string to float: '',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,KPANA,could not convert string to float: '',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,KPANA,could not convert string to float: '',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,KPANA,could not convert string to float: '',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,KPANA,could not convert string to float: '',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,KPANA,could not convert string to float: '',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,KPANA,could not convert string to float: '',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,KPANA,could not convert string to float: '',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,KPANA,could not convert string to float: '',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,KPANA,could not convert string to float: '',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,KPANA,could not convert string to float: '',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,KPANA,could not convert string to float: '',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,KPANA,could not convert string to float: '',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,KPANA,could not convert string to float: '',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+DRC: human infection surveys,KPANA,could not convert string to float: '',drc_kakoi_koda_2026/tables/S1_epidemiological_data_utf8.csv
+Chad: Oulibangala / Kaitia,2 named sites,No site coordinates in the downloaded table; not geocoded,chad_oulibangala_2026/tables/article_table_01.csv
+Sudan: Merowe,11 named sites,No site coordinates in the downloaded table; not geocoded,sudan_merowe_2014/tables/article_table_01.csv
+South Sudan: Maridi,5 named sites,No site coordinates in the downloaded table; not geocoded,south_sudan_maridi_2023/originals/Seroprevalence_dataset.xlsx
+Uganda: western foci,16 named sites,No site coordinates in the downloaded table; not geocoded,uganda_western_2020/tables/article_table_01.csv

@@ -1,0 +1,2042 @@
+      Approximate Bayesian Inference for Latent Gaussian
+      Models Using Integrated Nested Laplace Approxima-
+      tions
+
+      Håvard Rue and Sara Martino†
+      The Norwegian University for Science and Technology, Trondheim, Norway
+      Nicolas Chopin
+      CREST-LS and ENSAE, Paris, France
+
+
+
+      Summary. Structured additive regression models are perhaps the most commonly used class
+      of models in statistical applications. It includes, among others, (generalised) linear models,
+      (generalised) additive models, smoothing-spline models, state-space models, semiparametric
+      regression, spatial and spatio-temporal models, log-Gaussian Cox-processes, geostatistical
+      and geoadditive models. In this paper we consider approximate Bayesian inference in a popu-
+      lar subset of structured additive regression models, latent Gaussian models, where the latent
+      field is Gaussian, controlled by a few hyperparameters and with non-Gaussian response vari-
+      ables.
+      The posterior marginals are not available in closed form due to the non-Gaussian response
+      variables. For such models, Markov chain Monte Carlo methods can be implemented, but
+      they are not without problems, both in terms of convergence and computational time. In some
+      practical applications, the extent of these problems is such that Markov chain Monte Carlo is
+      simply not an appropriate tool for routine analysis.
+      We show that, by using an integrated nested Laplace approximation and its simplified ver-
+      sion, we can directly compute very accurate approximations to the posterior marginals. The
+      main benefit of these approximations is computational: where MCMC algorithms need hours
+      and days to run, our approximations provide more precise estimates in seconds and minutes.
+      Another advantage with our approach is its generality, which makes it possible to perform
+      Bayesian analysis in an automatic, streamlined way, and to compute model comparison cri-
+      teria and various predictive measures so that models can be compared and the model under
+      study can be challenged.
+
+
+1.   Introduction
+
+1.1. Aim of the paper
+This paper discusses how to perform approximate Bayesian inference in a subclass of struc-
+tured additive regression models, named latent Gaussian models. Structured additive re-
+gression models are a flexible and extensive used class of models, see for example Fahrmeir
+and Tutz (2001) for a detailed account. In these models, the observation (or response)
+variable yi is assumed to belong to an exponential family, where the mean µi is linked to
+
+  †Address for correspondence: Håvard Rue, Department of Mathematical Sciences, The Norwegian
+University for Science and Technology, N-7491 Trondheim, Norway.
+E-mail: hrue@math.ntnu.no
+2      H. Rue, S. Martino and N. Chopin
+
+a structured additive predictor ηi through a link-function g(·), so that g(µi ) = ηi . The
+structured additive predictor ηi accounts for effects of various covariates in an additive way:
+                                       nf                     nβ
+                                       X                      X
+                            ηi = α +         f (j) (uji ) +         βk zki + ǫi .            (1)
+                                       j=1                    k=1
+
+
+Here, the {f (j) (·)}’s are unknown functions of the covariates u, the {βk }’s represent the
+linear effect of covariates z and the ǫi ’s are unstructured terms. This class of model has
+a wealth of applications, thanks to the very different forms that the unknown functions
+{f (j) } can take. Latent Gaussian models are a subset of all Bayesian additive models
+with a structured additive predictor (1); namely those which assign a Gaussian prior to α,
+{f (j) (·)}, {βk } and {ǫt }. Let x denote the vector of all the latent Gaussian variables, and θ
+the vector of hyperparameters, which are not necessarily Gaussian. In the machine learning
+literature, the phrase ‘Gaussian process models’ is often used (Rasmussen and Williams,
+2006). We discuss various applications of latent Gaussian models in Section 1.2.
+    The main aim of this paper is twofold:
+
+    (a) To provide accurate and fast deterministic approximations to all, or some of, the n
+        posterior marginals for xi , the components of latent Gaussian vector x, plus possibly
+        the posterior marginals for θ or some of its components θj . If needed, the marginal
+        densities can be post-processed to compute quantities like posterior expectations,
+        variances and quantiles.
+    (b) To demonstrate how to use these marginals in order i) to provide adequate approxi-
+        mations to the posterior marginal for sub-vectors xS for any subset S, ii) to compute
+        the marginal likelihood and the Deviance Information Criteria (DIC) for model com-
+        parison, and iii) to compute various Bayesian predictive measures.
+
+
+1.2. Latent Gaussian Models: Applications
+Latent Gaussian models have a numerous and wide ranging list of applications; most struc-
+tured Bayesian models are in fact of this form; see for example the books by Fahrmeir and
+Tutz (2001), Gelman et al. (2004) and Robert and Casella (1999). We will first give some
+areas of applications grouped according to their physical dimension. Let f (·) denote one of
+the f (j) (·)-terms in (1) with variables f1 , f2 , . . ..
+
+              Pnβ Bayesian generalised linear models correspond to the linear predictor
+Regression models
+    ηi = α + k=1     βk zki (Dey et al., 2000). The f (·)-terms are used either to relax the
+    linear relationship of the covariate as argued for by Fahrmeir and Tutz (2001), or
+    to introduce random effects, or both. Popular models for modelling smooth effects
+    of covariates are P-spline models (Lang and Brezger, 2004) and random walk mod-
+    els (Fahrmeir and Tutz, 2001; Rue and Held, 2005), or continuous indexed spline mod-
+    els (Wahba, 1978; Wecker and Ansley, 1983; Kohn and Ansley, 1987; Rue and Held,
+    2005) or Gaussian processes (O’Hagan, 1978; Chu and Ghahramani, 2005; Williams
+    and Barber, 1998; Besag et al., 1995; Neal, 1998). Random effects make it possible to
+    account for overdispersion caused by unobserved heterogeneity, or for correlation in
+    longitudinal data, and can be introduced by defining f (ui ) = fi and letting {fi } be
+    independent, zero-mean, and Gaussian (Fahrmeir and Lang, 2001).
+                               Approximate Bayesian Inference for Latent Gaussian Models      3
+
+Dynamic models Temporal dependency can be introduced by using i in (1) as a time
+    index t and defining f (·) and covariate u so that f (ut ) = ft . Then {ft } can model
+    a discrete-time or continuous-time auto-regressive model, a seasonal effect or more
+    generally the latent process of a structured time-series model (Kitagawa and Gersch,
+    1996; West and Harrison, 1997). Alternatively, {ft } can represent a smooth temporal
+    function in the same spirit as regression models.
+
+Spatial and spatio-temporal models Spatial dependency can be modelled similarly, us-
+     ing a spatial covariate u so that f (us ) = fs , where s represents the spatial location or
+     spatial region s. The stochastic model for fs is constructed to promote spatial smooth
+     realisations of some kind. Popular models include the BYM model for disease-mapping
+     with extensions for regional data (Besag et al., 1991; Held et al., 2005; Weir and Pet-
+     titt, 2000; Gschlößl and Czado, 2007; Wakefield, 2007), continuous-indexed Gaussian
+     models (Banerjee et al., 2004; Diggle and Ribeiro, 2006), texture models (Marroquin
+     et al., 2001; Rellier et al., 2002). Spatial and temporal dependencies can be achieved
+     either by using a spatio-temporal covariate (s, t) or a corresponding spatio-temporal
+     Gaussian field (Kamman and Wand, 2003; Cressie and Johannesson, 2008; Banerjee
+     et al., 2008; Finkenstadt et al., 2006; Abellan et al., 2007; Gneiting, 2002; Banerjee
+     et al., 2004).
+
+In many applications, the final model may consist of a sum of various components, such as
+a spatial component, random effects, and both linear and smooth effects of some covariates.
+Furthermore, linear or sum-to-zero constraints are sometimes imposed as well in order to
+separate out the effects of various components in (1).
+
+
+1.3. Latent Gaussian Models: Notation and Basic Properties
+To simplify the following discussion, denote generically π(·|·) as the conditional density
+of its arguments, and let x be all the n Gaussian variables {ηi }, α, {f (j) }, {βk }. The
+density π(x|θ 1 ) is Gaussian with (assumed) zero mean, precision matrix Q(θ 1 ) with hy-
+perparameters θ 1 . Denote by N (x; µ, Σ), the N (µ, Σ) Gaussian density with mean µ
+and covariance (inverse precision) Σ at configuration x. Note that we have included {ηi }
+instead of {ǫi } into x, as it simplifies the notation later on.
+    The distribution for the nd observational variables y = {yi : i ∈ I} is denoted by
+π(y|x, θ 2 ) and we assume that {yi : i ∈ I} are conditionally independent given x and θ 2 .
+For simplicity, denote by θ = (θ T1 , θ T2 )T with dim(θ) = m. The posterior then reads (for a
+non-singular Q(θ))
+                                             Y
+         π(x, θ | y) ∝ π(θ) π(x | θ)            π(yi | xi , θ)
+                                         i∈I
+                                                Ã                               !
+                                                  1 T        X
+                                       n/2
+                      ∝ π(θ) |Q(θ)|          exp − x Q(θ)x +   log π(yi |xi , θ) .
+                                                  2
+                                                                 i∈I
+
+The imposed linear constraints (if any) are denoted by Ax = e for a k × n matrix A of rank
+k. The main aim is to approximate the posterior marginals π(xi |y), π(θ|y) and π(θj |y).
+    Many, but not all, latent Gaussian models in the literature (see Section 1.2) satisfy two
+basic properties which we shall assume throughout the paper. The first is that the latent
+field x, which is often of large dimension, n = 102 − 105 , admit conditional independence
+4    H. Rue, S. Martino and N. Chopin
+
+properties. Hence, the latent field is a Gaussian Markov random field (GMRF) with a sparse
+precision matrix Q(θ) (Rue and Held, 2005). This means that we can use numerical methods
+for sparse matrices, which are much quicker than general dense matrix calculations (Rue
+and Held, 2005). The second property is that the number of hyperparameters m, is small,
+say m ≤ 6. Both properties are usually required to produce fast inference, but exceptions
+exist (Eidsvik et al., 2008).
+
+
+1.4. Inference: MCMC approaches
+The common approach to inference for latent Gaussian models is Markov chain Monte
+Carlo (MCMC). It is well known however that MCMC tends to exhibit poor performance
+when applied to such models. Various factors explain this. First, the components of the
+latent field x are strongly dependent on each other. Second, θ and x are also strongly
+dependent, especially when n is large. A common approach to (try to) overcome this first
+problem is to construct a joint proposal based on a Gaussian approximation to the full
+conditional of x (Gamerman, 1997, 1998; Carter and Kohn, 1994; Knorr-Held, 1999; Knorr-
+Held and Rue, 2002; Rue et al., 2004). The second problem requires, at least partially, a
+joint update of both θ and x. One suggestion is to use the one-block approach of Knorr-Held
+and Rue (2002): make a proposal for θ to θ ′ , update x from the Gaussian approximation
+conditional on θ ′ , then accept/reject jointly; see Rue and Held (2005, Ch. 4) for variations on
+this approach. Some models can alternatively be reparameterised to overcome the second
+problem (Papaspiliopoulos et al., 2007). Independence samplers can also sometimes be
+constructed (Rue et al., 2004). For some (observational) models, auxiliary variables can be
+introduced to simplify the construction of Gaussian approximations (Shephard, 1994; Albert
+and Chib, 1993; Holmes and Held, 2006; Frühwirth-Schnatter and Wagner, 2006; Frühwirth-
+Schnatter and Frühwirth, 2007; Rue and Held, 2005). Despite all these developments,
+MCMC remains painfully slow from the end user’s point of view.
+
+
+1.5. Inference: Deterministic approximations
+Gaussian approximations play a central role in the development of more efficient MCMC
+algorithms. This remark leads to the following questions:
+
+    • Can we bypass MCMC entirely, and base our inference on such closed-form approxi-
+      mations?
+
+    • To which extent can we advocate an approach that leads to a (presumably) small
+      approximation error over another approach giving rise to a (presumably) large MCMC
+      error?
+
+Obviously, MCMC errors seem preferable, as they can be made arbitrarily small, for ar-
+bitrarily large computational time. We argue however that, for a given computational
+cost, the deterministic approach developed in this paper outperforms MCMC algorithms to
+such an extent that, for latent Gaussian models, resorting to MCMC rarely makes sense in
+practice.
+    It is useful to provide some orders of magnitude. In typical spatial examples where the
+dimension n is a few thousands, our approximations for all the posterior marginals can be
+computed in (less than) a minute or a few minutes. The corresponding MCMC samplers
+need hours or even days to compute accurate posterior marginals. The approximation bias
+                               Approximate Bayesian Inference for Latent Gaussian Models     5
+
+is, in typical examples, much less than the MCMC error and negligible in practice. More
+formally, on one hand it is well-known that MCMC is a last resort solution: Monte Carlo
+averages are characterised by additive Op (N −1/2 ) errors, where N is the simulated sample
+size. Thus, it is easy to get rough estimates, but nearly impossible to get accurate ones; an
+additional correct digit requires 100 times more computational power. More importantly,
+the implicit constant in Op (N −1/2 ) often hides a curse of dimensionality with respect to the
+dimension n of the problem, which explains the practical difficulties with MCMC mentioned
+above. On the other hand, Gaussian approximations are intuitively appealing for latent
+Gaussian models. For most real problems and datasets, the conditional posterior of x
+is typically well-behaved, and looks ‘almost’ Gaussian. This is clearly due to the latent
+Gaussian prior assigned to x, which has a non-negligible impact on the posterior, especially
+in terms of dependence between the components of x.
+
+
+1.6. Approximation methods in Machine Learning
+A general approach towards approximate inference is the variational Bayes (VB) method-
+ology developed in the machine learning literature (Hinton and van Camp, 1993; MacKay,
+1995; Bishop, 2006). VB has provided numerous promising results in various areas, like hid-
+den Markov models (MacKay, 1997), mixture models (Humphreys and Titterington, 2000),
+graphical models (Attias, 1999, 2000), state-space models (Beal, 2003), among others; see
+Beal (2003), Titterington (2004) and Jordan (2004) for extensive reviews.
+    For the sake of discussion, consider the posterior distribution π(x, θ|y) of a generic
+Bayesian model, with observation y, latent variable x, and hyperparameter θ. The prin-
+ciple of VB is to use as an approximation the joint density q(x, θ) that minimises the
+Kullback-Leibler contrast of π(x, θ|y) with respect to q(x, θ). The minimisation is sub-
+ject to some constraint on q(x, θ), most commonly: q(x, θ) = qx (x)qθ (θ). Obviously, the
+VB approximated density q(x, θ) does not capture the dependence between x and θ, but
+one hopes that its marginals (of x and θ) approximate well the true posterior marginals.
+The solution of this minimisation problem is approached through an iterative, EM-like
+algorithm.
+    In general, the VB approach is not without potential problems. First, even though VB
+seems often to approximate well the posterior mode (Wang and Titterington, 2006), the
+posterior variance can be (sometimes severely) under-estimated; see Bishop (2006, Chap. 10)
+and Wang and Titterington (2005). In the case of latent Gaussian models, this phenomenon
+does occur as we demonstrate in Appendix A; we show that the VB approximated variance
+can be up to n times smaller than the true posterior variance in a typical application.
+The second potential problem is that the iterative process of the basic VB algorithm is
+tractable for ‘conjugate-exponential’ models only (Beal, 2003). This implies that π(θ)
+must be conjugate with respect to the complete likelihood π(x, y|θ) and the complete
+likelihood must belong to an exponential family. However, few of the latent Gaussian
+models encountered in applications are of this type, as illustrated by our worked-through
+examples in Section 5. A possible remedy around this requirement is to impose restrictions
+on q(x, θ), such as independence between blocks of components of θ (Beal, 2003, Ch. 4), or
+a parametric form for q(x, θ) that allow for a tractable minimisation algorithm. However,
+this requires case-specific solutions, and the constraints will increase the approximation
+error.
+    Another approximation scheme popular in Machine Learning is the Expectation-Propagation
+(EP) approach (Minka, 2001); see e.g. Zoeter et al. (2005) and Kuss and Rasmussen (2005)
+6    H. Rue, S. Martino and N. Chopin
+
+for applications of EP to latent Gaussian models. EP follows principles which are somewhat
+similar to VB, i.e. minimises iteratively some pseudo-distance between π(x, θ|y) and the
+approximation q(x, θ), subject to q(x, θ) factorising in a ‘simple’ way, e.g. as a product
+of parametric factors, each involving a single component of (x, θ). However, the pseudo-
+distance used in EP is the Kullback-Leibler contrast of q(x, θ) relative to π(x, θ|y), rather
+than the other way around (as in VB). Because of this, EP usually over-estimates the
+posterior variance (Bishop, 2006, Chap. 10). Kuss and Rasmussen (2005) derives an EP
+approximation scheme for classification problems involving Gaussian processes that seems
+to be accurate and fast; but their focus is on approximating π(x|θ, y) for θ set to the pos-
+terior mode, and it is not clear how to extend this approach to a fully Bayesian analysis.
+More importantly, deriving an efficient EP algorithm seems to require specific efforts for
+each class of models. With respect to computational cost, VB and EP are both designed to
+be faster than exact MCMC methods, but, due to their iterative nature, they are (much)
+slower than analytic approximations (such as those developed in this paper); see Section 5.3
+for an illustration of this in one of our examples. Also, it is not clear whether EP and VB
+can be implemented efficiently in scenarios involving linear constraints on x.
+    The general applicability of the VB and EP approaches does not contradict the exis-
+tence of improved approximation schemes for latent Gaussian models, hopefully without
+the problems just discussed. How this can be done is described next.
+
+
+1.7. Inference: The new approach
+The posterior marginals of interests can be written as
+                   Z                                        Z
+        π(xi | y) = π(xi | θ, y) π(θ | y) dθ and π(θj | y) = π(θ | y) dθ −j ,
+
+and key feature of our new approach is to use this form to construct nested approximations
+                    Z                                             Z
+        e(xi | y) = π
+        π              e(xi | θ, y) π
+                                    e(θ | y) dθ and π e(θj | y) = π  e(θ | y) dθ −j .  (2)
+
+Here, πe(·|·) is an approximated (conditional) density of its arguments. Approximations to
+π(xi |y) are computed by approximating π(θ|y) and π(xi |θ, y), and using numerical inte-
+gration (i.e. a finite sum) to integrate out θ. The integration is possible as the dimension
+of θ is small, see Section 1.3. As it will become clear in the following, the nested approach
+makes Laplace approximations very accurate when applied to latent Gaussian models. The
+approximation of π(θj |y) is computed by integrating out θ −j from π e(θ|y); we return in Sec-
+tion 3.1 to the practical details.
+    Our approach is based on the following approximation π    e(θ|y) of the marginal posterior
+of θ:                                                    ¯
+                                             π(x, θ, y) ¯¯
+                                e(θ | y) ∝
+                                π                        ¯                                 (3)
+                                            eG (x|θ, y) ¯
+                                            π               ⋆
+                                                       x=x (θ)
+
+where πeG (x|θ, y) is the Gaussian approximation to the full conditional of x, and x⋆ (θ) is
+the mode of the full conditional for x, for a given θ. The proportionality sign (3) comes
+from the fact that the normalising constant for π(x, θ|y) is unknown. This expression is
+equivalent to Tierney and Kadane (1986)’s Laplace approximation of a marginal posterior
+                                                                                        −3/2
+distribution and this suggests that the approximation error is relative and of order O(nd )
+                               Approximate Bayesian Inference for Latent Gaussian Models     7
+
+after renormalisation. However, since n is not fixed but depends on nd , standard asymptotic
+assumptions usually invoked for Laplace expansions are not verified here; see Section 4 for
+a discussion of the error rate.
+     Note that πe(θ|y) itself tends to depart significantly from Gaussianity. This suggests
+that a cruder approximation based on a Gaussian approximation to π(θ|y) is not accurate
+enough for our purposes; this also applies to similar approximations based on ‘equivalent
+Gaussian observations’ around x⋆ , and evaluated at the mode of (3) (Breslow and Clayton,
+1993; Ainsworth and Dean, 2006). A critical aspect of our approach is to explore and ma-
+nipulate πe(θ|y) and πe(xi |y) in a ‘nonparametric’ way. Rue and Martino (2007) used (3) to
+approximate posterior marginals for θ for various latent Gaussian models. Their conclusion
+was that πe(θ|y) is particularly accurate: even long MCMC runs could not detect any error
+in it. For the posterior marginals of the latent field, they proposed to start from π
+                                                                                    eG (x|θ, y)
+and approximate the density of xi |θ, y with the Gaussian marginal derived from π  eG (x|θ, y),
+i.e.                                          ©                    ª
+                              e(xi | θ, y) = N xi ; µi (θ), σi2 (θ) .
+                              π                                                             (4)
+Here, µ(θ) is the mean (vector) of the Gaussian approximation, whereas σ 2 (θ) is a vector of
+corresponding marginal variances. This approximation can be integrated numerically with
+respect to θ, see (2), to obtain approximations of the marginals of interest for the latent
+field,                            X
+                     πe(xi | y) =     e(xi | θ k , y) × π
+                                      π                 e(θ k | y) × ∆k .                (5)
+                                   k
+
+The sum is over values of θ with area-weights ∆k . Rue and Martino (2007) showed that
+the approximate posterior marginals for θ were accurate, while the error in the Gaussian
+approximation (4) was higher. In particular, (4) can present an error in location and/or a
+lack of skewness. Other issues in Rue and Martino (2007) were both the difficulty to detect
+the xi ’s whose approximation is less accurate and the inability to improve the approximation
+at those locations. Moreover, they were unable to control the error of the approximations
+and to chose the integration points {θ k } in an adaptive and automatic way.
+    In this paper, we solve all the remaining issues in Rue and Martino (2007), and present
+a fully automatic approach for approximate inference in latent Gaussian models which
+we name Integrated Nested Laplace Approximations (INLA). The main tool is to apply
+the Laplace approximation once more, this time to π(xi |y, θ). We also present a faster
+alternative which corrects the Gaussian approximation (4) for error in the location and lack
+of skewness at moderate extra cost. The corrections are obtained by a series expansion
+of the Laplace approximation. This faster alternative is a natural first choice, because of
+its low computational cost and high accuracy. It is our experience that INLA outperforms
+without comparison any MCMC alternative, both in terms of accuracy and computational
+speed. We will also demonstrate how the various approximations can be used to derive tools
+for assessing the approximation error, approximate posterior marginals for a subset of x,
+and to compute interesting quantities like the marginal likelihood, the Deviance Information
+Criteria and various Bayesian predictive measures.
+
+
+1.8. Plan of paper
+Section 2 contains preliminaries on GMRF’s, sparse matrix computations and Gaussian
+approximations. Section 3 explains the INLA approach and how to approximate π(θ|y),
+π(θj |y) and π(xi |θ, y). For the latent field, three approximations are discussed: Gaussian,
+8    H. Rue, S. Martino and N. Chopin
+
+Laplace and simplified Laplace. Section 4 discusses the error rates of the Laplace appro-
+ximations used in INLA. Section 5 illustrates the performance of INLA through simulated
+and real examples, which include stochastic volatility models, a longitudinal mixed model,
+a spatial model for mapping of cancer incidence data and spatial log-Gaussian Cox pro-
+cesses. Section 6 discusses some extensions: construction of posterior marginals for subsets
+xS , approximations of the marginal likelihood and predictive measures, the DIC criterion
+for model comparison and an alternative integration scheme for cases where the number of
+hyperparameters is not small but moderate. We end with a general discussion in Section 7.
+
+
+2.   Preliminaries
+
+We present here basic properties of GMRF’s and explain how to perform related compu-
+tations using sparse matrix algorithms. We then discuss how to compute Gaussian appro-
+ximations for a latent GMRF. See Rue and Held (2005) for more details on both issues.
+Denote by x−i the vector x minus its ith element and by Γ(τ ; a, b) the Γ(a, b) density (with
+mean a/b) at point τ .
+
+
+2.1. Gaussian Markov Random Fields
+A GMRF is a Gaussian random variable x = (x1 , . . . , xn ) with Markov properties: for some
+i 6= j’s, xi and xj are independent conditional upon x−ij . These Markov properties are
+conveniently encoded in the precision (inverse covariance) matrix Q: Qij = 0 if and only if
+xi and xj are independent conditional upon x−ij . Let the undirected graph G denote the
+conditional independence properties of x, then x is said to be a GMRF with respect to G.
+If the mean of x is µ, the density of x is
+                                              ½                       ¾
+                               −n/2    1/2        1          T
+                   π(x) = (2π)      |Q| exp − (x − µ) Q(x − µ) .                          (6)
+                                                  2
+
+In most cases only O(n) of the n2 entries of Q are non-zero, so Q is sparse. This allows for
+fast factorisation of Q as LLT , where L is the (lower) Cholesky triangle. The sparseness
+of Q is inherited into L, thanks to the global Markov property: for i < j, such that i and j
+are separated by F (i, j) = {i + 1, . . . , j − 1, j + 1, . . . , n} in G, Lji = 0. Thus, only non-null
+terms in L are computed. In addition, nodes can be re-ordered to decrease the number of
+non-zero terms in L. The typical cost of factorising Q into LLT depends on the dimension
+of the GMRF, e.g. O(n) for 1D (one dimension), O(n3/2 ) for 2D O(n2 ) for 3D. Solving
+equations which involve Q also makes use of the Cholesky triangle. For example, Qx = b
+is solved in two steps. First solve Lv = b, then solve LT x = v. If z ∼ N (0, I) then the
+solution of LT x = z has precision matrix Q. This is the general method for producing
+random samples from a GMRF. P     The log density at any x, log π(x), can easily be computed
+using (6) since log |Q| = 2 i log Lii .
+    Marginal variances can also be computed efficiently. To see this, we can start with the
+equation LT x = z where z ∼ N (0, I). Recall that the solution          Pn x has precision matrix Q.
+Writing this equation out in detail, we obtain Lii xi = zi − k=i+1 Lki xk for i = n, . . . , 1.
+Multiplying each side with xj j ≥ i, and taking expectation, we obtain
+                                            n
+                                         1 X
+                    Σij = δij /L2ii −         Lki Σkj ,      j ≥ i, i = n, . . . , 1,              (7)
+                                        Lii
+                                           k=i+1
+                                Approximate Bayesian Inference for Latent Gaussian Models      9
+
+where Σ (= Q−1 ) is the covariance matrix, and δij = 1 if i = j and zero otherwise. Thus Σij
+can be computed from (7), letting the outer loop i run from n to 1 and the inner loop j from
+n to i. If we are only interested in the marginal variances, we only need to compute Σij ’s
+for which Lji (or Lij ) is not known to be zero, see above. This reduces the computational
+costs to typically O(n(log n)2 ) in the spatial case; see Rue and Martino (2007, Sec. 2) for
+more details.
+    When the GMRF is defined with additional linear constraints, like Ax = e for a k × n
+matrix A of rank k, the following strategy is used: if x is a sample from the unconstrained
+GMRF, then
+                          xc = x − Q−1 AT (AQ−1 AT )−1 (Ax − e)                              (8)
+
+is a sample from the constrained GMRF. The expected value of xc can also be computed
+using (8). This approach is commonly called ‘conditioning by Kriging’, see Cressie (1993)
+or Rue (2001). Note that Q−1 AT is computed by solving k linear systems, one for each
+column of AT . The additional cost of the k linear constraints is O(nk 2 ). Marginal variances
+under linear constraints can be computed in a similar way, see Rue and Martino (2007,
+Sec. 2).
+
+
+
+2.2. Gaussian Approximations
+Our approach is based on Gaussian approximations to densities of the form:
+                                        (                )
+                                       1 T     X
+                           π(x) ∝ exp − x Qx +   gi (xi ) .                                  (9)
+                                       2
+                                                         i∈I
+
+
+where gi (xi ) is log π(yi |xi , θ) in our setting. The Gaussian approximation π
+                                                                               eG (x) is obtained
+by matching the modal configuration and the curvature at the mode. The mode is computed
+iteratively using a Newton-Raphson method, also known as the scoring algorithm and its
+variant, the Fisher-scoring algorithm (Fahrmeir and Tutz, 2001). Let µ(0) be the initial
+                                          (0)
+guess, and expand gi (xi ) around µi to the second order,
+
+                                               (0)          1
+                               gi (xi ) ≈ gi (µi ) + bi xi − ci x2i                         (10)
+                                                            2
+
+where {bi } and {ci } depend on µ(0) . A Gaussian approximation is obtained, with precision
+matrix Q + diag(c) and mode given by the solution of (Q + diag(c))µ(1) = b. This process
+is repeated until it converges to a Gaussian distribution with, say, mean x⋆ and precision
+matrix Q⋆ = Q + diag(c⋆ ). If there are linear constraints, the mean is corrected at each
+iteration using the expected value of (8).
+    Since the non-quadratic term in (9) is only a function of xi and not a function of xi
+and xj , say, the precision matrix of the Gaussian approximation is of the form Q + diag(c).
+This is computationally convenient, as the Markov properties of the GMRF are preserved.
+    There are some suggestions in the literature how to construct an improved Gaussian
+approximation to (9) with respect to the one obtained matching the mode and the curva-
+ture at the mode; see Rue (2001, Sec. 5), Rue and Held (2005, Sec. 4.4.1) and Kuss and
+Rasmussen (2005). We have chosen not to pursue this issue here.
+10    H. Rue, S. Martino and N. Chopin
+
+3.   The Integrated Nested Laplace approximation (INLA)
+
+In this section we present the INLA approach for approximating the posterior marginals of
+the latent Gaussian field, π(xi |y), i = 1, . . . , n. The approximation is computed in three
+steps. The first step (Section 3.1) approximates the posterior marginal of θ using the Laplace
+approximation (3). The second step (Section 3.2) computes the Laplace approximation, or
+the simplified Laplace approximation, of π(xi |y, θ), for selected values of θ, in order to
+improve on the Gaussian approximation (4). The third step combines the previous two
+using numerical integration (5).
+
+
+3.1. Exploring π   e(θ|y)
+The first step of the INLA approach is to compute our approximation to the posterior
+marginal of θ, see (3). The denominator in (3) is the Gaussian approximation to the full
+conditional for x, and is computed as described in Section 2.2. The main use of π e(θ|y) is to
+integrate out the uncertainty with respect to θ when approximating the posterior marginal
+of xi , see (5). For this task, we do not need to represent π
+                                                            e(θ|y) parametrically, but rather
+to explore it sufficiently well to be able to select good evaluation points for the numerical
+integration. At the end of this section, we discuss how the posterior marginals π(θj |y) can
+be approximated. Assume for simplicity that θ = (θ1 , . . . , θm ) ∈ Rm , which can always be
+obtained by reparametrisation.
+
+Step 1 Locate the mode of π    e(θ|y), by optimising log πe(θ|y) with respect to θ. This
+can be done using some quasi-Newton method which builds up an approximation to the
+second derivatives of log π
+                          e(θ|y) using the difference between successive gradient vectors.
+The gradient is approximated using finite differences. Let θ ⋆ be the modal configuration.
+
+Step 2 At the modal configuration θ ⋆ compute the negative Hessian matrix H > 0, using
+finite differences. Let Σ = H −1 , which would be the covariance matrix for θ if the density
+were Gaussian. To aid the exploration, use standardised variables z instead of θ: let
+Σ = V ΛV T be the eigen-decomposition of Σ, and define θ via z, as follows
+
+                                   θ(z) = θ ⋆ + V Λ1/2 z.
+
+   e(θ|y) is a Gaussian density, then z is N (0, I). This reparametrisation corrects for scale
+If π
+and rotation, and simplifies numerical integration; see for example Smith et al. (1987).
+
+Step 3 Explore log π e(θ|y) using the z-parametrisation. Figure 1 illustrates the procedure
+when log πe(θ|y) is unimodal. Panel (a) shows a contour plot of log π e(θ|y) for m = 2, the
+location of the mode and the new coordinate axis for z. We want to explore log π    e(θ|y) in
+order to locate the bulk of the probability mass. The result of this procedure is displayed
+in panel (b). Each dot is a point where log π e(θ|y) is considered as significant, and which
+is used in the numerical integration (5). Details are as follows. We start from the mode
+(z = 0), and go in the positive direction of z1 with step-length δz say δz = 1, as long as
+
+                                 e(θ(0)|y) − log π
+                             log π               e(θ(z)|y) < δπ                          (11)
+
+where, for example δπ = 2.5. Then we switch direction and do similarly. The other
+coordinates are treated in the same way. This produces the black dots. We can now fill
+                                 Approximate Bayesian Inference for Latent Gaussian Models           11
+
+
+
+
+       θ2                             z1              θ2                             z1
+
+             z2                                             z2
+
+
+
+
+                                      θ1                                             θ1
+
+                           (a)                                           (b)
+
+Fig. 1. Illustration of the exploration of the posterior marginal for θ. In (a) the mode is located, the
+Hessian and the coordinate system for z are computed. In (b) each coordinate direction is explored
+(black dots) until the log-density drops below a certain limit. Finally the grey dots are explored.
+
+
+in all the intermediate values by taking all different combinations of the black dots. These
+new points (shown as grey dots) are included if (11) holds. Since we layout the points θ k
+in a regular grid, we may take all the area-weights ∆k in (5) to be equal.
+
+Approximating π(θj |y). Posterior marginals for θj can be obtained directly from π   e(θ|y)
+using numerical integration. However, this is computationally demanding, as we need to
+evaluate πe(θ|y) for a large number of configurations. A more feasible approach is to use
+the points already computed during step 1-3 to construct an interpolant to log π
+                                                                               e(θ|y), and
+to compute marginals using numerical integration from this interpolant. If high accuracy
+is required, we need in practise a more dense configuration (for example δz = 1/2 or 1/4)
+than is required for the latent field x; see Martino (2007) for numerical comparisons.
+
+
+3.2. Approximating π(xi |θ, y)
+We have now a set of weighted points {θ k } to be used in the integration (5). The next step
+is to provide accurate approximations for the posterior marginal for the xi ’s, conditioned on
+selected values of θ. We discuss three approximations πe(xi |y, θ k ), that is the Gaussian, the
+Laplace, and a simplified Laplace approximation. Although the Laplace approximation is
+preferred in general, the much smaller cost of the simplified Laplace generally compensates
+for the slight loss in accuracy.
+
+
+3.2.1. Using Gaussian Approximations
+The simplest (and cheapest) approximation to π(xi |θ, y) is the Gaussian approximation
+eG (xi |θ, y), where the mean µi (θ) and the marginal variance σi2 (θ) are derived using the
+π
+recursions (7), and possibly correcting for linear constraints. During the exploration of
+π
+e(θ|y), see Section 3.1, we already compute π eG (x|θ, y), so only marginal variances need
+to be additionally computed. The Gaussian approximation gives often reasonable results,
+but there can be errors in the location and/or errors due to the lack of skewness (Rue and
+Martino, 2007).
+12     H. Rue, S. Martino and N. Chopin
+
+3.2.2. Using Laplace Approximations
+The natural way to improve the Gaussian approximation is to compute the Laplace appro-
+ximation                                                   ¯
+                                         π(x, θ, y)        ¯
+                                                           ¯
+                    eLA (xi | θ, y) ∝
+                    π                                      ¯     .                (12)
+                                      eGG (x−i |xi , θ, y) ¯
+                                      π                      ⋆    x−i =x−i (xi ,θ)
+
+Here, πeGG is the Gaussian approximation to x−i |xi , θ, y, and x⋆−i (xi , θ) is the modal
+configuration. Note that π  eGG is different from the conditional density corresponding to
+π
+eG (x|θ, y).
+    Unfortunately, (12) implies that π  eGG must be recomputed for each value of xi and θ,
+since its precision matrix depends on xi and θ. This is far too expensive, as it requires
+n factorisations of the full precision matrix. We propose two modifications to (12) which
+make it computationally feasible.
+                                                                                   eGG (x−i |xi , θ, y)
+    Our first modification consists in avoiding the optimisation step in computing π
+by approximating the modal configuration,
+
+                                  x⋆−i (xi , θ) ≈ EπeG (x−i | xi ).                           (13)
+
+The right-hand side is evaluated under the conditional density derived from the Gaussian
+approximation π eG (x|θ, y). The computational benefit is immediate. First, the conditional
+mean can be computed by a rank-one update from the unconditional mean, using (8). In
+the spatial case the cost is O(n log n), for each i, which comes from solving Q⋆ (θ)v = 1i ,
+where 1i equals one at position i, and zero otherwise. This rank-one update is computed
+only once for each i, as it is linear in xi . Although their settings are slightly different, Hsiao
+et al. (2004) show that deviating from the conditional mode does not necessarily degrade
+the approximation error. Another positive feature of (13) is that the conditional mean is
+continuous with respect to xi , which is not the case when numerical optimisation is used to
+compute x⋆−i (xi , θ).
+    Our next modification materialises the following intuition: only those xj that are ‘close’
+to xi should have an impact on the marginal of xi . If the dependency between xj and
+xi decays as the distance between nodes i and j increases, only those xj ’s in a ‘region of
+interest’ around i, Ri (θ), determine the marginal of xi . The conditional expectation in (13)
+implies that
+                            EπeG (xj |xi ) − µj (θ)           xi − µi (θ)
+                                                    = aij (θ)                                  (14)
+                                    σj (θ)                       σi (θ)
+for some aij (θ) when j 6= i. Hence, a simple rule for constructing the set Ri (θ) is
+
+                                Ri (θ) = {j : |aij (θ)| > 0.001} .                            (15)
+
+The most important computational saving using Ri (θ) comes from the calculation of the
+denominator of (12), where we now only need to factorise a |Ri (θ)| × |Ri (θ)| sparse matrix.
+    Expression (12), simplified as explained above, must be computed for different values of
+xi in order to find the density. To select these points, we use the mean and variance of the
+Gaussian approximation (4), and choose, say, different values for the standardised variable
+
+                                          (s)       xi − µi (θ)
+                                       xi       =                                             (16)
+                                                       σi (θ)
+                               Approximate Bayesian Inference for Latent Gaussian Models        13
+
+according to the corresponding choice of abscissas given by the Gauss-Hermite quadrature
+                               eLA (xi |θ, y), we use
+rule. To represent the density π
+                                 ©                   ª
+             eLA (xi | θ, y) ∝ N xi ; µi (θ), σi2 (θ) × exp {cubic spline(xi )} .
+             π                                                                      (17)
+
+                                                                   eLA (xi |θ, y) and π
+The cubic spline is fitted to the difference of the log-density of π                  eG (xi |θ, y)
+at the selected abscissa points, and then the density is normalised using quadrature inte-
+gration.
+
+
+3.2.3. Using a Simplified Laplace Approximation
+In this section we derive a simplified Laplace approximation π   eSLA (xi |θ, y) by doing a series
+expansion of π eLA (xi |θ, y) around xi = µi (θ). This allows us to correct the Gaussian appro-
+ximation π eG (xi |θ, y) for location and skewness. For many observational models including
+the Poisson and the Binomial, these corrections are sufficient to obtain essentially correct
+posterior marginals. The benefit is purely computational: as most of the terms are common
+for all i, we can compute all the n marginals in only O(n2 log n) time in the spatial case.
+Define                                                        ¯
+                                        ∂3                    ¯
+                           (3)                                ¯
+                          dj (xi , θ) =   3 log π(yj | xj , θ)¯
+                                        ∂xj                   ¯
+                                                            xj =Eπ
+                                                                 e G (xj |xi )
+
+
+which we assume exists. The evaluation point is found from (14). The following trivial
+Lemma will be useful.
+   Lemma 1. Let x = (x1 , . . . , xn )T ∼ N (0, Σ), then for all x1
+                                             µ            ¶
+                 1                                x1             1
+               − (x1 , E(x−1 |x1 )T ) Σ−1                   = − x21 /Σ11 .
+                 2                             E(x−1 |x1 )       2
+We expand the numerator and denominator of (12) around xi = µi (θ), using (13) and
+Lemma 1. Up to third order, we obtain
+                       ¯
+                       ¯                         1 (s)
+                       ¯
+         log π(x, θ, y)¯                      = − (xi )2
+                       ¯                         2
+                         x−i =Eπ
+                               e G (x−i |xi )
+                                                                                        (18)
+                                 1 (s) 3 X (3)                                 3
+                              + (xi )            dj (µi (θ), θ) {σj (θ)aij (θ)} + · · ·
+                                 6
+                                              j∈I\i
+
+The first and second order terms give the Gaussian approximation, whereas the third order
+term provides a correction for skewness. Further, the denominator of (12) reduces to
+                             ¯
+                             ¯                          1
+                             ¯
+        eGG (x−i | xi , θ, y)¯
+    log π                                 = constant + log |H + diag {c(xi , θ)}|    (19)
+                             ¯                          2
+                             x−i =Eπ
+                                   e G (x−i |xi )
+
+
+where H is the prior precision matrix of the GMRF with ith column and row deleted,
+and c(xi , θ) is the vector of minus the second derivative of the log likelihood evaluated at
+xj = EπeG (xj |xi ), see (14). Using that
+                                             Xh                   i
+                                                               −1
+                       d log |H + diag(c)| =   {H + diag (c)}         dcj
+                                                                         jj
+                                                    j
+14      H. Rue, S. Martino and N. Chopin
+
+we obtain
+                           ¯
+                           ¯
+                           ¯
+      eGG (x−i | xi , θ, y)¯
+  log π                                               = constant
+                           ¯
+                               x−i =Eπ
+                                     e G (x−i |xi )
+                                                                                                   (20)
+                                1 (s) X                   (3)
+                               − xi     VarπeG (xj |xi ) dj (µi (θ), θ) σj (θ) aij (θ) + · · · .
+                                2
+                                         j∈I\i
+
+For Gaussian data (19) is just a constant, so the first order term in (20) is the first correction
+for non-Gaussian observations. Note that
+                                                 ©                        ª
+                       VarπeG (xj |xi ) = σj2 (θ) 1 − CorrπeG (xi , xj )2
+
+and that the covariance between xi and xj (under πeG ) is computed while doing the rank-one
+update in (13), as the jth element of the solution of Q⋆ (θ)v = 1i .
+   We now collect the expansions (18) and (20). Define
+
+             (1)     1 X 2         ©                       ª (3)
+            γi (θ) =         σj (θ) 1 − CorrπeG (xi , xj )2 dj (µi (θ), θ) σj (θ) aij (θ)
+                     2
+                       j∈I\i
+                     X (3)                                                                         (21)
+             (3)                                          3
+            γi (θ) =      dj (µi (θ), θ) {σj (θ)aij (θ)}
+                       j∈I\i
+
+then
+                                        1 (s)      (1)   (s) 1 (s) (3)
+           eSLA (xsi |θ, y) = constant − (xi )2 + γi (θ)xi + (xi )3 γi (θ) + · · · .
+       log π                                                                                       (22)
+                                        2                    6
+Eq. (22) does not define a density as the third order term is unbounded. A common way
+to introduce skewness into the Gaussian distribution is to use the Skew-Normal distribu-
+tion (Azzalini and Capitanio, 1999)
+                                         µ      ¶ µ          ¶
+                                     2     z−ξ          z−ξ
+                           πSN (z) = φ             Φ a                              (23)
+                                     ω       ω            ω
+
+where φ(·) and Φ(·) are the density and distribution function of the standard normal distri-
+bution, and ξ, ω > 0, and a are respectively the location, scale, and skewness parameters.
+                                                                                       (3)
+We fit a Skew-Normal density to (22) so that the third derivative at the mode is γi , the
+          (1)                                     (3)
+mean is γi and the variance is 1. In this way, γi only contributes to the skewness whereas
+                                             (1)
+the adjustment in the mean comes from γi ; see Appendix B for details.
+    We have implicitly assumed that the expansion (18) is dominated by the third order
+term. This is adequate when the log-likelihood is skewed, but not for symmetric distribu-
+tions with thick tails like a Student-tν with a low degree of freedom. For such cases, we
+expand only the denominator (20) and fit the spline-corrected Gaussian (17) instead of a
+skewed Normal. This is slightly more expensive, but is needed.
+    The simplified Laplace approximation appears to be highly accurate for many observa-
+tional models. The computational cost is dominated by the calculation of vector ai· (θ), for
+each i; thus the ‘region of interest’ strategy (15) is unhelpful here. Most of the other terms
+in (21) do not depend on i, and thus are computed only once. The cost for computing (22),
+for a given i, is of the same order as the number of non-zero elements of the Cholesky
+                                Approximate Bayesian Inference for Latent Gaussian Models           15
+
+triangle, e.g. O(n log n) in the spatial case. Repeating the procedure n times gives a total
+cost of O(n2 log n) for each value of θ. We believe this is close to the lower limit for any
+general algorithm that approximates all of the n marginals. Since the graph of x is general,
+we need to visit all other sites, for each i, for a potential contribution. This operation alone
+costs O(n2 ). In summary, the total cost for computing all n marginals π    e(xi |y), i = 1, . . . , n,
+using (5) and the simplified Laplace approximation, is exponential in the dimension of θ
+times O(n2 log n) (in the spatial case).
+
+4.   Approximation error: Asymptotics and practical issues
+
+4.1. Approximation error of π   e(θ|y)
+For the sake of discussion, denote p the dimension of vector (x, θ), i.e. p = n + m, and
+recall that nd denotes the number of observations. Up to normalisation, π      e(θ|y) is formally
+equivalent to the Laplace approximation of a marginal posterior density proposed by Tierney
+and Kadane (1986), which, under ‘standard’ conditions, has error rate O(n−1     d ). We want to
+make it clear however that these standard conditions are not relevant in many applications
+of latent Gaussian models. We will now discuss several asymptotic schemes and their impact
+on the actual error rate of π e(θ|y).
+    First, assume that p is fixed while nd goes to infinity; for instance, a GMRF model with a
+fixed number of nodes but a growing number of observations accumulating at each node. In
+this case, the usual assumptions for the asymptotic validity of a Laplace approximation, see
+Kass et al. (1999) or Schervish (1995, p. 453), are typically satisfied. This asymptotic scheme
+is obviously quite specific, but it explains the good properties of INLA in a few applications,
+such as for instance a GMRF model with binomial observations, yi |xi ∼ Bin(ni , logit−1 (xi )),
+provided all the ni take large values.
+    Second, if n (and therefore p) grows with nd , then, according to Shun and McCullagh
+(1995), the error rate is O(n/nd ) as n is the dimension of the integral defining the unnor-
+malised version of πe(θ|y). Note that this rate is not established rigorously. This asymptotic
+scheme is relevant to regression models involving individual effects, in which case n/nd → 0
+is not a taxing assumption. On the other hand, many GMRF models are such that n/nd is
+a constant (typically 1). For such models, we have the following result. If, as nd → ∞, the
+true latent field x converges to a degenerate Gaussian random distribution of rank q, then
+the asymptotic error rate is O(q/nd ). Conversely, if the considered model is such that the
+components of x are independent, one can show that the approximation error is O(1) but
+almost never o(1).
+    In conclusion, the accuracy of π   e(θ|y) seems to be directly related to the ‘actual’ di-
+mension of x. Thus, we recommend to evaluate, conditional on θ, the effective number
+of parameters, pD (θ), as defined by Spiegelhalter et al. (2002). Since x given y and θ is
+roughly Gaussian, pD (θ) is conveniently approximated by
+                                                  n                 o
+                                                                 −1
+                             pD (θ) ≈ n − Trace Q(θ) Q⋆ (θ)           ,                      (24)
+
+the trace of the prior precision matrix times by the posterior covariance matrix of the
+Gaussian approximation (Spiegelhalter et al., 2002, Eq. (16)). (The computation of pD (θ)
+is computationally cheap, since the covariances of neighbours are obtained as a by-product
+of the computation of the marginal variances in the Gaussian approximation based on (7).)
+This quantity also measures to which extent the Gaussianity and the dependence structure
+of the prior are preserved in the posterior of x, given θ. For instance, for non-informative
+16    H. Rue, S. Martino and N. Chopin
+
+data, pD (θ) = 0, and the approximation error is zero, since the posterior equals the Gaussian
+prior. In all our applications, we observed that pD (θ) is typically small relative to nd for
+values of θ in the vicinity of the posterior mode.
+    Note finally that in most cases normalising the approximated density reduces further
+the asymptotic rate, as the dominating terms of the numerator and the denominator cancel
+out (Tierney and Kadane, 1986); in the standard case, normalising reduces the error rate
+                      −3/2
+from O(n−1  d ) to O(nd    ).
+    The discussion above of the asymptotic properties of π   e(θ|y) applies almost directly to
+eLA (xi |θ, y): conditional on θ, π
+π                                  eLA (xi |θ, y) is a Laplace approximation of the posterior
+marginal density of xi , and the dimension of the corresponding integral is the dimension of
+x−i , i.e. n − 1.
+
+
+4.2. Assessing the approximation error
+Obviously, there is only one way to assess with certainty the approximation error of our
+approach, which is to run a MCMC sampler for an infinite time. However, we propose to use
+the following two strategies to assess the approximation error, which should be reasonable
+in most situations.
+   Our first strategy is to verify the overall approximation π
+                                                             eG (x|θ, y), for each θ k used in
+the integration. We do this by computing pD (θ) (24) as discussed in Section 4.1, but we
+can also use that (3) can be rewritten as
+                          Z      ·                                                  ¸
+    π(θ|y)       ⋆    1/2           1        ⋆    T   ⋆          ⋆
+            ∝ |Q (θ)|       exp − {x − x (θ)} Q (θ) {x − x (θ)} + r(x; θ, y) dx
+    π
+    e(θ|y)                          2
+            = EπeG [exp {r(x; θ, y)}] ,
+
+where the constant of proportionality is quite involved and not needed in the following
+                        ⋆           ⋆
+discussion. Further,
+                  P x (θ) and Q (θ) are the mean and precision of Gaussian distribution
+π
+eG , r(x; θ, y) = i hi (xi ), and hi (xi ) is gi (xi ) minus its Taylor expansion up to order two
+around x⋆i (θ); see (9) and (10). If, for each θ k , pD (θ) is small compared to nd , and the em-
+pirical quantiles of the random variable r(x; θ, y) are in absolute value significantly smaller
+than nd , then one has strong confidence that the Gaussian approximation is adequate. The
+empirical quantiles of r(x; θ, y) are found by sampling (for example, 1 000) independent
+realisations from πeG .
+    Our second strategy is based on the simple idea of comparing elements of a sequence
+of more and more accurate approximations. In our case, this sequence consists of the
+Gaussian approximation (4), followed by the simplified Laplace approximation (22), then
+by the Laplace approximation (12). Specifically we compute the integrated marginal (5)
+based on both the Gaussian approximation and the simplified Laplace approximation, and
+compute their symmetric Kullback-Leibler divergence (SKLD). If the divergence is small
+then both approximations are considered as acceptable. Otherwise, compute (5) using
+the Laplace approximation (12) and compute the divergence with the one based on the
+simplified Laplace approximation. Again, if the divergence is small, simplified Laplace and
+Laplace approximations appear to be acceptable; otherwise, the Laplace approximation is
+our best estimate but the label ‘problematic’ should be attached to the approximation to
+warn the user. (This last option has not yet happened to us.)
+    To assess the error due to the numerical integration (5), we can compare the SKLD
+between the posterior marginals obtained with a standard and those obtained with a higher
+                                Approximate Bayesian Inference for Latent Gaussian Models         17
+
+resolution. Such an approach is standard in numerical integration, we do not pursue this
+issue here.
+
+5.   Examples
+
+This section provides examples of applications of the INLA approach, with comparisons
+to results obtained from intensive MCMC runs. The computations were performed on a
+single-processor 2.1GHz laptop using the inla program (Martino and Rue, 2008) which is
+a user-friendly interface towards our GMRFLib-library written in C (Rue and Held, 2005,
+Appendix). (We will comment upon speedup strategies and parallel implementation in Sec-
+tion 6.5 and Section 7.) We start with some simulated examples with fixed θ in Section 5.1,
+to verify the (simplified) Laplace approximation for xi |θ, y. We continue with a generalised
+linear mixed model for longitudinal data in Section 5.2, a stochastic volatility model ap-
+plied to exchange rate data in Section 5.3, a spatial semi-parametric regression model for
+disease-mapping in Section 5.4. The dimensions get really large in Section 5.5, in which we
+analyse some data using a spatial log-Gaussian Cox process.
+
+
+5.1. Simulated examples
+We start by illustrating the various approximations of π(xi |θ, y) in two quite challenging
+examples. The first model is based on a first order auto-regressive latent field with unknown
+mean,                                        ©                ª
+            ft − µ | µ, f1 , . . . , ft−1 ∼ N φ(ft−1 − µ), σ 2 ,     t = 2, . . . , 50    (25)
+and µ ∼ N (0, 1), φ = 0.85, Var(ft ) = 1 and f1 − µ ∼ N (0, 1). In this example ηt = ft ;
+see (1). As our observations we take
+                                                                      ©             ª
+       E1: yt − ηt | (η, µ) ∼ Student-t3 , E2: yt | (η, µ) ∼ Bernoulli logit−1 (ηt )
+
+for t = 1, . . . , 50, in experiment E1 and E2, respectively. Note that the Student-t3 is
+symmetric so we need to use the full numerator in the simplified Laplace approximations
+as described in Section 3.2.3.
+    To create the observations in each experiment, we sampled first (f T , µ)T from the prior,
+then simulated the observations. We computed π        e(ft |θ, y) for t = 1, . . . , 50 and π
+                                                                                            e(µ|θ, y)
+using the simplified Laplace approximation. We located the ‘worst node’, that is the node
+with maximum SKLD between the Gaussian and the simplified Laplace approximations.
+This process was repeated 100 times. Figure 2 provides the results for the ‘worst of the
+worst nodes’, that is the node that maximises our SKLD criterion among all the nodes
+of the 100 generated sample. The first (resp. second) column displays the results for E1
+with Student-t3 data (resp. E2 with Bernoulli data). Panel (a) and (b) display f (solid
+line) and the observed data (circles). In (a) the selected node is marked with a vertical
+line and solid dot. In (b) the node with maximum SKLD is µ, and hence is not shown.
+Panel (c) and (d) display the approximated marginals for the node with maximum SKLD
+in the standardised scale (16). The dotted line is the Gaussian approximation, the dashed
+line is the simplified Laplace and the solid line is the Laplace approximation. In both cases,
+the simplified Laplace and the Laplace approximation are very close to each other. The
+SKLD between the Gaussian approximation and the simplified Laplace one is 0.20 (c) and
+0.05 (d). The SKLD between the simplified Laplace approximation and the Laplace one
+is 0.001 (c) and 0.0004 (d). Panel (e) and (f) show the simplified Laplace approximation
+18     H. Rue, S. Martino and N. Chopin
+
+with a histogram based on 10, 000 (near) independent samples from π(f , µ|θ, y). The fit is
+excellent.
+    The great advantage of the Laplace approximations is the high accuracy and low compu-
+tational cost. In both examples, we computed all the approximations (for each experiment)
+in less than 0.08 seconds, whereas the MCMC samples required about 25 seconds.
+    The results shown in this example are rather typical and are not limited to simple time-
+series models like (25). The Laplace approximation only ‘sees’ the log-likelihood model and
+then uses some of the other nodes to compute the correction to the Gaussian approximation.
+Hence, the form of the log-likelihood is more important than the form of the covariance for
+the latent field.
+
+
+5.2. A generalised linear mixed model for longitudinal data
+Generalised linear (mixed) models form a large class of latent Gaussian models. We consider
+the Epil example of the OpenBUGS (Thomas et al., 2006) manual Vol I, which is based on
+model III of Breslow and Clayton (1993, Sec. 6.2) and data from Thall and Vail (1990).
+    The data come from a clinical trial of 59 epileptics patients. Each patient i is randomised
+to a new drug (Trti = 1) or a placebo (Trti = 0), in addition to the standard chemotherapy.
+The observations for each patient yi1 , . . . , yi4 , are the number of seizures during the two
+weeks before each of the four clinic visits. The covariates are age (Age), the baseline seizure
+counts (Base) and an indicator variable for the 4th clinic visit (V4). The linear predictor is
+
+     ηij   = β0 + βBase log(Baselinej /4) + βTrt Trtj + βTrt×Base Trtj × log(Baselinej /4)
+             +βAge Agej + βV4 V4j + ǫi + νij ,      i = 1, . . . , 59, j = 1, . . . , 4,
+
+using centred covariates. The observations are conditionally independent Poisson variables
+with mean exp(ηij ). Overdispersion in the Poisson distribution is modelled using individual
+random effects ǫi and subject by visit random effects νij . We use the same priors as in the
+                         iid                iid
+OpenBUGS manual: ǫi ∼ N (0, 1/τǫ ), νij ∼ N (0, 1/τν ), τǫ , τν ∼ Γ(0.001, 0.001), and all the
+β· ’s are assigned N (0, 1002 ) priors. In this example our latent field x is of dimension n = 301
+and consists of {ηij }, {ǫi }, β0 , βBase , βTrt , βTrt×Base , βAge and βV4 . The hyperparameters
+are θ = (τǫ , τν )T .
+     We computed the approximate posterior marginals for the latent field using both Gaus-
+sians and simplified Laplace approximations. The node where SKLD between these two
+marginals is maximum, is β0 . The SKLD is 0.23. The two approximated marginals for β0
+are displayed in Figure 3(a). The simplified Laplace (solid line) approximation does correct
+the Gaussian approximation (dashed line) in the mean, while the correction for skewness is
+minor. The simplified Laplace approximation gives accurate results, as shown in Figure 3(a)
+where a histogram from a long MCMC using OpenBUGS is overlaid. Figure 3(b) displays
+the posterior marginal for τǫ found by integrating out τν from π         e(θ|y); again, we find no
+errors.
+     We validated the approximations at the modal value θ ⋆ . The effective number of pa-
+rameters (24) was 121.1, which corresponds to about 2 samples for each parameter. A 95%
+interval for the remainder r(x; θ ⋆ , y)/nd is [−0.01, 0.024] using 1, 000 independent sam-
+ples. Computing the (true) Laplace approximation for the posterior marginal of β0 gives a
+negligible SKLD to the simplified Laplace one; thus indicating that the simplified Laplace
+approximation is adequate. The computational cost for obtaining all the latent posterior
+                                            Approximate Bayesian Inference for Latent Gaussian Models                        19
+
+
+
+          2                                                        5
+
+
+
+                                                                   4
+
+          0
+                                                                   3
+
+
+
+                                                                   2
+          −2
+
+
+                                                                   1
+
+
+          −4
+                                                                   0
+
+
+
+                                                                   −1
+          −6
+
+                0        10        20       30       40       50         0        10        20        30       40       50
+
+
+
+
+                                    (a)                                                     (b)
+
+          0.4                                                      0.4
+
+
+
+
+          0.3                                                      0.3
+
+
+
+
+          0.2                                                      0.2
+
+
+
+
+          0.1                                                      0.1
+
+
+
+
+          0.0                                                      0.0
+
+                    −4        −2        0        2        4                  −4        −2         0        2        4
+
+
+
+
+                                    (c)                                                     (d)
+
+                                                                   0.4
+
+
+
+          0.3
+
+                                                                   0.3
+
+
+
+
+          0.2
+                                                                   0.2
+
+
+
+
+          0.1
+                                                                   0.1
+
+
+
+
+          0.0                                                      0.0
+
+                    −4        −2        0        2        4                  −4        −2         0        2        4
+
+
+
+
+                                    (e)                                                     (f)
+
+Fig. 2. First row shows the true latent Gaussian field (solid line), the observed Student-t3 data
+and Bernoulli data (dots). Second row shows the approximate marginal for a selected node using
+various approximations; Gaussian (dotted), simplified Laplace (dashed) and Laplace (solid). Third
+row compares samples from a long MCMC chain with the marginal computed with the simplified
+Laplace approximation.
+20     H. Rue, S. Martino and N. Chopin
+
+
+
+
+                           (a)                                                (b)
+
+Fig. 3. The posterior marginal for β0 (a) and τǫ (b) for the example in Section 5.2. The solid line
+in (a) shows the marginal using simplified Laplace approximation and the dashed line the Gaussian
+approximation. The solid line in (b) shows the marginal for τǫ after integrating out τν . The histograms
+result from a long MCMC run using OpenBUGS.
+
+
+marginals was about 1.5 seconds in total. Although OpenBUGS can provide approximate
+answers in minutes, we had to run it for hours to provide accurate posterior marginals.
+
+
+5.3. Stochastic volatility models
+Stochastic volatility models are frequently used to analyse financial time series. Figure 4(a)
+displays the log of the nd = 945 daily difference of the pound-dollar exchange rate from
+October 1st, 1981, to June 28th, 1985. This data set has been analysed by Durbin and Koop-
+man (2000), among others. There has been much interest in developing efficient MCMC
+methods for such models, e.g. Shephard and Pitt (1997) and Chib et al. (2002).
+   The observations are taken to be
+
+                          yt | ηt ∼ N {0, exp(ηt )} ,            t = 1, . . . , nd .               (26)
+
+The linear predictor consists of two terms, ηt = µ+ft , where ft is a first order auto-regressive
+Gaussian process
+
+                       ft | f1 , . . . , ft−1 , τ, φ ∼ N (φft−1 , 1/τ ) ,    |φ| < 1,
+
+and µ is a Gaussian mean value. In this example, x = (µ, η1 , . . . , ηT )T and θ = (φ, τ )T . The
+log-likelihood (with respect to ηt ) is quite far from being Gaussian and is non-symmetric.
+There is some evidence that financial data have heavier tails than the Gaussian, so a Student-
+tν distribution with unknown degrees of freedom can be substituted to the Gaussian in (26);
+see Chib et al. (2002). We consider this modified model at the end of this example.
+    We use the following priors: τ ∼ Γ(1, 0.1), φ′ ∼ N (3, 1) where φ = 2 exp(φ′ )/(1 +
+exp(φ′ )) − 1, and µ ∼ N (0, 1). We display the results for the Laplace approximation of
+the posterior marginals of the two hyperparameters and µ, but only based on only the
+first 50 observations in Figure 4(b)-(d), as using the full data set make the approximation
+problem easier. The solid line in Figure 4(d) is the marginal found using simplified Laplace
+approximations and the dashed line uses Gaussian approximations, but in this case there
+                              Approximate Bayesian Inference for Latent Gaussian Models     21
+
+are little difference (the SKLD is 0.05). The histograms are constructed from the output of
+a long MCMC run using OpenBUGS. The approximations computed are very precise and
+no deviance (in any node) can be detected. The results obtained using the full data set are
+similar but the marginals are narrower (not shown).
+     Following the discussion in Section 1.6, we also used this set of n = 50 observations to
+compare INLA with Zoeter et al. (2005)’s EP algorithm (with a slightly different parametri-
+sation of the model and other priors due to constraints in their code). The latter was
+considerably less accurate (e.g. the posterior mean of φ is shifted one standard deviation
+to the right) and more expensive; running time was about 40 minutes for Zoeter et al.
+(2005)’s Matlab (http://www.mathworks.com/) code, to compare with 0.3 seconds for our
+approach.
+     We now extend the model to allow for Student-tν distributed observations, where we
+scale the Student-tν distribution to have unit variance for all ν > 2. We assign a N (2.08, 1)
+prior to ν ′ where ν = 2+exp(ν ′ ). The number of hyperparameters is now three. Figure 4(e)
+displays the approximate posterior marginal for the degrees-of-freedom and panel (f) dis-
+plays the 0.025, 0.5 and 0.975 quantiles of ηt . Also in this case, we do not find any error in
+the approximations which was verified on using a subset of the full data (not shown). The
+marginal for the degrees-of-freedom suggests that the extension to Student-tν is not needed
+in this case, but see Section 6.2 for a more formal comparison of these two models. For the
+latent auto-regressive process, there is little difference between the Gaussian approximation
+and the simplified Laplace one, for both models. The average SKLD was about 0.007 in
+both cases.
+     We validated the approximations using all the n = 945 observations at the modal value
+θ ⋆ . The effective number of parameters (24) was about 63, which is small compared to nd .
+A 95% interval for the remainder r(x; θ ⋆ , y)/nd is [−0.002, 0.004] using 1, 000 independent
+samples. The computational cost for obtaining all the posterior marginals (using (26)) for
+the latent field, was about 11 seconds.
+
+
+
+5.4.   Disease mapping of cancer incidence data
+In this example we consider spatial model for mapping cancer incidence where the stage of
+the disease at time of diagnosis is known. The class of “disease mapping” models are often
+latent Gaussians, see for example Besag et al. (1991); Wakefield et al. (2000) and Held et al.
+(2005) for an introduction.
+    The data are binary incidence cases of cervical cancer from the former East German
+Republic from 1979 (Knorr-Held et al., 2002). The data are stratified by district and age
+group. Each of the nd = 6990 cases are classified into premalignant yi = 1 or malignant
+yi = 0. Denote by di and ai the district and age-group for case i = 1, . . . , 6990. There are
+216 districts and 15 age groups (15 − 19, 20 − 24, . . ., > 84). We follow Rue and Held (2005,
+Sec. 4.3.5) and use a logistic binary regression model:
+
+                                                         (s)    (u)
+                           logit(pi ) = ηi = µ + fa(a)
+                                                    i
+                                                       + fdi + fdi ,
+
+where f (a) is a smooth effect of the age-group, f (s) is a smooth spatial field and f (u) are
+district random effects. More specifically, f (a) follows an intrinsic second order random
+22     H. Rue, S. Martino and N. Chopin
+
+
+
+
+                          (a)                                         (b)
+
+
+
+
+                          (c)                                         (d)
+
+
+
+
+                          (e)                                          (f)
+
+Fig. 4. Panel (a) displays the log of the daily difference of the pound-dollar exchange rate from Oc-
+tober 1st, 1981, to June 28th, 1985. Panels (b) and (c) display the approximated posterior marginals
+for φ and τ using only the first n = 50 observations in (a). Overlaid are the histograms obtained
+from a long MCMC run using OpenBUGS. Panel (d) displays the approximated posterior marginal
+using simplified Laplace approximations (solid line) and Gaussian approximations (dashed line) for
+µ, which is the node in latent field with maximum SKLD. Panel (e) displays the posterior marginal for
+the degrees-of-freedom assuming Student-tν distributed observations, and panel (f ) the 0.025, 0.5
+and 0.975 posterior quantiles for ηt .
+                               Approximate Bayesian Inference for Latent Gaussian Models       23
+
+walk model (Rue and Held, 2005, Ch. 3) with precision κ(a) ,
+                                                                               
+                                                    (a) 15
+                                                        X (a)
+                                                  κ               (a)    (a)
+         π(f (a) |κ(a) ) ∝ (κ(a) )(15−2)/2 exp −          (f − 2fj−1 + fj−2 )2  .          (27)
+                                                   2 j=3 j
+
+
+The model for the spatial term f (s) are defined conditionally, as
+                                                                     
+                        (s)   (s)               1 X (s)         1
+                      fi | f −i , κ(s) ∼ N           fj ,        (s)
+                                                                      
+                                               ni           n i κ
+                                                  j∈∂   i
+
+
+
+where ∂i is the set of neighbour-districts to district i, namely those ni districts who share
+a common border with district i; see Rue and Held (2005, Sec. 3.3.2) for further detail
+on this model. The district random effects are independent zero-mean Gaussians with
+precision κ(u) . We put a zero-mean constraint on both the age and spatial effects and
+assign independent Γ(1, 0.01) priors to the three hyperparameters (κ(a) , κ(s) , κ(u) )T , and a
+N (0, 0.1) prior to µ. The dimension of the latent field x is 216 × 15 + 1 = 3241.
+    The results are displayed in Figure 5. Panel (a) displays the posterior marginal for the
+node with the largest SKLD between the approximations using simplified Laplace (solid
+line) and Gaussians (dashed line). The SKLD is 0.058. Overlaid is the histogram found
+from a long MCMC run using the block-MCMC algorithm with auxiliary variables described
+in Rue and Held (2005, Sec. 4.3.5); the fit is perfect. Panel (b) displays the effect of the age
+groups, where the solid line interpolates the posterior median and the dashed lines displays
+the 0.025 and 0.975 quantiles. The quantiles obtained from a long MCMC run are shown
+by dots; again the fit is very good. Panel (c) displays the median of the smooth spatial
+component, where the grey-scale goes from 0.2 (white) to 5 (black). (The shaded region is
+Berlin.)
+    We validated the approximations at the modal value θ ⋆ . The effective number of param-
+eters (24) was about 101, which is small compared to nd . A 95% interval for the remainder
+r(x; θ ⋆ , y)/nd is [−0.001, 0.001] using 1, 000 independent samples. The computational cost
+for obtaining all the posterior marginals for the latent field was about 34 seconds.
+
+
+5.5. Log-Gaussian Cox process
+Log-Gaussian Cox processes (LGCP) are a flexible class of models that have been success-
+fully used for modelling spatial or spatio-temporal point processes, see for example Møller
+et al. (1998), Brix and Møller (2001), Brix and Diggle (2001) and Møller and Waagepetersen
+(2003). We illustrate in this section how LGCP models can be analysed using our approach
+for approximate inference.
+     A LGCP is a hierarchical Poisson process: Y in W ⊂ Rd is a Poisson point process
+with a random intensity function λ(ξ) = exp(Z(ξ)), where Z(ξ) is a Gaussian field at
+ξ ∈ Rd . In this way, the dependency in the point-pattern is modelled through a common
+latent Gaussian variable Z(·). In the analysis of LGCP, it is common to discretise the
+observation window W . Divide W into N disjoint cells {wi } located at ξ i each with area
+|wi |. Let yi be the number of occurrences of the realised point pattern within  Q wi and let
+y = (y1 , . . . , yN )T . Let ηi be the random variable Z(ξ i ). Clearly π(y|η) = i π(yi |ηi ) and
+yi |ηi is Poisson distributed with mean |wi | exp(ηi ).
+24     H. Rue, S. Martino and N. Chopin
+
+
+
+
+                           (a)                                           (b)
+
+
+
+
+                                                  (c)
+
+Fig. 5. The results for the cancer incidence example: (a) the posterior marginal for f3(a) using simpli-
+fied Laplace approximations (solid line), Gaussians approximations (dashed line) and samples from
+a long MCMC run (histogram). Panel (b) displays the posterior median, 0.025 and 0.975 quantiles
+of the age-class effect (interpolated), whereas the dots are those obtained from a long MCMC run.
+Panel (c) displays the posterior median of the (smooth) spatial effect.
+                                  Approximate Bayesian Inference for Latent Gaussian Models      25
+
+    We apply model (28) to the tropical rain forest data studied by Waagepetersen (2007).
+These data come from a 50-hectare permanent tree plot which was established in 1980
+in the tropical moist forest of Barro Colorado Island in central Panama. Censuses have
+been carried out every 5th year from 1980 to 2005, where all free-standing woody stems at
+least 10 mm diameter at breast height were identified, tagged, and mapped. In total, over
+350, 000 individual trees species have been censured over 25 years. We will be looking at the
+tree species Beilschmiedia pendula Lauraceae using data collected from the first four census
+periods. The positions of the 3605 trees are displayed in Figure 6(a). Sources of variation
+explaining the locations include the elevation and the norm of the gradient. There may be
+clustering or aggregation due to unobserved covariates or seed dispersal. The unobserved
+covariates can be either spatially structured or unstructured. This suggests the model
+                                                                     (s)      (u)
+                       ηi = β0 + βAlt Altitudei + βGrad Gradienti + fi     + fi ,              (28)
+
+where f (s) represent the spatial component, and f (u) is an unstructured term. An alter-
+native would be to use a semi-parametric model for the effect of the covariates similar
+to (27).
+    We start by dividing the area of interest into a 200 × 100 regular lattice, where each
+square pixel of the lattice represent 25 square metres. This makes nd = 20 000. The scaled
+and centred versions of the altitude and norm of the gradient, are shown in panel (b) and
+(c), respectively. For the spatial structured term, we use a second order polynomial intrinsic
+GMRF (see Rue and Held (2005, Sec. 3.4.2)), with following full conditionals in the interior
+(with obvious notation)
+                              Ã ◦◦◦◦◦         ◦◦◦◦◦           ◦◦•◦◦
+                                                                       !
+   (s)   (s)               1     ◦◦•◦◦        ◦•◦•◦           ◦◦◦◦◦             (s)  (s)
+E(fi | f −i , κ(s) )  =        8 ◦ • ◦ • ◦ −2 ◦ ◦ ◦ ◦ ◦ −1 • ◦ ◦ ◦ • , Prec(fi | f −i , κ(s) ) = 20κ(s) .
+                           20    ◦◦•◦◦
+                                 ◦◦◦◦◦
+                                              ◦•◦•◦
+                                              ◦◦◦◦◦
+                                                              ◦◦◦◦◦
+                                                              ◦◦•◦◦
+                                                                                                (29)
+The precision κ(s) is unknown. The full conditionals are constructed to mimic the thin-plate
+spline. There are some corrections to (29) near the boundary, which can be found using
+the stencils in Terzopoulos (1988). We impose a sum-to-zero constraint on the spatial term
+due to β0 . The unstructured terms f (u) are independent N (0, κ(u) ), vague Γ(1.0, 0.001)
+priors are assigned to κ(s) and κ(u) , and independent N (0, 103 ) priors to β0 , βAlt and
+βGrad . The latent field is x = (η T , (f (s) )T , β0 , βAlt , βGrad )T with dimension 40, 003, and
+θ = (log κ(s) , log κ(u) ) with dimension 2.
+    We computed the approximation for 20, 003 posterior marginals f (s) , β0 , βAlt and βGrad ,
+using the simplified Laplace approximation. The results are displayed in Figure 7. Panel (a)
+displays the estimated posterior mean of the spatial component, where we have indicated
+using contours, those nodes where the SKLD between the marginal computed with the
+Gaussian approximation and the one computed with the simplified Laplace approximation
+exceeds 0.25. These nodes are potential candidates for further investigation, so we computed
+their posteriors using also the Laplace approximation; the results agreed well with those
+obtained from the simplified Laplace approximation. As an example, we display in (b)
+the marginals for the “worst case” which is node (61, 73) with a SKLD of 0.50: Gaussian
+(dashed), simplified Laplace (solid) and Laplace approximations (dash-dotted). Note that
+the approximations becomes more close, as we improve the approximations. Panel (c) to
+(e) display the posterior marginals computed with the Gaussian approximations (dashed)
+and the one computed with the simplified Laplace approximations (solid) for β0 , βAlt and
+26    H. Rue, S. Martino and N. Chopin
+
+
+
+
+                                              (a)
+
+
+
+
+                                              (b)
+
+
+
+
+                                               (c)
+
+Fig. 6. Data and covariates for the log-Gaussian Cox process example: (a) locations of the 3, 605
+trees, (b) altitude, and (c) norm of the gradient.
+                                 Approximate Bayesian Inference for Latent Gaussian Models          27
+
+
+
+
+                                                 (a)
+
+
+
+
+                           (b)                                          (c)
+
+
+
+
+                           (d)                                          (e)
+
+Fig. 7. LGCP example: (a) posterior mean of the spatial component with contour indicating a SKLD
+above 0.25, (b) the marginals for node (61, 73) in the spatial component with maximum SKLD of
+0.50, Gaussian (dashed), simplified Laplace (solid) and Laplace approximations (dash-dotted), (c)-(e)
+posterior marginals of β0 , βAlt and βGrad using simplified Laplace (solid) and Gaussian approximations
+(dashed).
+28    H. Rue, S. Martino and N. Chopin
+
+βGrad . The difference is mostly due to a horizontal shift, a characteristic valid for all the
+other nodes for this example.
+    This task required about 4 hours of computing due to the high dimension and the number
+of computed posterior marginals. The total cost can be reduced to about 10 minutes if
+only using the Gaussian approximation (4). To validate the approximations, we computed
+pD (θ ∗ ) ≈ 1714 and estimated a 95% interval for the remainder r(x; θ ⋆ , y)/nd as [0.004, 0.01]
+using 1, 000 independent samples. Varying θ gave similar results. There are no indications
+that the approximations does not works well in this case. Due to the size of the GMRF, the
+comparison with results from long MCMC runs were performed on a cruder grid and the
+conditional marginals in the spatial field for fixed values of θ, both with excellent results.
+We used the one-block MCMC sampler described in Rue and Held (2005, Sec. 4.4.2).
+
+
+6.   Extensions
+
+While this paper focuses on posterior marginals, INLA makes it possible to compute rou-
+tinely other quantities as well. This section discusses some of these extensions.
+
+
+6.1. Approximating posterior marginals for xS
+A natural extension is to consider not only posterior marginals for xi , but for a subset
+xS = {xi : i ∈ S}. S can be small, say from 2 to 5, but sometimes larger sets are required.
+Although the Laplace approximation (12) can still be applied, replacing xi with xS , and
+x−i with x−S , practicalities get more involved. We tentatively recommend, unless extreme
+accuracy is required, the following approach for which the joint marginal for (near) any
+subset is directly available. To fix ideas, let S = {i, j} where i ∼ j, and keep θ fixed. Let
+Fi and Fj be the (approximated) cumulative distribution functions of xi |θ, y and xj |θ, y.
+From the Gaussian approximation π    eG (x|θ, y) we know the Gaussian marginal distribution
+for xi , xj |θ, y. We have usually observed in our experiments that the correction in the
+mean (21) is far more important than the correction for skewness. Since correcting the
+mean in a Gaussian distribution does not alter the correlations, we suggest to approximate
+xi , xj |θ, y using the Gaussian copula and the marginals Fi and Fj . The benefit of this
+approach is that the marginals are kept unchanged and the construction is purely explicit.
+                                                                                (1)
+A simple choice is to use Gaussian marginals but with the mean-correction {γi }; see (21).
+Extending this approach to larger sets S is immediate, although the resulting accuracy may
+possibly decrease with the size of S.
+
+
+6.2. Approximating the marginal likelihood
+The marginal likelihood π(y) is a useful quantity for comparing models, as Bayes factors
+are defined as ratios of marginal likelihoods of two competing models. It is evident from (3)
+that the natural approximation to the marginal likelihood is the normalising constant of
+π
+e(θ|y),                                               ¯
+                                       Z
+                                          π(θ, x, y) ¯¯
+                              π
+                              e(y) =                  ¯     dθ.                          (30)
+                                          eG (x|θ, y) ¯
+                                          π             ⋆
+                                                      x=x (θ)
+
+where π(θ, x, y) = π(θ)π(x|θ)π(y|x, θ). An alternative, cruder estimate of the marginal
+likelihood is obtained by assuming that θ|y is Gaussian; then (30) turns into some known
+constant times |H|−1/2 , where H is the Hessian matrix in Section 3.1, see Kass and
+                                Approximate Bayesian Inference for Latent Gaussian Models      29
+
+Vaidyanathan (1992). Our approximation (30) does not require this assumption, since
+we treat π
+         e(θ|y) in a ‘nonparametric’ way. This allows for taking into account the departure
+from Gaussianity which, for instance, appears clearly in Figure 4. Friel and Rue (2007) use
+a similar expression as (30) to approximate the marginal likelihood in a different context.
+    As an example, let us reconsider the stochastic volatility example in Section 5.3. Us-
+ing (30), the log marginal likelihoods were computed to be −924.0 and −924.8 for the
+Gaussian and Student-tν observational model, respectively. The cruder approximation by
+Kass and Vaidyanathan (1992) gave similar results: −924.0 and −924.7. There is no evi-
+dence that a Student-tν observational model is required for these data.
+    As pointed out by a referee, this method could fail in case the posterior marginal π(θ|y)
+is multi-modal (if not detected), but this is not specific to the evaluation of the marginal like-
+lihood but applies to our general approach. Fortunately, latent Gaussian models generates
+unimodal posterior distributions in most cases.
+
+
+6.3. Predictive measures
+Predictive measures can be used both to validate and compare models (Gelfand, 1996;
+Gelman et al., 2004), and as a device to detect possible outliers or surprising observa-
+tions (Pettit, 1990). One usually looks at the predictive density for the observed yi based
+on all the other observations, i.e. π(yi |y −i ). We now explain how to approximate this quan-
+tity simply, without reanalysing the model. First, note that removing yi from the dataset
+affects the marginals of xi and θ as follows:
+
+                                     π(xi |y, θ)                              π(θ|y)
+                π(xi | y −i , θ) ∝                   and   π(θ | y −i ) ∝
+                                     π(yi |xi , θ)                          π(yi |y −i , θ)
+
+where a one-dimensional integral is required to compute
+                                      Z
+                     π(yi |y −i , θ) = π(yi |xi , θ) π(xi |y −i , θ) dxi .
+
+The effect of θ can then be integrated out from π(yi |y −i , θ), in the same way as (5).
+Unusually small values of π(yi |y −i ) indicate surprising observations, but what is meant
+by ‘small” must be calibrated with the level of xi . Pettit (1990) suggests calibrating with
+the maximum value of π(·|y −i ), but an alternative is to compute the probability integral
+transform PITi = Prob(yinew ≤ yi |y −i ) using the same device as above. (See also Gneiting
+and Raftery (2007) of a discussion of other alternatives.) An unusually small or large PITi
+(assuming continuous observations) indicates a possibly surprising observation which may
+require further attention. Furthermore, if the histogram of the PITi ’s is too far from a
+uniform, the model can be questioned (Czado et al., 2007).
+    As an example, let us reconsider the stochastic volatility example of Section 5.3. The
+Gaussian observational model indicates that three of the observations are surprising, i.e.
+PITi is close to one for i = 331, 651 and 862. These observations are less surprising under
+the Student-tν observation model: i.e. the same PITi are then about 1 − 5 × 10−4 .
+
+
+6.4. Deviance Information Criteria
+The Deviance Information Criterion (DIC) (Spiegelhalter et al., 2002) is a popular infor-
+mation criterion designed for hierarchical models, and (in most cases) is well defined for
+30     H. Rue, S. Martino and N. Chopin
+
+improper priors. Its main application is Bayesian model selection, but it also provides a
+notion of the effective number of parameters, which we have used already; see (24). In our
+context, the deviance is
+                                          X
+                         D(x, θ) = −2           log π(yi |xi , θ) + constant.
+                                          i∈I
+
+
+DIC is defined as two times the mean of the deviance minus the deviance of the mean. The
+effective number of parameters is the mean of the deviance minus the deviance of the mean,
+for which (24) is a good approximation. The mean of the deviance can be computed in
+two steps: first, compute the conditional mean conditioned on θ using univariate numerical
+integration for each i ∈ I; second, integrate out θ with respect to π(θ | y). The deviance
+of the mean requires the posterior mean of each xi , i ∈ I, which is computed from the
+posterior marginals of xi ’s. Regarding the hyperparameters, we prefer to use the posterior
+mode θ ∗ , as the posterior marginal for θ can be severely skewed.
+    As an illustration, let us reconsider the example in Section 5.4. The effect of the age
+group was modelled as a smooth curve (7), but Figure 4(b) seems to indicate that a linear
+effect may be sufficient. However, this alternative model increases DIC by 33, so we reject
+it.
+
+
+
+6.5.   Moderate number of hyperparameters
+Integrating out the hyperparameters as described in Section 3.1 can be quite expensive if
+the number of hyperparameters, m, is not small but moderate, say, in the range of 6 to 12.
+Using, for example, δz = 1 and δπ = 2.5, the integration scheme proposed in Section 3.1 will
+require, if θ|y is Gaussian, O(5m ) evaluation points. Even if we restrict ourselves to three
+evaluation points in each dimension, the cost O(3m ) is still exponential in m. In this section
+we discuss an alternative approach which reduces the computational cost dramatically for
+high m, at the expense of accuracy with respect to the numerical integration over π     e(θ|y).
+The aim is to be able to provide useful results even when the number of hyperparameters
+is so large that the more direct approach in Section 3.1 is unfeasible.
+    Although many hyperparameters make the integration harder, it is often the case that
+increasing the number of hyperparameters increases also variability and the regularity, and
+makes the integrand more and more Gaussian. Meaningful results can be obtained even
+using an extreme choice akin to empirical Bayes, that is, using only the modal configuration
+to integrate over π(θ|y). This ‘plug-in’ approach will obviously underestimate variability,
+but it will provide reasonable results provided the uncertainty is the latent field is not
+dominated by the uncertainty in the hyperparameters.
+    An intermediate approach between full numerical integration and the ‘plug-in’ approach
+is now described. We consider the integration problem as a design problem where we layout
+some ‘points’ in a m-dimensional space. Based on the measured response, we estimate the
+response surface at each point. As a first approximation, we can consider only response
+surfaces of second order, and use a classical quadratic design like the central-composite
+design (CCD) (Box and Wilson, 1951). A CCD contains an embedded factorial or fractional
+factorial design with centre points augmented with a group of 2m + 1 ‘star points’ which
+allow for estimating the curvature. For m = 5, the design points are chosen (up to an
+                                   Approximate Bayesian Inference for Latent Gaussian Models       31
+
+arbitrary scaling) as
+
+     (1, 1, 1, 1, 1, 1),   (−1, 1, 1, 1, −1),     (1, −1, 1, 1, −1),        (−1, −1, 1, 1, 1),
+     (1, 1, −1, 1, −1),    (−1, 1, −1, 1, 1),     (1, −1, −1, 1, 1),        (−1, −1, −1, 1, −1),
+     (1, 1, 1, −1, −1),    (−1, 1, 1, −1, 1),     (1, −1, 1, −1, 1),        (−1, −1, 1, −1, −1),
+     (1, 1, −1, −1, 1),    (−1, 1, −1, −1, −1),   (1, −1, −1, −1, −1)   and (−1, −1, −1, −1, 1).
+                                                                       √
+They are all on the surface of the m dimensional sphere with
+                                                           √ radius m. The star points
+consist of 2m points located along each axis at distance ± m and the central point in the
+origin. For m = 5 this makes np = 27 points in total, which is small compared to 55 = 3, 125
+or 35 = 243. The number of design-points is 8 for m = 3, 16 for m = 4 and 5, 32 for m = 6,
+64 for m = 7 and 8, 128 for m = 9, 10 and 11, and 256 from m = 12 to 17; see Sanchez
+and Sanchez (2005) for how to compute such designs. For all designs, there are additional
+2m + 1 star-points. To determine the integration weights ∆k in (5) and the scaling of the
+points, assume for simplicity that θ|y is standard Gaussian. We require that the integral
+                                         T
+of 1 equals 1, and that the integral of θ√ θ equals m. This gives the integration weight for
+the points on the sphere with radius f0 m
+                              ·                  ½       µ      ¶¾¸−1
+                                       ¡       ¢           mf 2
+                           ∆ = (np − 1) f02 − 1 1.0 + exp − 0
+                                                            2
+
+where f0 > 1 is any constant. The integration weight for the central point is 1 − (np − 1)∆.
+    The CCD integration scheme seems to provide useful results in all the cases we have
+considered so far. For all the examples in Section 5, as well as other models with higher
+dimension of θ (Martino, 2007; Martino and Rue, 2008), the CCD scheme speeds computa-
+tions up significantly while leaving the results nearly unchanged. There are cases where the
+integration of θ has to be done more accurately, but these can be detected by comparing
+the results obtained using the empirical Bayes and the CCD approach. For these cases,
+the CCD integration seems to provide results half-way between the empirical and the full
+Bayesian approaches.
+
+
+7.    Discussion
+
+We have presented a new approach to approximate posterior marginals in latent Gaussian
+models, based on integrated nested Laplace approximations (INLA). The results obtained
+are very encouraging: we obtain practically exact results over a wide range of commonly
+used latent Gaussian models. We also provide tools for assessing the approximation error,
+which are able to detect cases where the approximation bias is non-negligible; we note
+however that this seems to happen only in pathological cases.
+    We are aware that our work goes against a general trend of favouring ‘exact’ Monte Carlo
+methods over non-random approximations, as advocated for instance by Papaspiliopoulos
+et al. (2006) in the context of diffusions. Our point however is that, in the specific case of
+latent Gaussian models, the orders of magnitude involved in the computational cost of both
+approaches are such that this idealistic point of view is simply untenable for these models.
+As we said already, our approach provides precise estimates in seconds and minutes, even
+for models involving thousands of variables, in situations where any MCMC computation
+typically takes hours or even days.
+32    H. Rue, S. Martino and N. Chopin
+
+    The advantages of our approach are not only computational. It also allows for greater
+automation and parallel implementation. The core of the computational machinery is based
+on sparse matrix algorithms, which automatically adapt to any kind of latent field, e.g. 1D,
+2D, 3D and so on. All the examples considered in this paper were computed using the same
+general code, with essentially no tuning. In practice, INLA can be used almost as a black
+box to analyse latent Gaussian models. A prototype of such a program, inla, is already
+available (Martino and Rue, 2008) and all the latent Gaussian models in Section 5 were
+specified and analysed using this program. inla is built upon the GMRFLib-library (Rue
+and Held, 2005, Appendix), which is open source and available from the first author’s web
+page. (An interface to the inla program from R (R Development Core Team, 2007) is
+soon to come.) With respect to parallel implementation, we take advantage of the fact
+that we compute the approximation of xi |θ, y independently for all i for fixed θ. Both the
+inla program and GMRFLib use the OpenMP API (see www.openmp.org) to speedup the
+computations for shared memory machines (read multi-core processors); however, we have
+not focused on these computational issues and speedups in this report. Parallel computing
+is particularly important for spatial or spatio-temporal latent Gaussian models, but also
+smaller models enjoy good speedup.
+    The main disadvantage of the INLA approach is that its computational cost is expo-
+nential with respect to the number of hyperparameters m. In most applications m is small,
+but applications where m goes up to 10 do exist. This problem may be less severe that it
+appears at first glance: the central composite design approach seems promising and provides
+reasonable results when m is not small, in the case where the user do not want to take an
+empirical Bayes approach and will not wait for a full Bayesian analysis.
+    It is our view that the prospects of this work are more important than this work itself.
+Near instant inference will make latent Gaussian models more applicable, useful and ap-
+pealing for the end user, who has no time or patience to wait for the results of a MCMC
+algorithm, notably if he or she has to analyse many different datasets with the same model.
+It also makes it possible to use latent Gaussian models as baseline models, even in cases
+where non-Gaussian models are more appropriate. The ability to easily validate assump-
+tions like linear or smooth effect of a covariate is important, and our approach also gives
+access to Bayes factors, various predictive measures and DIC, which are useful tools to
+compare models and challenge the model under study.
+
+
+Acknowledgement
+
+The authors acknowledge all the good comments and questions from the Research Section
+Committee, the referees, and stimulating discussions with J. Eidsvik, N. Friel, A. Frigessi,
+J. Hasslet, L. Held, H. W. Rognebakke, J. Rousseau, H. Tjelmeland, J. Tyssedal and R.
+Waagepetersen. The Center for Tropical Forest Science of the Smithsonian Tropical Re-
+search Institute provided the data in Section 5.5.
+
+
+A.   Variational Bayes for latent Gaussian models: An example
+
+We consider a simple latent Gaussian model defined by
+                                   µ        ¶                    µ     ¶
+                                      1                             1
+           θ ∼ Γ(a, b), x | θ ∼ N 0, R−1         and y | x, θ ∼ N x, I
+                                      θ                             κ
+                              Approximate Bayesian Inference for Latent Gaussian Models     33
+                                                                               ¡              ¢
+where κ is a fixed hyper-parameter. Standard calculations lead to x|θ, y ∼ N m(θ), Q(θ)−1
+where m(θ) = κQ(θ)−1 y, Q(θ) = θR + κI and
+                                              ½                      ¾
+                                θa+n/2−1              κ2 T       −1
+                     π(θ | y) ∝        1/2
+                                           exp −bθ + y Q(θ) y .
+                                |Q(θ)|                 2
+
+When κ → 0, π(θ|y) → Γ(θ; a, b), but in general, π(θ|y) is not a Gamma density. The
+Laplace approximation for θ|y is exact since y is conditionally Gaussian. We now derive
+the VB approximation q(x, θ) of π(θ, x|y) under the assumption that q(x, θ) minimises
+the Kullback-Leibler contrast of π(x, θ|y) relatively to q(x, θ), constrained to q(x, θ) =
+qx (x)qθ (θ). The solution is obtained iteratively, see e.g. Beal (2003)
+                                           n                      o
+                       qx(t+1) (x) ∝ exp Eq(t) (θ) log π(x, y|θ) ,
+                                               θ
+                                                n                      o
+                          (t+1)
+                       qθ       (θ) ∝ π(θ) exp Eq(t) (x) log π(x, y|θ) .
+                                                   x
+
+
+                            (t+1)
+For our model, this gives qx     (x) = N (x; mt+1 , Q−1                          −1
+                                                        t+1 ) where mt+1 = κQt+1 y, Qt+1 =
+                         (t+1)
+R(a + n/2)/bt +κI, and qθ      (θ) is a Γ(θ; a+n/2, bt+1 ) density with bt+1 = b+mTt+1 Rmt+1 +
+     ¡    −1
+             ¢
+Trace RQt+1 . The limit b∞ of bt is defined implicitly by equation:
+                                µ                  ¶−1 µ                     ¶−1
+                           2 T    a + n/2                    a + n/2
+           b∞ = b + κ y                     R + κI     R             R + κI      y
+                                      b∞                       b∞
+                            Ã½                      ¾−1 !
+                                a + n/2          −1
+                + Trace                   I + κR
+                                   b∞
+
+which is not tractable. However, when κ → 0, this transforms into b∞ = b + nb∞ /{2(a +
+n/2)} hence limκ→0 b∞ = b(a + n/2)/a. This means that, for data that are not very
+informative, the posterior marginal for θ is close to a Γ(a, b) density, whereas the VB
+approximation is a Γ(a+n/2, b(a+n/2)/a) density. The expectations agree, but the variance
+ratio is O(n). Numerical experiments confirmed these findings; for most reasonable values
+of κ, the variance estimated by VB is significantly smaller than the true posterior variance
+of θ. For non-Gaussian data we obtained similar empirical results.
+
+B.   Fitting the skew-Normal distribution
+
+We explain here how to fit the skew-Normal distribution (23) to an expansion of the form
+                                         1              1
+                    log π(x) = constant − x2 + γ (1) x + γ (3) x3 + · · · .               (31)
+                                         2              6
+To second order, (31) is Gaussian with mean γ (1)pand variance 1. The mean and the
+                                                                    2        2
+              √ skew-Normal distribution are ξ +(1)ωδ 2/π and ω (1 − 2δ /π), respectively,
+variance of the
+where δ = a/ 1 + a2 . We keep these fixed to γ and 1, respectively, but adjust a so the
+third derivative at the mode in (23) equals γ (3) . This gives three equations to determine
+(ξ, ω, a). The modal configuration is not available analytically, but a series expansion of the
+log skew-Normal density around x = ξ gives:
+                            ³ a ´ √2π + 2ξ( a )
+                        ⋆                     ω
+                       x =                      + higher order terms.
+                              ω    π + 2( ωa )2
+34    H. Rue, S. Martino and N. Chopin
+
+We now compute the third derivative of the log-density of the skew-Normal at x⋆ . In order
+to obtain an analytical (and computationally fast) fit, we expand this third order derivative
+with respect to a/ω:       √
+                             2(4 − π) ³ a ´3
+                                             + higher order terms.                       (32)
+                              π 3/2     ω
+and imposes that (32) equals γ (3) . This gives explicit formulae for the three parameters of
+the skewed-normal.
+
+References
+
+Abellan, J. J., S. Richardson, and N. Best (2007). Spatial versus spatiotemporal disease
+ mapping. Epidemiology 18.
+Ainsworth, L. M. and C. B. Dean (2006). Approximate inference for disease mapping.
+  Computational Statistics & Data Analysis 50 (10), 2552–2570.
+Albert, J. H. and S. Chib (1993). Bayesian analysis of binary and polychotomous responce
+  data. Journal of the American Statistical Association 88 (422), 669–679.
+Attias, H. (1999). Inferring parameters and structure of latent variable models by variational
+  Bayes. In Proceedings of the 15th Conf. on Uncertainty in Artificial Intelligence, Volume 2.
+Attias, H. (2000). A variational Bayesian framework for graphical models. Advances in
+  Neural Information Processing Systems 12, 209–215.
+Azzalini, A. and A. Capitanio (1999). Statistical applications of the multivariate skew-
+  normal distribution. Journal of the Royal Statistical Society, Series B 61 (4), 579–602.
+Banerjee, S., B. P. Carlin, and A. E. Gelfand (2004). Hierarchical Modeling and Analysis for
+  Spatial Data, Volume 101 of Monographs on Statistics and Applied Probability. London:
+  Chapman & Hall.
+Banerjee, S., A. E. Gelfand, A. O. Finley, and H. Sang (2008). Gaussian predictive process
+  models for large spatial datasets. Journal of the Royal Statistical Society, Series B xx (xx),
+  xx–xx. (to appear).
+Beal, M. J. (2003). Variational Algorithms for Approximate Bayesian Inference. Ph. D.
+  thesis, University College London.
+Besag, J., P. J. Green, D. Higdon, and K. Mengersen (1995). Bayesian computation and
+  stochastic systems (with discussion). Statistical Science 10 (1), 3–66.
+Besag, J., J. York, and A. Mollié (1991). Bayesian image restoration with two applications
+  in spatial statistics (with discussion). Annals of the Institute of Statistical Mathemat-
+  ics 43 (1), 1–59.
+Bishop, C. M. (2006). Pattern Recognition and Machine Learning. Series: Information
+  Science and Statistics. Springer-Verlag: New York.
+Box, G. E. P. and K. B. Wilson (1951). On the experimental attainment of optimum
+  conditions (with discussion). Journal of the Royal Statistical Society, Series B 13 (1),
+  1–45.
+                               Approximate Bayesian Inference for Latent Gaussian Models      35
+
+Breslow, N. E. and D. G. Clayton (1993). Approximate inference in generalized linear mixed
+  models. Journal of the American Statistical Association 88 (1), 9–25.
+
+Brix, A. and P. J. Diggle (2001). Spatiotemporal prediction for log-Gaussian Cox processes.
+  Journal of the Royal Statistical Society, Series B 63 (4), 823–841.
+
+Brix, A. and J. Møller (2001). Space-time multi type log Gaussian Cox processes with a
+  view to modelling weeds. Scandinavian Journal of Statistics 28, 471–488.
+
+Carter, C. K. and R. Kohn (1994).             On Gibbs sampling for state space models.
+  Biometrika 81 (3), 541–543.
+
+Chib, S., F. Nardari, and N. Shepard (2002). Markov chain Monte Carlo methods for
+  stochastic volatility models. Journal of Econometrics 108, 281–316.
+
+Chu, W. and Z. Ghahramani (2005). Gaussian processes for ordinal regression. Journal of
+  Machine Learning Research 6, 1019–1041.
+
+Cressie, N. A. C. (1993). Statistics for spatial data. Wiley Series in Probability and Math-
+  ematical Statistics: Applied Probability and Statistics. New York: John Wiley & Sons
+  Inc. Revised reprint of the 1991 edition, A Wiley-Interscience Publication.
+
+Cressie, N. A. C. and G. Johannesson (2008). Fixed rank kriging for very large spatial data
+  sets. Journal of the Royal Statistical Society, Series B 70 (1), 209–226.
+
+Czado, C., T. Gneiting, and L. Held (2007). Predictive model assessment for count data.
+  Technical Report Technical Report no 518, University of Washington, Department of
+  Statistics.
+
+Dey, D. K., S. K. Ghosh, and B. K. Mallick (Eds.) (2000). Generalized Linear Models: A
+  Bayesian Perspective. Biostatistics series volume 5. Chapman & Hall/CRC.
+
+Diggle, P. J. and P. J. Ribeiro (2006). Model-based Geostatistics. Springer Series in Statistics.
+  Springer.
+
+Durbin, J. and S. J. Koopman (2000). Time series analysis of non-Gaussian observations
+ based on state space models from both classical and Bayesian perspectives (with discus-
+ sion). Journal of the Royal Statistical Society, Series B 62 (1), 3–56.
+
+Eidsvik, J., S. Martino, and H. Rue (2008). Approximate Bayesian inference in spatial
+  generalized linear mixed models. Scandinavian Journal of Statistics xx (xx), xx–xx. (to
+  appear).
+Fahrmeir, L. and S. Lang (2001). Bayesian inference for generalized additive mixed models
+  based on Markov random field priors. Journal of the Royal Statistical Society, Series
+  C 50 (2), 201–220.
+
+Fahrmeir, L. and G. Tutz (2001). Multivariate Statistical Modelling Based on Generalized
+  Linear Models (2nd ed.). Berlin: Springer-Verlag.
+
+Finkenstadt, B., L. Held, and V. Isham (Eds.) (2006). Statistical Methods for Spatio-
+  Temporal Systems. Monographs on Statistics and Applied Probability. Chapman &
+  Hall/CRC.
+36    H. Rue, S. Martino and N. Chopin
+
+Friel, N. and H. Rue (2007). Recursive computing and simulation-free inference for general
+  factorizable models. Biometrika 94 (3), 661–672.
+
+Frühwirth-Schnatter, S. and R. Frühwirth (2007). Auxiliary mixture sampling with appli-
+  cations to logistic models. Computational Statistics & Data Analysis 51 (7), 3509–3528.
+
+Frühwirth-Schnatter, S. and H. Wagner (2006). Auxiliary mixture sampling for parameter-
+  driven models of time series of small counts with applications to state space modelling.
+  Biometrika 93 (4), 827–841.
+
+Gamerman, D. (1997). Sampling from the posterior distribution in generalized linear mixed
+ models. Statistics and Computing 7 (1), 57–68.
+
+Gamerman, D. (1998). Markov chain Monte Carlo for dynamic generalised linear models.
+ Biometrika 85 (1), 215–227.
+
+Gelfand, A. E. (1996). Model determination using sampling-based methods. In W. R. Gilks,
+ S. Richardson, and D. J. Spiegelhalter (Eds.), Markov Chain Monte Carlo in Practice,
+ pp. 145–161. London: Chapman & Hall.
+
+Gelman, A., J. B. Carlin, H. S. Stern, and D. B. Rubin (2004). Bayesian Data Analysis
+ (2nd ed.). Texts in Statistical Science Series. Chapman & Hall/CRC, Boca Raton, FL.
+
+Gneiting, T. (2002). Nonseparable, stationary covariance functions for space-time data.
+ Journal of the American Statistical Association 97, 590–600.
+
+Gneiting, T. and A. E. Raftery (2007). Strictly proper scoring rules, prediction, and esti-
+ mation. Journal of the American Statistical Association 102, 359–378.
+
+Gschlößl, S. and C. Czado (2007). Modelling count data with overdispersion and spatial
+  effects. Statistical papers. http://dx.doi.org/10.1007/s00362-006-0031-6.
+
+Held, L., I. Natario, S. Fenton, H. Rue, and N. Becker (2005). Towards joint disease
+  mapping. Statistical Methods in Medical Research 14 (1), 61–82.
+
+Hinton, G. E. and D. van Camp (1993). Keeping the neural networks simple by minimizing
+  the description length of the weights. Proceedings of the sixth annual conference on
+  Computational learning theory, 5–13.
+
+Holmes, C. C. and L. Held (2006). Bayesian auxiliary variable models for binary and
+  multinomial regression. Bayesian Analysis 1 (1), 145–168.
+
+Hsiao, C. K., S. Y. Huang, and C. W. Chang (2004). Bayesian marginal inference via
+  candidate’s formula. Statistics and Computing 14 (1), 59–66.
+
+Humphreys, K. and D. M. Titterington (2000). Approximate Bayesian inference for simple
+ mixtures. In Compstat: Proceedings in Computational Statistics, 14th Symposium Held
+ in Utrecht, the Netherlands. Physica Verlag.
+
+Jordan, M. I. (2004). Graphical models. Statistical Science 19 (1), 140–155.
+
+Kamman, E. E. and M. P. Wand (2003). Geoadditive models. Journal of the Royal Statistical
+ Society, Series C 52 (1), 1–18.
+                            Approximate Bayesian Inference for Latent Gaussian Models   37
+
+Kass, R. E., L. Tierney, and J. B. Kadane (1999). The validity of posterior expansions
+ based on Laplace’s method. In S. Geisser, J. S. Hodgesa, S. J. Press, and A. Z. (eds)
+ (Eds.), Essays in Honor of George Bernard, pp. 473–488. Amsterdam: North Holland.
+
+Kass, R. E. and S. K. Vaidyanathan (1992). Approximate Bayes factors and orthogonal
+ parameters, with application to testing equality of two binomial proportions. Journal of
+ the Royal Statistical Society, Series B 54 (1), 129–144.
+
+Kitagawa, G. and W. Gersch (1996). Smoothness Priors Analysis of Time Series. Lecture
+  Notes in Statistics no. 116. New York: Springer-Verlag.
+
+Knorr-Held, L. (1999). Conditional prior proposals in dynamic models. Scandinavian Jour-
+ nal of Statistics 26 (1), 129–144.
+
+Knorr-Held, L., G. Raßer, and N. Becker (2002). Disease mapping of stage-specific cancer
+ incidence data. Biometrics 58, 492–501.
+
+Knorr-Held, L. and H. Rue (2002). On block updating in Markov random field models for
+ disease mapping. Scandinavian Journal of Statistics 29 (4), 597–614.
+
+Kohn, R. and C. F. Ansley (1987). A new algorithm for spline smoothing based on smoothing
+ a stochastic process. SIAM Journal of Scientific and Statistical Computing 8 (1), 33–48.
+
+Kuss, M. and C. E. Rasmussen (2005). Assessing approximate inference for binary Gaussian
+ process classification. Journal of Machine Learning Research 6, 1679–1704.
+Lang, S. and A. Brezger (2004). Bayesian P-splines. Journal of Computational and Graphical
+  Statistics 13 (1).
+
+MacKay, D. J. C. (1995). Ensemble learning and evidence maximization. In Proceedings of
+ the 1995 NIPS conference.
+
+MacKay, D. J. C. (1997). Ensemble learning for hidden Markov models. Technical report,
+ Cavendish Laboratory, University of Cambridge.
+
+Marroquin, J. L., F. A. Velasco, M. Rivera, and M. Nakamura (2001). Gauss-Markov
+ measure field models for low-level vision. IEEE Transactions on Pattern Analysis and
+ Machine Intelligence 23 (4), 337–348.
+
+Martino, S. (2007). Approximate Bayesian inference for latent Gaussian models. Ph. D.
+ thesis, Department of Mathematical Sciences, Norwegian University of Science and Tech-
+ nology.
+Martino, S. and H. Rue (2008). Implementing approximate Bayesian inference for latent
+ Gaussian models using integrated nested Laplace approximations: A manual for the
+ inla-program. Technical Report no 2, Department of mathematical sciences, Norwegian
+ University of Science and Technology.
+Minka, T. P. (2001). Expectation propagation for approximate Bayesian inference. Uncer-
+ tainty in Artificial Intelligence 17, 362–369.
+
+Møller, J., A. R. Syversveen, and R. P. Waagepetersen (1998). Log Gaussian Cox processes.
+ Scandinavian Journal of Statistics 25, 451–482.
+38    H. Rue, S. Martino and N. Chopin
+
+Møller, J. and R. Waagepetersen (2003). Statistical inference and simulation for spatial
+ point processes, Volume 100 of Monographs on Statistics and Applied Probability. London:
+ Chapman & Hall.
+
+Neal, R. M. (1998). Regression and classification using Gaussian process priors. In Bayesian
+  Statistics, 6, pp. 475–501. New York: Oxford University Press.
+
+O’Hagan, A. (1978). Curve fitting and optimal design for prediction (with discussion).
+  Journal of the Royal Statistical Society, Series B 40 (1), 1–42.
+
+Papaspiliopoulos, A. B. O., G. O. Roberts, and P. Fearnhead (2006). Exact and compu-
+  tationally efficient likelihood-based estimation for discretely observed diffusion processes
+  (with discussion). Journal of the Royal Statistical Society, Series B 68 (3), 333–382.
+
+Papaspiliopoulos, O., G. O. Roberts, and M. Sköld (2007). A general framework for the
+  parameterization of hierarchical models. Statistical Science 22 (1), 59–73.
+
+Pettit, L. I. (1990). The conditional predictive ordinate for the normal distribution. Journal
+  of the Royal Statistical Society, Series B 52 (1), 175–184.
+
+R Development Core Team (2007). R: A Language and Environment for Statistical Com-
+  puting. Vienna, Austria: R Foundation for Statistical Computing. ISBN 3-900051-07-0.
+
+Rasmussen, C. E. and C. K. I. Williams (2006). Gaussian Processes for Machine Learning.
+  the MIT Press.
+
+Rellier, G., X. Descombes, J. Zerubia, and F. Falzon (2002). A Gauss-Markov model for
+  hyperspectral texture analysis of urban areas. In Proceedings from the 16th International
+  Conference on Pattern Recognition, pp. I: 692–695.
+
+Robert, C. P. and G. Casella (1999). Monte Carlo Statistical Methods. New York: Springer-
+  Verlag.
+
+Rue, H. (2001). Fast sampling of Gaussian Markov random fields. Journal of the Royal
+ Statistical Society, Series B 63 (2), 325–338.
+
+Rue, H. and L. Held (2005). Gaussian Markov Random Fields: Theory and Applications,
+ Volume 104 of Monographs on Statistics and Applied Probability. London: Chapman &
+ Hall.
+
+Rue, H. and S. Martino (2007). Approximate Bayesian inference for hierarchical Gaussian
+ Markov random fields models. Journal of Statistical Planning and Inference 137 (10),
+ 3177–3192. Special Issue: Bayesian Inference for Stochastic Processes.
+
+Rue, H., I. Steinsland, and S. Erland (2004). Approximating hidden Gaussian Markov
+ random fields. Journal of the Royal Statistical Society, Series B 66 (4), 877–892.
+
+Sanchez, S. M. and P. J. Sanchez (2005). Very large fractional factorials and central compos-
+  ite designs. ACM Transactions on Modeling and Computer Simulation 15 (4), 362–377.
+
+Schervish, M. J. (1995). Theory of statistics (2nd ed.). Springer series in statistics. New
+  York: Springer-Verlag.
+                             Approximate Bayesian Inference for Latent Gaussian Models    39
+
+Shephard, N. (1994). Partial non-Gaussian state space. Biometrika 81 (1), 115–131.
+Shephard, N. and M. K. Pitt (1997). Likelihood analysis of non-Gaussian measurement
+  time series. Biometrika 84 (3), 653–667.
+
+Shun, Z. and P. McCullagh (1995). Laplace approximation of high dimensional integrals.
+  Journal of the Royal Statistical Society, Series B 57 (4), 749–760.
+
+Smith, A. F. M., A. M. Skene, J. E. H. Shaw, and J. C. Naylor (1987). Progress with nu-
+  merical and graphical methods for practical Bayesian statistics. The Statistician 36 (2/3),
+  75–82.
+
+Spiegelhalter, D. J., N. G. Best, B. P. Carlin, and A. van der Linde (2002). Bayesian
+  measures of model complexity and fit (with discussion). Journal of the Royal Statistical
+  Society, Series B 64 (2), 583–639.
+
+Terzopoulos, D. (1988). The computation of visible-surface representations. IEEE Trans-
+  actions on Pattern Analysis and Machine Intelligence 10 (4), 417–438.
+
+Thall, P. F. and S. C. Vail (1990). Some covariance models for longitudinal count data with
+  overdispersion. Biometrics 46, 657–671.
+
+Thomas, A., B. O’Hara, U. Ligges, and S. Sturtz (2006). Making BUGS open. R News 6 (1),
+  12–16.
+
+Tierney, L. and J. B. Kadane (1986). Accurate approximations for posterior moments and
+  marginal densities. Journal of the American Statistical Association 81 (393), 82–86.
+
+Titterington, D. M. (2004). Bayesian methods for neural networks and related models.
+  Statistical Science 19 (1), 128–139.
+
+Waagepetersen, R. P. (2007). An estimating function approach to inference for inhomoge-
+ neous Neyman-Scott processes. Biometrics 63 (1), 252–258.
+
+Wahba, G. (1978). Improper priors, spline smoothing and the problem of guarding against
+ model errors in regression. Journal of the Royal Statistical Society, Series B 40 (3), 364–
+ 372.
+
+Wakefield, J. (2007). Disease mapping and spatial regression with count data. Biostatis-
+ tics 8 (2), 158–183.
+
+Wakefield, J. C., N. G. Best, and L. A. Waller (2000). Bayesian approaches to disease
+ mapping. In P. Elliot, J. C. Wakefield, N. G. Best, and D. J. Briggs (Eds.), Spatial
+ Epidemiology: Methods and Applications, pp. 104–107. Oxford: Oxford University Press.
+
+Wang, B. and D. M. Titterington (2005). Inadequacy of interval estimates corresponding
+ to variational Bayesian approximations. In R. G. Cowell and Z. Ghahramani (Eds.),
+ Proceedings of the Tenth International Workshop on Artificial Intelligence and Statistics,
+ pp. 373–380.
+
+Wang, B. and D. M. Titterington (2006). Convergence properties of a general algorithm
+ for calculating variational Bayesian estimates for a normal mixture model. Bayesian
+ Analysis 1 (3), 625–650.
+40    H. Rue, S. Martino and N. Chopin
+
+Wecker, W. E. and C. F. Ansley (1983). The signal extraction approach to nonlinear
+ regression and spline smoothing. Journal of the American Statistical Association 78 (381),
+ 81–89.
+
+Weir, I. S. and A. N. Pettitt (2000). Binary probability maps using a hidden conditional au-
+ toregressive Gaussian process with an application to Finnish common toad data. Journal
+ of the Royal Statistical Society, Series C 49 (4), 473–484.
+
+West, M. and J. Harrison (1997). Bayesian Forecasting and Dynamic Models (2nd ed.).
+ Springer Series in Statistics. New York: Springer-Verlag.
+
+Williams, C. K. I. and D. Barber (1998). Bayesian classification with Gaussian processes.
+ IEEE Transactions on Pattern Analysis and Machine Intelligence 20 (12), 1342–1351.
+
+Zoeter, O., T. Heskes, and B. Kappen (2005). Gaussian quadrature based expectation
+  propagation. In Z. Ghahramani and R. Cowell (Eds.), Proceedings AISTATS 2005.
+

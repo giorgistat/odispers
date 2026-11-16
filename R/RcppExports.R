@@ -5,3 +5,19 @@ exposure_cpp <- function(start, j, r, len, w, Z, phi, a, c, deriv) {
     .Call(`_odispers_exposure_cpp`, start, j, r, len, w, Z, phi, a, c, deriv)
 }
 
+lgcp_tree_layout <- function(K) {
+    .Call(`_odispers_lgcp_tree_layout`, K)
+}
+
+lgcp_local_sweep <- function(K, layout, old_counts, old_high, mu, predictor, y, n, order, block_size, spread, relocation_group, logit, gate_base, activity_sign, gate_slope) {
+    .Call(`_odispers_lgcp_local_sweep`, K, layout, old_counts, old_high, mu, predictor, y, n, order, block_size, spread, relocation_group, logit, gate_base, activity_sign, gate_slope)
+}
+
+lgcp_graph_blocks <- function(from, to, vertices, width, shift) {
+    .Call(`_odispers_lgcp_graph_blocks`, from, to, vertices, width, shift)
+}
+
+lgcp_block_angles <- function(group, groups, offset, current, direction, counts) {
+    .Call(`_odispers_lgcp_block_angles`, group, groups, offset, current, direction, counts)
+}
+

@@ -1,0 +1,28 @@
+Parameter,Definition (units),Prior parameter range,References
+λ,Number of bites per vector (per month),,
+H b,Human blood index,"[0.3, 0.99]",[1-5]
+g,Period of gonotrophic cycle (months),"[0.067, 0.13]","[3, 4, 6, 7]"
+V/H,Ratio of number of vectors to hosts,MBR 1  /  λ,data
+H Lin 2,Threshold value used in  h(a)  to adjust the age-dependent exposure rate (months),"[12, 240]",[8]
+A 2,Coefficient describing population age distribution in  π(a),data,[8]
+B 2,Coefficient describing population age distribution in  π(a),data,[8]
+ψ 1,Proportion of L3 leaving vector per bite,"[0.12, 0.7]","[3-6, 9]"
+ψ 2,Larval establishment rate 3,"[0.02, 0.0854]",[3-6]
+c,Strength of acquired immunity,"[0.0001, 0.001]","[10, 11]"
+I Cmin,Baseline presence of immunosuppression,"[0.0025, 1]","[10, 11]"
+I C,Strength of immunosuppression 4,"[0.5, 5.5]","[10, 11]"
+S C,Slope of immunosuppression function 5  (per worm/month),"[0.1, 0.75]","[10, 11]"
+,Immunity waning rate (per month),"[0.00001, 0.0001]","[10, 11]"
+μ W,Worm mortality rate (per month),"[0.0083, 0.0104]","[3-6, 9]"
+τ,Pre-patency period (months),"[9, 26]","[6, 9, 12]"
+k 0,Basic location parameter of negative binomial distribution used in  k,"[0.00036, 0.0044]","[10, 11]"
+k Lin,Linear rate of increase in  k,"[0.00000024, 0.282]","[10, 11]"
+s,Proportion of female worms,0.5,-
+α,Production rate of microfilariae per worm (per month),"[0.25, 1.5]","[3-6, 9]"
+γ,Microfilariae mortality rate (per month),"[0.08, 0.12]","[3-6, 9]"
+b,Proportion of vectors which pick up infection when biting an infected host,"[0.259, 0.481]",[3-6]
+κ,Maximum level of L3 given Mf density,"[1.16, 2.00]","[13, 14]"
+r,Gradient of Mf uptake 6,"[0.01,0.0495]","[13, 14]"
+σ,Vector mortality rate (per month),"[1.5, 8.5]",[3-6]
+σ e,Excess vector mortality due to mf infection (per month),"[0.75, 4.25]",[15]
+σ L,Larval mortality rate,"[0.33, 1.16]",[3-6]

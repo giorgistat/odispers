@@ -1,0 +1,13 @@
+Country,Trap Days,Trap Type,Row,Mean Daily Catcha (SE),% Total,Column,Mean Daily Catcha (SE),% Total
+Uganda,5,EWT CO2+,Top,60.8 (24.2),12.7,Left,227.4 (105.3),47.5
+Uganda,5,EWT CO2+,Middle,117.4 (49.8),24.5,Middle,171.8 (65.2),35.9
+Uganda,5,EWT CO2+,Bottom,300.6 (124.5),62.8,Right,79.6 (29.4),16.6
+Uganda,5,EWT CO2-,Top,15.8 (7.1),7.3,Left,53 (19.4),24.5
+Uganda,5,EWT CO2-,Middle,55.8 (27.7),25.8,Middle,88 (49.3),40.7
+Uganda,5,EWT CO2-,Bottom,144.8 (82.7),66.9,Right,75.4 (49.2),34.8
+Tanzania,12,EWT Blue,Top,31.7 (14.9),60.4,Left,25.3 (9.6),48.2
+Tanzania,12,EWT Blue,Middle,11.4 (3.8),21.8,Middle,7.8 (2.0),14.9
+Tanzania,12,EWT Blue,Bottom,9.3 (2.8),17.8,Right,19.3 (8.1),36.9
+Tanzania,12,EWT Black,Top,18.7 (6.1),58.0,Left,11.9 (2.7),37.0
+Tanzania,12,EWT Black,Middle,7.8 (1.4),24.1,Middle,10.1 (2.3),31.3
+Tanzania,12,EWT Black,Bottom,5.8 (0.9),17.9,Right,10.2 (3.5),31.6

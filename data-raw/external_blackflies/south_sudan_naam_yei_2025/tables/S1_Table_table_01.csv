@@ -1,0 +1,5 @@
+River,Intervention ,Control(s),MBRs Geometric Mean difference  between  intervention and Control,d.f.,F,t,p-value (2-sided),95% CI,
+Naam,Dogoyabolu,Main Bridge,-68.78,26,1.10,-0.203,0.84,Lower ,Upper 
+Naam,Dogoyabolu,Main Bridge,-68.78,26,1.10,-0.203,0.84,-2.03,3.59
+Naam,Dogoyabolu,Domalira,89.80,26,0.39,0.411,0.68,-2.05,3.07
+Naam,Dogoyabolu,Main Bridge  +  Domalira,25.75,40,1.08,0.108,0.91,-2.15,2.40

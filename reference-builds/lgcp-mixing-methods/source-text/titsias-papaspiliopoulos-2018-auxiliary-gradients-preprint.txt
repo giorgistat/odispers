@@ -1,0 +1,1950 @@
+                                                Auxiliary gradient-based sampling algorithms
+
+
+
+
+arXiv:1610.09641v3 [stat.ML] 25 Jan 2018
+                                                Michalis K. Titsias
+                                                Department of Informatics, Athens University of Economics and Business,
+                                                Athens, Greece
+                                                Omiros Papaspiliopoulos
+                                                ICREA and Department of Economics and Business Universitat Pompeu
+                                                Fabra, Barcelona 08005
+
+                                                Summary. We introduce a new family of MCMC samplers that combine
+                                                auxiliary variables, Gibbs sampling and Taylor expansions of the target
+                                                density. Our approach permits the marginalisation over the auxiliary vari-
+                                                ables yielding marginal samplers, or the augmentation of the auxiliary
+                                                variables, yielding auxiliary samplers. The well-known Metropolis-adjusted
+                                                Langevin algorithm (MALA) and preconditioned Crank-Nicolson Langevin
+                                                (pCNL) algorithm are shown to be special cases. We prove that marginal
+                                                samplers are superior in terms of asymptotic variance and demonstrate
+                                                cases where they are slower in computing time compared to auxiliary sam-
+                                                plers. In the context of latent Gaussian models we propose new auxiliary
+                                                and marginal samplers whose implementation requires a single tuning
+                                                parameter, which can be found automatically during the transient phase.
+                                                Extensive experimentation shows that the increase in efficiency (measured
+                                                as effective sample size per unit of computing time) relative to (optimised
+                                                implementations of) pCNL, elliptical slice sampling and MALA ranges from
+                                                10-fold in binary classification problems to 25-fold in log-Gaussian Cox
+                                                processes to 100-fold in Gaussian process regression, and it is on par with
+                                                Riemann manifold Hamiltonian Monte Carlo in an example where the latter
+                                                has the same complexity as the aforementioned algorithms. We explain
+                                                this remarkable improvement in terms of the way alternative samplers try
+                                                to approximate the eigenvalues of the target. We introduce a novel MCMC
+                                                sampling scheme for hyperparameter learning that builds upon the auxiliary
+                                                samplers. The MATLAB code for reproducing the experiments in the article
+                                                is publicly available and a Supplement to this article contains additional
+                                                experiments and implementation details.
+
+
+                                           1.   Introduction
+                                           Monte Carlo sampling is the preferable tool for uncertainty quantification
+                                           and statistical learning in a wide range of scientific problems. We are
+interested in Bayesian learning problems where the density to be sampled
+is proporional to π0 (x|θ) exp{f (x)}, where π0 (x|θ) is the prior, poten-
+tially depending on hyperparameters θ, and f (x) is the log-likelihood;
+the dependence on any data is suppressed throughout; we highlight the
+dependence on θ when it is part of the inference and wish to sample
+from π(x, θ) ∝ π0 (x|θ) exp{f (x)}p(θ) where p(θ) is a prior on the hy-
+perparameters; when the hyperparameters are fixed we might drop them
+from the notation and write π0 (x) instead. Whereas the main algorithmic
+construction and some theory is generic, the field of application in this
+article and all the experiments refer to latent Gaussian models where
+π0 (x|θ) = N (x|0, C).
+    Major challenges with MCMC in these contexts are: (i) Likelihood-
+informed proposals; gradient-based methods based on discretisations of the
+Langevin diffusion, e.g. the preconditioned Metropolis-adjusted Langevin
+algorithm (pMALA) of [22] and the manifold MALA (mMALA) of [11]
+are typical examples. (ii) Prior-informed proposals, i.e., ones that are in
+agreement with the dependence structure imposed by the prior; this is
+particularly important for priors that impose smoothness and create strong
+dependencies among the components of x, e.g. Gaussian priors; [18] first
+proposed such a sampler which has evolved to the elliptical slice sampler of
+[17], and has been extended to the preconditioned Crank-Nicolson (pCN)
+samplers of [3] who show that failure to be prior-informed leads to collapse
+of algorithms in high-dimensional problems that can otherwise be avoided.
+The preconditioned Crank-Nicolson Langevin samplers of [4], are likelihood
+and prior informed. (iii) Numerically efficient computation of the accept-
+reject mechanism within Metropolis-Hastings schemes, which can be the
+bottleneck for scaling up MCMC to big data problems, see e.g. [25], [8],
+[6].(iv) The numerically efficient generation of proposals; see e.g. [7].
+    We introduce a new family of MCMC samplers that are both prior and
+likelihood informed and are constructed using a combination of auxiliary
+variables and Taylor expansions. The essence of the approach is to use
+the proposals used within standard MCMC as auxiliary variables and
+sample the augmented target using Metropolis-within-Gibbs. The resultant
+algorithms are called auxiliary samplers and the algorithm that is obtained
+by integrating the auxiliary variables out is called a marginal sampler.
+We prove that the marginal sampler is better in Peskun ordering than
+its corresponding auxiliary sampler. We apply the construction in latent
+Gaussian models and introduce three new MCMC samplers for such models,
+two auxiliary and one marginal; one of the auxiliary samplers for latent
+Gaussian models (the scheme based on the auxiliary variable z as detailed
+
+                                     2
+in Section 3.3) was first sketched in a discussion in [27]. We show that
+pCNL is a special case of the new framework. We carry out an extensive
+series of experiments where we compare our new samplers with pCN,
+elliptical slice sampler (Ellipt), pMALA, pCNL. The implementation of
+all these algorithms involves an O(n2 ) cost per iteration, where n is the
+dimension of x, and requires a single tuning parameter. For log-Gaussian
+Cox processes we also compare against mMALA and the Riemann manifold
+Hamiltonian Monte Carlo (RMHMC) of [11], since in this context these
+can also be implemented at an O(n2 ) cost, whereas their implementation is
+typically O(n3 ). We demonstrate that our new samplers are more efficient
+in terms of effective sample size per unit of computing time than pMALA,
+pCN, Ellipt and pCNL by a factor that ranges from 10 to 100 in standard
+machine learning and spatial statistics problems, and are comparable to
+RMHMC when the latter can also be implemented at O(n2 ) cost. We
+provide an explanation on why these gains are achieved in terms of the
+way the different algorithms approximate the spectrum of the target by
+shrinking differently the eigenvalues of the prior covariance.
+
+   One of the proposed auxiliary samplers has smaller computational
+time than the marginal sampler since it involves a smaller number of
+matrix-vector multiplications; actually its acceptance probability can be
+computed an order of magnitude faster than that of the marginal sam-
+pler. Nevertheless, all the experiments reported here and in a Supplement
+find the marginal sampler superior to the auxiliary ones even when com-
+puting cost is taken into account. We also investigate empirically the
+optimal tuning of the new algorithms and find the auxiliary ones to re-
+quire tuning around 50% acceptance rate and the marginal around 60%.
+Utilising one of the auxiliary samplers, we propose a novel sampler for
+π(x, θ) ∝ N (x; 0, Cθ ) exp{f (x)}p(θ) where θ are hyperparameters. We
+find impressive efficiency gains relative to alternative samplers in the
+context of multi-class Gaussian process classification.
+
+    The paper is organised as follows. Section 2 introduces auxiliary and
+marginal samplers and proves a comparison result. Section 3 develops the
+methodology for latent Gaussian models. Section 4 introduces a sampler
+for joint inference of the latent Gaussian process and its hyperparameters.
+Section 5 contains an extensive series of numerical experiments. A Supple-
+ment to this article contains additional theoretical results, implementation
+details, pseudocode of the proposed algorithms, and several simulation
+experiments. All experiments are completely reproducible and the code
+can be found in https://github.com/mtitsias/aGrad.
+
+                                     3
+2.   Auxiliary versus marginal samplers
+We start with a generic result about the use of auxiliary variables within
+Metropolis-Hastings schemes. This result establishes that the marginal
+samplers we introduce in this article are statistically more efficient than the
+auxiliary samplers we also introduce; statistical efficiency here is measured
+by the asymptotic variance of ergodic averages computed using the samples
+generated by the algorithms, hence the averages computed using marginal
+samplers are shown to have lower asymptotic variance than those using aux-
+iliary samplers. However, we will later establish concrete situations where
+the auxiliary samplers are computationally more efficient, in particular the
+use of auxiliary variables can change the complexity of the computation
+of the Metropolis-Hastings ratio. Hence, our broader framework allows
+for the exchange of statistical with computational efficiency for better
+scalability of the algorithms.
+
+
+2.1. Auxiliary Metropolis-Hastings samplers
+Consider a target density π(x) and a hierarchical mechanism for generating
+proposals y within a Metropolis-Hastings sampler for probing π(x), by first
+drawing u ∼ q(u|x) and then y ∼ q(y|x, u). Hence, the overall proposal
+density is                     Z
+                     q(y|x) = q(y|x, u)q(u|x)du .
+
+What we will call a marginal scheme proposes in this way and accepts
+with probability the minimum of 1 and the Metropolis-Hastings ratio,
+                                π(y)q(x|y)
+                                           .
+                                π(x)q(y|x)
+However, we can alternatively augment the state-space with u as an
+auxiliary variable and design a sampler for π(x, u) = π(x)q(u|x). We can
+sample from this extended target by Hastings-within-Gibbs:
+
+ (a) Sample u|x ∼ π(u|x) = q(u|x)
+ (b) Propose y|u, x ∼ q(y|x, u) and accept the move with probability
+                                   π(y|u)q(x|y, u)
+                              1∧                   .
+                                   π(x|u)q(y|x, u)
+Hence, a Metropolis-Hastings step is used to sample the intractable π(x|u).
+Let us call this second scheme an auxiliary sampler. In this formulation,
+the marginal and auxiliary samplers use the same ingredients, q(u|x) and
+
+                                      4
+q(y|x, u), and marginally generate the same proposals y from a given state
+x. However, their acceptance mechanisms differ.
+
+
+2.2. An example: auxiliary MALA
+We start with a random walk proposal, N (u|x, (δ/2)I) to define an aug-
+mented target
+               π(x, u) ∝ π(x)q(u|x) = π(x)N (u|x, (δ/2)I)
+and sample from this using an auxiliary sampler, as described above. In
+order to sample the intractable π(x|u) we do a first order approxima-
+tion to the log target density, around x, given by log π(y) ≈ log π(x) +
+∇ log π(x)T (y − x), and combine it with q(u|y) to obtain the proposal
+     q(y|u, x) ∝ exp{log π(x) + ∇ log π(x)T (y − x)}N (u|y, (δ/2)I)
+               ∝ N (y|u + (δ/2)∇ log π(x), (δ/2)I) .
+The corresponding marginal sampler is the Metropolis-adjusted Langevin
+algorithm (MALA) since q(y|x) = N (y|x + (δ/2)∇ log π(x), δI).
+
+
+2.3. Marginal samplers are Peskun better than auxiliary samplers
+Recall that a Markov transition kernel P2 dominates in Peskun ordering
+another P1 if P1 (x, A) ≤ P2 (x, A) for all measurable A such that x ∈ / A,
+and for all x. An important implication of this ordering is that if P1 and
+P2 are ergodic kernels and the corresponding ergodic averages admit a
+central limit theorem for a given function, then the asymptotic variance
+of those averages for the function are larger for P1 relative to P2 . This
+comparison was introduced in [20], extended in [26] and then in [15].
+Proposition 1. The marginal sampler is better in Peskun ordering than
+the auxiliary sampler.
+    This result can be proved by noting that the auxiliary sampler we
+consider is a special case of the framework described in Proposition 2 of
+[24]; the general framework in [24] considers samplers where two auxil-
+iary variables are used, but the use of a single auxiliary variable is more
+appropriate for the specific samplers we introduce in Section 3 for latent
+Gaussian models. Note also a recent result in the literature on so-called
+pseudomarginal methods, where auxiliary variables are used to provide un-
+biased estimators of π(x) when this is intractable or expensive to compute.
+Theorem 7 of [1] establishes that the corresponding auxiliary sampler is
+less statistically efficient (in the sense described above) than the marginal
+sampler. [1] also consider alternative auxiliary variable schemes.
+
+                                     5
+3.   Gradient-based samplers for latent Gaussian models
+3.1. Setting and objectives
+We now focus on the latent Gaussian models where the target density is
+written in the form
+
+                       π(x) ∝ exp{f (x)}N (x|0, C),                       (1)
+
+where exp{f (x)} is the likelihood and N (x|0, C) is the Gaussian prior
+which for simplicity we assume to have zero mean. We are interested in
+general-purpose, black-box algorithms that would perform reasonably well
+in a wide range of applications. With respect to the dimension of the target,
+n, the algorithms we consider can be implemented (including the transient
+phase where step sizes are tuned) at O(n2 ) cost, given an initial O(n3 )
+offline pre-computation, provided that f (x) and ∇f (x) are computed at
+O(n2 ) cost. It is practically important that no matrix decompositions are
+needed even for the transient phase of the algorithms where algorithmic
+parameters, such as step size, are tuned to achieve theoretically-motivated
+optimal acceptance rates. It is also practically important that algorithms
+use a small number of tuning parameters, and all the algorithms we consider
+here use a single one. We make no assumptions about special properties of
+C, such as Toeplitz or banded. Section 5 contains several model structures
+that fit into this category and range from multi-class classification to point
+processes. A Supplement includes details on optimal implementation and
+details on the computational cost of each algorithm.
+
+
+3.2. Review of popular MCMC samplers for latent Gaussian models
+Here, we summarise the main popular MCMC samplers used in the context
+of latent Gaussian models. The most basic gradient-based approach is the
+preconditioned MALA (pMALA) that generates proposals according to
+                                   δ
+                  q(y|x) = N (y|x + Σ∇ log π(x), δΣ),
+                                   2
+where Σ is a preconditioning matrix and δ is a step size parameter that has
+to be tuned. This proposal is obtained as a first-order Euler discretization
+of the Langevin stochastic differential equation (SDE),
+                        1
+                   dXt = Σ∇ log π(Xt )dt + Σ1/2 dWt ,
+                        2
+where W is Brownian motion, which is a stochastic process reversible
+with respect to π(x). For good sampling we might prefer to choose the
+
+                                      6
+preconditioning in a state-dependent way to capture the local covariance
+structure. This is for example the idea behind certain schemes used in [11]
+that are referred there as simplified manifold MALA (mMALA) proposals.
+However, such algorithms would require matrix decompositions at each
+iteration. For latent Gaussian models the common state-independent
+choice is Σ = C, while often the choice Σ = I doesn’t work at all since it
+ignores the correlation structure introduced by the Gaussian prior. Hence,
+in this paper we only consider pMALA with Σ = C, which leads to the
+proposal
+                                                        
+                                     δ      δ
+               q(y|x) = N y|(1 − )x + C∇f (x), δC .
+                                     2      2
+The generation of proposals cost is O(n2 ), including the initial tuning of
+the algorithm for choosing a δ that yields approximately 50% acceptance
+probability following [21]. The Metropolis-Hastings ratio, which involves
+the Gaussian prior, requires an O(n2 ) computing cost.
+   [4] review proposals based on more advanced Crank-Nicolson discreti-
+sations of the Langevin SDE, and focus on the so-called Crank-Nicolson
+Langevin (CNL) proposal
+    q(y|x) = N (y|(2C + δI)−1 (2C − δI)x + 2δ(2C + δI)−1 C∇f (x),
+           8δ(2C + δI)−1 C(2C + δI)−1 )
+and the preconditioned Crank-Nicolson Langevin (pCNL) proposal
+                                                         
+                          2         δ           δ(δ + 4)
+         q(y|x) = N y|       x+        C∇f (x),          C .             (2)
+                        2+δ      2+δ            (2 + δ)2
+We have parameterised pCNL so that its step size δ is comparable to that
+in the samplers we introduce in this article, hence the discrepancy with
+the notation used in [4]. We consider only pCNL in this paper since it has
+been found to be more efficient in practice. The Metropolis-Hastings ratio
+for pCNL becomes
+                  exp{f (y) − f (x) + k(x, y) − k(y, x)}                 (3)
+where
+                      2+δ T              δ
+          k(x, y) =       x ∇f (y) −          ∇f (y)T C∇f (y) .
+                      4+δ            2(δ + 4)
+Note that the prior density is cancelled in the ratio, which is a consequence
+of a reversibility property this proposal mechanism enjoys and is discussed
+
+                                     7
+in Section 3.4. Notice also that the mean of the pMALA proposal is
+essentially the same as the the mean of pCNL since both can be re-
+written in the form βx + (1 − β)C∇f (x) where β ∈ [0, 1]. Note that
+for this reparametrization to hold the step δ for pMALA must be in the
+range [0, 1/2]. The generation of proposals and the computation of the
+Metropolis-Hastings ratio require an O(n2 ) cost. When the gradient term
+is dropped we obtain the Crank-Nicolson and the preconditioned Crank-
+Nicolson (pCN) algorithms, which are only prior informed. The more
+interesting pCN corresponds to the proposal
+                                                    
+                                     2     δ(δ + 4)
+                  q(y|x) = N y|         x,          C                 (4)
+                                   2 + δ (2 + δ)2
+and it was originally proposed by [18] and more recently in a function
+space context by [3]. Section 3.4 discusses that pCN proposal is reversible
+with respect to the prior, which leads to an appealing simplification of
+the Metropolis-Hastings ratio that becomes simply exp{f (y) − f (x)}.
+Therefore, pCN involves a O(n2 ) cost for generating proposals but only
+an O(n) for deciding on their acceptance.
+   Finally, in this article we consider the elliptical slice sampler (Ellipt)
+proposed by [17], which is popular in the machine learning community.
+This scheme combines the pCN proposal with a slice sampling procedure
+that is constrained on an ellipse that avoids rejections, hence its proposal
+mechanism does not have any step sizes that need tuning. However, the
+rejection-free property comes with the cost that multiple log-likelihood
+evaluations are required per iteration.
+
+
+3.3. New auxiliary and marginal samplers
+The starting point of an auxiliary sampler is the augmentation with the
+auxiliary variable u drawn from q(u|x) = N (u|x, (δ/2)I) so that
+              π(x, u) ∝ exp{f (x)}N (x|0, C)N (u|x, (δ/2)I).
+The auxiliary sampler requires an approximation to π(x|u) to be used as a
+proposal. Since the product N (x|0, C)N (u|x, (δ/2)I), yields a Gaussian
+density for x, we do a first order Taylor expansion of f (x) around the
+current value x to come up with a Gaussian proposal density that is both
+prior and likelihood informed:
+    q(y|x, u) ∝ exp{f (x) + ∇f (x)T (y − x)}N (y|0, C)N (u|y, (δ/2)I)
+                                            
+                         2        δ
+                ∝ N y| A(u + ∇f (x)), A ,
+                         δ        2
+
+
+                                     8
+where
+                            2      δ    δ
+                  A = (C−1 + I)−1 = (C + I)−1 C.                       (5)
+                            δ      2    2
+A can be defined in any of the alternative ways, which are of course
+equivalent when C is invertible. However, A can be defined as the second
+expression when C is not invertible (in which case the first expression is
+invalid). The second expression is also computationally preferrable when
+C is close to being singular. Thus, the auxiliary sampler iterates:
+
+ (a) u ∼ N (u|x, (δ/2)I)
+ (b) Propose y ∼ q(y|x, u) and accept it according to the Metropolis-
+     Hastings ratio
+
+               exp {f (y) − f (x) + j(x, y, u) − j(y, x, u)} ,         (6)
+                                                    T
+                                  2         δ
+               j(x, y, u) = x − A(u + ∇f (y))            ∇f (y) .      (7)
+                                  δ         4
+
+The matrix A involved in the algorithm has the same eigenspace as C.
+Hence, given a spectral decomposition of C at the onset, generating from
+the proposal q(y|u, x) has computational cost O(n2 ). Also, the Metropolis-
+Hastings ratio has cost O(n2 ).
+   The corresponding marginal scheme is obtained by simply marginalising
+out the auxiliary variable u to obtain the marginal proposal
+                Z
+                         2
+      q(y|x) = N (y| A(u + (δ/2)∇f (x)), A)N (u|x, (δ/2)I) du
+                         δ
+                                                   
+                       2         δ          2 2
+             = N y| A x + ∇f (x) , A + A ,
+                       δ         2          δ
+
+where we have used that A is symmetric. One way to generate from the
+proposal q(y|x) is to be based on the mixture representation above, which
+corresponds to the same two-step procedure used in the auxiliary scheme
+and it has computational cost O(n2 ). The corresponding Metropolis-
+Hastings ratio simplifies to
+
+        exp{f (y) − f (x) + h(x, y) − h(y, x)},
+                                         T         −1
+                        2        δ              2
+        h(x, y) = x − A(y + ∇f (y))               A+I     ∇f (y)
+                        δ        4              δ
+
+and it is also computed at an O(n2 ) cost.
+
+                                    9
+   A reparameterization of the auxiliary variable u yields an alternative
+auxiliary sampler in this context, that corresponds to the same marginal
+sampler. We define a new auxiliary variable z
+          z ≡ u + (δ/2)∇f (x) ∼ N (z|x + (δ/2)∇f (x), (δ/2)I),
+so that the initial proposal distribution q(y|x, u) in the former auxiliary
+sampler now becomes q(y|z) = N (y|(2/δ)Az, A). This has the interesting
+property that the proposed y becomes conditionally independent from the
+current x given the auxiliary variable z; we explicitly exploit this when we
+design samplers for learning hyperparameters in Section 4. Subsequently,
+with this formulation, we can work with an alternative expanded target,
+      π(x, z) ∝ exp{f (x)}N (x|0, C)N (z|x + (δ/2)∇f (x), (δ/2)I) ,
+and consider an auxiliary sampler that iterates between the steps:
+ (a) z ∼ N (z|x + (δ/2)∇f (x), (δ/2)I)
+ (b) Propose y ∼ q(y|z) and accept it according to the Metropolis-
+     Hastings ratio
+                   exp {f (y) − f (x) + g(z, y) − g(z, x)} ,
+                   g(z, y) = (z − y − (δ/4)∇f (y))T ∇f (y) .
+The simplification in the acceptance ratio follows by noting that
+                            
+                     2
+              N y| Az, A ∝ N (y|0, C)N (z|y, (δ/2)I) .
+                     δ
+The first step of the algorithm is likelihood-informed while the second
+step is prior-informed and these two-types of information are linked by
+the auxiliary variable z. The marginal sampler that corresponds to this
+scheme is precisely the one obtained earlier. However, the Metropolis-
+Hastings ratio is computable at O(n) cost when f (x) and ∇f (x) are also
+computable at O(n) cost. This is in contrast with the marginal sampler
+and the auxiliary sampler based on u. Thus, the auxiliary sampler based
+on z allows a tradeoff between computational and statistical efficiency.
+
+
+3.4. Connection to Crank-Nicolson schemes and a covariance shrink-
+      age perspective on algorithmic performance
+We can easily construct preconditioned auxiliary and marginal samplers by
+taking q(u|x) = N (u|x, (δ/2)Σ). The corresponding marginal proposal is
+                                                             
+                      2     −1       δ            2    −1
+      q(y|x) = N y| BΣ           x + Σ∇f (x) , BΣ B + B , (8)
+                      δ              2            δ
+
+
+                                    10
+where B = ( 2δ Σ−1 + C−1 )−1 . Now if we set Σ = C this proposal becomes
+that of pCNL (2) in Section 3.2. Interestingly, it can be checked that
+for no choice of Σ CNL is a special case of the marginal sampler. The
+experiments in Section 5 demonstrate that the marginal sampler leads to a
+significant increase in efficiency, that can be as large as 100-fold over pCNL.
+Here we provide some insights on the success of the marginal algorithm
+and some further connections to recent algorithms that have been devised
+to improve upon pCN.
+    We first observe that when ∇f = 0, the marginal sampler proposal
+density is reversible with respect to the prior. This follows from the Lemma
+below, the proof of which is given in a Supplement to this article. Notice
+that part (a) is stated in terms of laws without assuming the existence
+of Lebesgue densities, to even cover cases where the prior covariance is
+singular; in practice it is also interesting to have proposal mechanisms that
+do not require inversion of C, which even when invertible might be very
+ill-conditioned for smooth latent Gaussian processes.
+Lemma 1. (a) Suppose that F is symmetric and commutes with C. Then,
+     the transition kernel N (dy|Fx, (I − F2 )C) is reversible with respect
+     to the prior N (dx|0, C).
+ (b) Suppose that C is invertible with C = Γ2 and F is symmetric. Then
+     the transition density N (y|ΓFΓ−1 x, Γ(I − F2 )Γ) is reversible with
+     respect to N (x|0, C).
+   The choice F = {2/(2 + δ)}I in Lemma 1 (a) yields pCN; the choice
+F = {C + (δ/2)I}−1 C = (2/δ)A yields the marginal sampler proposal
+when ∇f = 0, see a Supplement to this article for the calculations that
+establish this correspondence. Therefore, one perspective on the proposed
+marginal sampler is as a principled extension of pCNL that changes the
+preconditioning matrix from a multiple of identity to one informed by C
+while requiring a single tuning parameter δ. This perspective links the
+marginal sampler to some recent work in the inverse problem literature
+that improves upon pCN, such as [14, 5], which we review below.
+   The proposal covariances used in the marginal sampler and pCNL have
+the same eigenvectors as that of C, but they have different eigenvalues. In
+particular, an eigenvalue γ of C is mapped to
+                                 
+                            4                       δ(δ + 4γ)
+           p(γ) = 1 −           2
+                                    γ and m(γ) =               γ
+                        (δ + 2)                      (δ + 2γ)2
+in pCNL and the marginal samplers respectively, where δ is the step
+size used in each algorithm. Whereas pCNL shrinks multiplicatively
+
+                                      11
+all eigenvalues of C by the same factor, the marginal sampler shrinks
+adaptively with the interesting property that m0 (0) = 1, hence small
+eigenvalues are left practically unchanged, and m(γ) → δ as γ → ∞.
+Suppose now that the latent Gaussian field is observed with additive
+Gaussian error with variance σ 2 , as in the experiments of Section 5.1. Then,
+the posterior covariance has the same eigenvectors as C but an eigenvalue
+γ of C is mapped to t(γ) = γσ 2 /(γ + σ 2 ). Hence, the posterior is shrunk a
+lot where the prior is weak, with γ  σ 2 mapped to approximately σ 2 , but
+γ  σ 2 being left practically unchanged. In fact, by taking δ = σ 2 , we get
+that m(γ)/t(γ) ranges from 1 to approximately 1.12 for the whole range of
+possible γ, σ 2 values. Thus, we should expect the marginal sampler when
+tuned to achieve a good acceptance probability (which we empirically have
+found to be between 50-60%, see Section 5) to choose a δ close to σ 2 and
+by doing so, to capture the appropriate range of values for all eigenvalues
+of the target covariance; this is corroborated by the experiments of Section
+5. On the other hand, pCNL needs to set δ as approximately σ 2 /γ in order
+to match a specific eigenvalue γ; the experiments of Section 5 show that
+when tuned optimally pCNL chooses a step size which is σ 2 /γmax , where
+γmax is the largest eigenvalue of C, which is of course the one that has
+experienced the largest change relative to the prior; however, this step size
+is too small for the modes of the system for which the posterior is similar
+to the prior, hence the posterior distribution of those is explored poorly.
+
+    An intuition along the above lines for the weakness of pCN proposal
+to capture the spectrum of the posterior is developed in Section 3 of [14]
+in the context of Bayesian inverse problems, which points out that better
+algorithms should shrink by different amounts different eigenvalues. Such
+algorithms were originally proposed in [14] and then explored much more
+thoroughly in [5]; these works explore the framework of Lemma 1 (b) and
+work with autoregressive matrices F different from multiples of the identity.
+The construction requires that C is invertible and a transformation of the
+latent field to standard Gaussian (or white noise when working with infinite-
+dimensional Gaussians). Then, F is such that in directions of the posterior
+strongly informed by the likelihood a different step size is used than in
+those where the prior dominates. This machinery requires a preliminary
+exploration of the posterior to estimate a matrix the eigendecomposition of
+which, together with some eigenvalue thresholding, determine the so-called
+likelihood informed subspace, i.e., those directions where the likelihood
+dominates, and its complement. The resultant algorithms involve a large
+number of tuning parameters and although the authors have made a serious
+effort to automatize their choice, they are not "plug-and-play" in the way
+
+                                     12
+that all other algorithms we have mentioned so far are. This is why we do
+not consider them further in this article.
+
+4.     Hyperparameter learning for latent Gaussian models
+An important issue in latent Gaussian models is concerned with the infer-
+ence over hyperparameters of the covariance matrix C, hence we need to
+design MCMC samplers that sample also from the corresponding poste-
+rior distribution of those, together with the latent field. This problem is
+challenging because of the high dependence between these hyperparam-
+eters and the state vector x. To deal with this, several approaches have
+been presented in the literature [13, 19, 16, 9, 12, 2]. Next, we discuss a
+new sampling move tailored to the auxiliary sampler based on the latent
+variable z. This is basically a proof of concept implementation. Let θ
+denote the hyperparameters of the covariance, Cθ , and p(θ) their prior
+density. In the rest of this section we index matrices that depend on the
+unknown hyperparameters θ, to emphasise the dependence and the fact
+that they would have to be updated whenever θ changes during sampling.
+We consider the expanded target
+
+     π(x, z, θ) ∝ exp{f (x)}N (x|0, Cθ )N (z|x + (δ/2)∇f (x), (δ/2)I)p(θ) .
+
+To deal with the dependence between θ and x, we construct a joint move
+(x, θ) → (y, θ 0 ), conditional on the auxiliary variable z, with proposal
+
+                        q(y, θ 0 |x, θ, z) = q(y|θ 0 , z)q(θ 0 |θ),
+
+where
+                         2                 1
+     q(y|θ 0 , z) = N (y| Aθ0 z, Aθ0 ) =            N (y|0, Cθ0 )N (z|y, (δ/2)I).
+                         δ               Z(z, θ 0 )
+
+Here, Aθ = (C−1 θ + (2/δ)I)
+                           −1 while Z(z, θ 0 ) = N (z|0, C 0 + (δ/2)I) is a
+                                                          θ
+marginal likelihood term. The corresponding Metropolis-Hastings accep-
+tance ratio simplifies to
+                                                         Z(z, θ 0 )p(θ 0 )q(θ|θ 0 )
+         exp {f (y) − f (x) + g(z, y) − g(z, x)} ×                                  .
+                                                         Z(z, θ)p(θ)q(θ 0 |θ)
+This ratio has an interesting product form. The first term, corresponding
+to exp {f (y) − f (x) + g(z, y) − g(z, x)}, comes from the auxiliary sampler
+and does not depend on θ. In contrast the second term does not depend
+on x and is a Metropolis-Hastings ratio for targeting the posterior on
+
+                                            13
+θ that would arise if the observations were z and were generated as a
+noisy observation of the latent field, having isotropic Gaussian noise with
+variance δ/2. Due to this noise, the conditional density proportional to
+N (z|0, Cθ + (δ/2)I)p(θ) will be flatter than the one that arises when we
+do Gibbs sampling on π(x, θ), i.e., N (x|0, Cθ )p(θ), hence we expect to
+get better mixing. Notice also that it is possible to generalize the above
+move so that the proposal on the hyperparameters becomes dependent on
+the auxiliary variable z, i.e. to take the form q(θ 0 |θ, z). This, for instance,
+could allow to use a standard MALA proposal to target Z(z, θ)p(θ).
+    The above move shares some similarities with the approach in [16] who
+also use auxiliary variables to inflate the covariance Cθ with an isotropic
+or diagonal covariance. However, the two main differences with that work
+is that our approach is likelihood-informed through the re-sampling step of
+the auxiliary variable z ∼ N (z|x + (δ/2)∇f (x), (δ/2)I) which depends on
+∇f (x), and is based on joint sampling as opposed to a reparametrization.
+    The update of θ necessitates the decomposition of Cθ and requires
+an O(n3 ) computation. Therefore, every such update is expensive. To
+compensate for that we can do many latent process updates for each θ
+update.
+
+
+5.   Experiments
+
+We test the proposed samplers in several latent Gaussian models applied to
+simulated and real data. The purpose of the experiments is to investigate
+the performance of the three proposed samplers detailed in Section 3: i) the
+marginal sampler (mGrad), ii) the sampler based on auxiliary variable u
+(aGrad-u) and iii) the sampler based on z (aGrad-z). Recall, that all three
+algorithms generate the same proposals but are based on different rules
+for their acceptance. The three new schemes are compared against the
+methods reviewed earlier in Section 3.2: pMALA, pCN, pCNL, Ellipt. All
+algorithms have been implemented in MATLAB in an unified and highly
+optimized code outlined in a Supplement and available online. In one
+examples we also use mMALA and RMHMC based on the code provided
+by the authors [11], since their implementation in this setting can also
+be done at O(n2 ) cost. In all the experiments the step size of pCN was
+tuned to achieve acceptance rate in the range 20% to 30%, while for all
+the remaining algorithms that use gradient information from the likelihood
+the step size was tuned to achieve an acceptance rate in the range 50%
+to 60%. This adaptation phase takes place only during burn-in iterations,
+while at collection of samples stage the step size is kept fixed. Notice that
+
+                                       14
+                     1                                                       1                                                      1
+
+                    0.8                                                     0.8                                                    0.8
+
+
+
+
+  Autocorrelation
+                                                          Autocorrelation                                        Autocorrelation
+                                    aGrad-u
+                                    aGrad-z
+                    0.6             mGrad                                   0.6                                                    0.6
+                                    Ellipt
+                    0.4             pCN                                     0.4                                                    0.4
+                                    pCNL
+                                    pMALA
+                    0.2                                                     0.2                                                    0.2
+
+                     0                                                       0                                                      0
+                          0   2      4        6                                   0   2      4       6                                   0   2      4       6
+                                  CPU time        ×10-3                                   CPU time       ×10-3                                   CPU time       ×10-3
+
+
+
+Fig. 1. Estimated autocorrelation of the function f (x) for all algorithms against
+CPU time; the lines are averages over ten runs of the algorithms.
+
+
+Ellipt does not require tuning a step size since it accepts all samples. The
+pilot tuning of δ can be done in a computationally efficient way for all
+algorithms, see a Supplement to this article for details. See the Supplement
+also for more figures, experiments and details.
+
+
+5.1. Gaussian process regression and small noise limit
+The aim of this experiment is to compare the methods under different
+levels of the likelihood informativeness. For simplicity, we shall consider a
+simple Gaussian process regression setting where the likelihood is Gaussian
+so that
+                                                n
+                            n              1 X
+                  f (x) = − log(2πσ 2 ) − 2       (yi − xi )2             (9)
+                            2             2σ
+                                                                                                          i=1
+and where each yi is a scalar real-valued observation. We take the prior
+covariance matrix C to be defined via the squared exponential kernel
+function c(si , sj ) = σx2 exp{− 2`12 ||si − sj ||2 } where si is a input vector
+associated with the latent function value xi . Under the above model, the
+informativeness of the likelihood depends on the noise variance σ 2 . We
+generated three regression datasets having n = 1000 and noise variances
+σ 2 = 1, 0.1 and 0.01. Autocorrelation summaries of MCMC output are
+plotted in Figure 3. Autocorrelation lines are plotted against CPU running
+time and they have been averaged over ten repeats (using different random
+seeds) of the experiments, where the CPU time has incorporated the burn-in
+iterations that are then removed for estimating the autocorrelations. Note
+that in the limit σ 2 → 0 the prior and the posterior are mutually singular,
+hence prior-informed only proposals will collapse. For each experiment the
+noise variance σ 2 was kept fixed to its ground-truth value that generated
+the data and the covariance matrix C was also fixed and precomputed
+using suitable values of the kernel hyperparameters (σx2 , `2 ). To infer the
+
+                                                                                          15
+ Table 1. Comparison of sampling methods in the regression dataset with
+ σ 2 = 0.01. All numbers are averages across ten repeats where also one-
+ standard deviation is given for the Min ESS/s score.
+   Method Time(s)        Step δ     ESS (Min, Med, Max) Min ESS/s (s.d.)
+  aGrad-z      5.5        0.005      (306.7, 430.9, 539.3)   55.48 (5.96)
+  aGrad-u      6.9        0.006      (345.8, 459.3, 584.8)   50.27 (4.02)
+   mGrad       5.8        0.011     (856.0, 1095.6, 1301.1) 147.67 (9.97)
+  pMALA       49.3      < 0.001        (8.4, 45.1, 155.5)    0.17 (0.07)
+    Ellipt    11.0                    (12.9, 50.3, 144.8)    1.18 (0.34)
+     pCN       6.6      < 0.001        (8.0, 35.4, 107.7)     1.21 (0.42)
+    pCNL      23.9      < 0.001        (8.7, 54.4, 208.6)    0.36 (0.13)
+
+
+
+
+1000-dimensional vector x we run all alternative sampling schemes for 104
+burn-in iterations (starting from a state vector x equal to zero) and then
+we collected 5 × 103 samples. For the third dataset where σ 2 = 0.01, pCN,
+pCNL, Ellipt, and pMALA converge more slowly and therefore we had
+to increase the number of burn-in iterations to 3 × 104 . Table 1 provide
+quantitative results such as effective sample size (ESS), running times and
+an overall efficiency score for the very challenging case where σ 2 = 0.01; the
+Supplement contains such results for the other two simulations. The overall
+efficiency, given by the last column of the Tables labelled as Min ESS/s, is
+described as the ratio between minimum ESS (among all dimensions of x)
+over running time. Regarding the performance of the three new samplers
+we can observe the following. Firstly, all samplers converge very fast in all
+cases and generate highly effective mixing chains with large effective sample
+sizes (ESS). The highest ESS is always achieved by mGrad, followed by
+aGrad-u and aGrad-z. However, if we also take into account computational
+time, the aGrad-z scheme becomes more competitive and it can outperform
+aGrad-u. Secondly, both speed of convergence and sampling performance
+remains stable as the informativeness of the likelihood increases. This is
+achieved through learning the step size δ which adapts to the noise of the
+likelihood - see the argumentation in Section 3.4. Remarkably, in all cases
+for mGrad δ tends to be slightly larger than σ 2 , while for aGrad-u and
+aGrad-z δ is smaller (about a half) than σ 2 . Regarding the other methods,
+their performance (see Min ESS/s) is at least one order of magnitude worse
+than aGrad-z. Notice the step size δ learned pCN, pCNL and pMALA is
+not within the same range of the noise variance σ 2 , but instead it is much
+smaller - it is actually about σ 2 /γmax where γmax is the largest eigenvalue
+of C, as predicted by the arguments in Section 3.4.
+
+                                      16
+5.2. Log-Gaussian Cox Process
+We consider a log-Gaussian Cox model and apply the sampling schemes
+to the same model and dataset used in [11]. We also consider a down-
+sampled version of this dataset in order to investigate how the methods
+behave under mesh refinement. More precisely, we assume that an area of
+interest [0, 1]2 is discretized into a 64 × 64 regular grid, and each latent
+variable xij is associated with the grid cell (i, j), i, j, = 1, . . . , 64. The
+dimension of x is n = 4096. We assume that a data vector of counts
+is generated independently given a latent intensity process λ(·) so that
+each yij is Poisson distributed with mean λij = m exp(xij + v), where
+m = 1/4096 is the area of the grid cell and v is a constant mean value.
+The 4096-dimensional latent vector x is drawn from a Gaussian process
+with zero-mean and covariance function
+
+          k((i, j), (i0 , j 0 )) = σx2 exp(− (i − i0 )2 + (j − j 0 )2 /64β) .
+                                            p
+
+
+The likelihood is Poisson form, hence
+                          64
+                          X
+                f (x) =         (yij (xij + v) − m exp(xij + v)) .
+                          i,j
+
+We used the dataset from [11] that was simulated by the above model by
+setting the hyperparameters to β = 1/33, σx2 = 1.91 and v = log(126) −
+σx2 /2. The objective was to infer the latent vector x while keeping the
+hyperparameters (β, σ 2 , v) fixed to their ground truth values. Following
+the experimental protocol in [11] we run the algorithms for 2000 burn-in
+iterations and then we collected 5000 posterior samples. Furthermore, for
+this experiment we also included in the comparison the two main algorithms
+in [11] namely the manifold MALA (mMALA) and the Riemann Manifold
+Hamiltonian Monte Carlo (RMHMC) by using the software provided by
+the authors. Table 2 provides quantitative scores (see the Supplement to
+this article for some trace plots). We can observe that the new samplers
+have significantly better performance than all competitors but RMHMC.
+The latter has slightly less Min ESS/s than mGrad. However, notice that
+for this log-Gaussian Cox model, and due to the analytic properties of the
+log-likelihood, RMHMC and mMALA use a constant metric tensor (i.e.
+the preconditioning matrix Σ) that does not depend on x [11]. This is an
+ideal scenario for RMHMC and mMALA which allows the computational
+cost to be O(n2 ), i.e. the same cost as for all other methods in Table 2.
+For more complex models the metric tensor will depend on x, which makes
+RMHMC and mMALA extremely slow due to the O(n3 ) computational
+
+                                         17
+ Table 2. Comparison of sampling methods in the log-Gaussian Cox model
+ dataset in the original version where n = 4096. All numbers are averages
+ across ten repeats where also one-standard deviation is given for the Min
+ ESS/s score.
+   Method     Time(s) Step δ      ESS (Min, Med, Max) Min ESS/s (s.d.)
+  aGrad-z        89.6    0.962      (36.1, 181.2, 507.5)   0.40 (0.10)
+  aGrad-u       134.6    2.814     (95.8, 469.3, 1092.4)   0.71 (0.14)
+   mGrad        132.0    5.887    (177.8, 801.1, 1628.6)   1.35 (0.15)
+  pMALA         218.7    0.006        (3.5, 12.9, 59.3)    0.02 (0.00)
+   Ellipt       51.5                  (4.2, 17.0, 66.0)    0.08 (0.01)
+    pCN          47.4    0.012        (3.3, 12.0, 57.6)    0.07 (0.00)
+   pCNL          87.7    0.006        (3.4, 12.6, 60.2)    0.04 (0.00)
+  mMALA        334.1     0.070       (21.4, 84.7, 179.4)   0.06 (0.02)
+   RHMC        1493.7    0.100 (1825.7, 4452.2, 5000.0)    1.22 (0.09)
+
+
+cost per sampling iteration. As in the previous experiment in terms of
+ESS mGrad is best followed by aGrad-u and then aGrad-z, although in
+terms of ESS per unit of time the fastest aGrad-z scheme gets closer to
+aGrad-u. Also, notice again the striking pattern of the learned step sizes
+for the new samplers (third column in Table 2) that positively correlate
+with ESS. In the Supplement we show an experiment with down-sampled
+sparser 32 × 32 grid; results show that δ in the proposed gradient samplers
+is found to be 4 times smaller than on the finer grid, reflecting the larger
+information of the data per latent variable in the sparser dataset. The
+sampling efficiency of the proposed algorithms remains unchanged under
+mesh coarseness, only computing times decrease.
+
+
+5.3. Binary Gaussian process classification
+In this section we consider binary Gaussian process classification where
+given a set of training examples {yi , si }ni=1 we assume a logistic regression
+likelihood such that
+                       n
+                       X
+             f (x) =         yi log σ(xi ) + (1 − yi ) log(1 − σ(xi )),   (10)
+                       i=1
+
+where σ(x) = 1/(1 + exp(−x)) is the logistic function. Here, the vector
+x has been drawn from a Gaussian process prior x ∼ N (x|0, C) with the
+covariance matrix defined by the squared exponential covariance function
+c(si , sj ) = σx2 exp{− 2`12 ||si − sj ||2 }.
+   We considered five standard binary classification datasets with a number
+of examples ranging from n = 250 to n = 1000. In this section we show
+
+                                          18
+  Table 3. Comparison of sampling methods in Heart dataset. The size of the
+  latent vector x is n = 270 and the input dimensionality is D = 13. All numbers
+  are averages across ten repeats where also one-standard deviation is given
+  for the Min ESS/s score.
+    Method Time(s) Step δ ESS (Min, Med, Max) Min ESS/s (s.d.)
+    aGrad-z       1.7      1.440     (60.0, 207.2, 419.9)      35.29 (11.28)
+    aGrad-u       1.9      2.378     (89.1, 327.2, 641.9)      48.20 (16.82)
+     mGrad        1.6      5.043    (188.9, 593.2, 1096.6)     115.39 (8.98)
+    pMALA         2.1      0.049      (21.6, 68.7, 151.3)       10.36 (1.74)
+     Ellipt       2.5                 (12.9, 43.9, 101.5)       5.17 (0.89)
+      pCN         1.0      0.041       (6.9, 28.6, 83.6)        6.96 (1.18)
+     pCNL         1.5      0.048      (22.2, 69.0, 149.1)       14.82 (2.57)
+
+
+results for the “Heart” dataset for which the latent dimension is n = 270
+and the input dimensionality is D = 13; see Table 3. In the Supplement
+we show results for the other four (and some trace plots for the “Heart”
+dataset), which qualitatively communicate the same information as those
+included here. We shall follow our experimental protocol used so far to
+compare the sampling methods purely on their ability to sample x. Thus,
+we set the covariance function hyperparameters (σx2 , `2 ) to fixed values
+chosen to be a representative posterior sample obtained after a long run
+of aGrad-z that carried out full Bayesian inference (see Section 4). All
+sampling methods run for 5000 burn-in iterations and subsequently 5000
+posterior samples were collected.
+   The observations we made in all previous experiments hold for the
+current results as well. For instance, the new samplers remain much
+superior than the competitors. However, notice that the improvement over
+the competitors can be smaller in binary classification compared to the
+previous model classes. This is because the logistic regression likelihood
+function can be much less informative about the latent x compared to
+standard or Poisson regression.
+
+
+5.4. Sampling hyperparameters for binary and multi-class Gaussian
+      process classification
+Here, we wish to infer both hyperparameters of the covariance matrix C
+and the state vector x. We show results for a very challenging problem in
+multi-class classification involving the popular handwritten recognition task
+of MNIST digits. A Supplement to this article includes an experiment with
+binary classification. For all the examples we use a squared exponential
+kernel function c(si , sj ) = σx2 exp{− 2`12 ||si − sj ||2 } and we represent the
+
+                                       19
+hyperparameters in the log space so that θ = (log σx , log `). A flat Gaussian
+prior is assigned to θ. We run only a subset of methods compared in
+the previous sections. Specifically, as a representative of the proposed
+methods we will consider aGrad-z for which we have developed the novel
+move for jointly sampling the latent field x and the hyperparameters θ;
+see in Section 4. We shall consider two versions of aGrad-z: the first
+based on the standard Gibbs approach (aGrad-z-gibbs) that alternates
+between sampling the latent field and the hyperparameters and the second
+one based on the novel joint sampling move (aGrad-z-joint). We also
+consider pCNL, which is typically the best algorithm among the related
+pCN and pMALA schemes, and Ellipt which is widely used in the machine
+learning community. Both pCNL and Ellipt are used to sample the latent
+field x within a Gibbs procedure and to clarify this next we denote them
+as pCNL-gibbs and Ellipt-gibbs. For all methods the proposal for the
+hyperparameters was chosen to be a Gaussian
+
+                            q(θ 0 |θ) = N (θ 0 |θ, κI),
+
+where the step size κ was tuned to achieve acceptance rate in the range
+20% to 30%. In is important to notice that the only difference between
+aGrad-z-gibbs, pCNL-gibbs and Ellipt-gibbs is how the latent field is
+sampled, while the step for sampling the hyperparameters is common to
+all of them. Also notice that a single iteration for aGrad-z-joint consists of
+two steps: the first for sampling x alone and the second for joint sampling
+(x, θ). These two steps are necessary at least for the burn-in phase since
+the acceptance histories of the first step allow to tune δ while the ones
+from the second step allow to tune κ.
+    In multi-class classification we assume observed pairs {yi , si }ni=1 where
+yi ∈ {1, . . . , K} denotes the class label and K is the number of classes.
+For each k-th class we assume a separate latent field drawn independently
+from a Gaussian process so that xk ∼ N (xk |0, Cθk ) where θ k denotes the
+kernel hyperparameters. The probability of an observed yi , given its input
+vector si , is modelled through the multinomial logistic function (most
+commonly known as softmax), i.e. p(yi |xi ) = exp{xyi i }/ K
+                                                                 P
+                                                                   k=1 exp{xki },
+which results in a log-likelihood function having the form
+                                        n             K
+                                                                 !
+                                        X             X
+                 f (x1 , . . . , xK ) =   xyi i − log   exp{xki } .        (11)
+                                 i=1               k=1
+
+Notice that each i-th log-likelihood term couples together K latent values
+associated with the different classes. This adds strong correlations across
+
+                                        20
+                        0
+
+
+
+
+   Log−likelihood
+                    −500
+
+                    −1000
+
+                    −1500
+
+                    −2000
+                            0   1   2   3   4          5             6   7   8   9      10
+                                                Sampling iteration                          4
+                                                                                     x 10
+
+
+
+Fig. 2. The evolution of the log-likelihood values across all iterations in MNIST
+dataset for the sampling schemes aGrad-z-gibbs (black line), aGrad-z-joint (red
+line), Ellipt-gibbs (blue line) and pCNL-gibbs (green line).
+
+
+
+
+the a priori independent latent fields, which makes posterior inference very
+challenging. The inference problem involves learning all latent vectors
+(x1 , . . . , xK ) and the kernel hyperparameters (θ 1 , . . . , θ K ).
+
+    We consider a subset of n = 1000 instances from the MNIST dataset
+which contains K = 10 classes associated with hand-written digits rep-
+resented as D = 784 inputs vectors. Thus, each latent vector xk is
+1000-dimensional and the overall latent field consists of K × n = 104
+latent values. We also need to infer 20 kernel hyperparameters, i.e. a
+lengthscale `2k and a variance σxk    2 for each class. All sampling algorithms
+
+were applied so that the full latent field is sampled in a single step, i.e.
+all latent (x1 , . . . , xK ) are concatenated into a single vector that follows a
+104 -dimensional and block-diagonal Gaussian prior. We run all algorithms
+for 105 iterations by initializing them to exactly the same configuration, i.e.
+to a zero vector for the full latent field and sensible kernel hyperparameters
+based on the inputs vectors. All runs were very time-consuming as, for
+instance, the fastest Ellipt-gibbs completes the 105 iterations in roughly
+20 hours while aGrad-z-joint requires around 40 hours. Figure 2 plots the
+log-likelihoods across all sampling iterations. Clearly, aGrad-z-joint and
+aGrad-z-gibbs exhibit fast convergence with aGrad-z-joint being slightly
+faster. In contrast, Ellipt-gibbs and pCNL-gibbs face severe difficulties to
+converge to the posterior mode found by aGrad-z schemes. For instance,
+the latter algorithms progress very slowly and they are unable to rapidly
+increase the log-likelihood. Recall that the only difference between aGrad-
+z-gibbs, pCNL-gibbs and Ellipt-gibbs is how the latent field is sampled,
+therefore the slow convergence of Ellipt-gibbs and pCNL-gibbs should be
+due to their ineffective mechanism for sampling the latent field.
+
+                                                  21
+6.   Discussion
+
+We have shown how to turn simple random walk proposals into gradient-
+based samplers by the use of auxiliary variables and Taylor approximations.
+From a methodological side, we provide a framework for producing new
+algorithms that yields as special cases the standard gradient-based samplers
+MALA and pCNL. However, the algorithms that we promote in the article
+and empirically are shown to have a far superior performance are different
+instances of the generic framework. Our work generates several topics that
+call for further research. Here we highlight the following four. One is the
+scaling of the proposed algorithms. A great asset of the new samplers
+is that they only require the tuning of a single scalar step size, denoted
+as δ in the article; we have empirically found that setting it to achieve
+about 50% to 60% acceptance rate leads to good mixing across a wide
+range of examples (see Supplement for a plot that empirically illustrates
+that this range of acceptance rates maximizes ESS), and have shown (in
+the Supplement) how to adaptively do the tuning without affecting the
+complexity of the algorithm. Actually, the arguments in Section 3.4 suggest
+taking δ as 1/λ, where λ is a measure of precision in the likelihood. It
+would be really interesting to formalise these arguments and even in the
+context of Gaussian targets obtain an optimal scaling theory in terms
+of squared jumping distance. The existing results of [23] are relevant
+but not directly applicable. A second is the theoretical investigation of
+the relative efficiency among the auxiliary and the marginal samplers
+as n or other parameters of the target vary. We have rigorously shown
+that the asymptotic variance of ergodic averages computed with auxiliary
+samplers is larger than that for the marginal sampler. We have empirically
+observed that the efficiency of the aGrad-u is better than that of aGrad-
+z, hence conforming to the intuition that larger computational cost is
+associated with better Monte Carlo efficiency. We have also observed
+empirically that the relative performance among the samplers does not
+change drastically as n or other parameters vary. It is interesting to obtain
+solid theoretical results on these comparisons. Thirdly, in this article the
+dimension of the auxiliary variables, u or z, matched that of the state
+vector x. This however does not need to be so. Both the theory on the
+comparison between marginal and auxiliary samplers, but also the generic
+methodology as described in Section 2, work also when dimensions of
+the auxiliary variable and x are different. We anticipate that even more
+challenging learning problems than those considered in this paper can
+benefit from this flexibility. Finally, the well developed Markov chain
+theory for the convergence of the two-component Gibbs sampler can be
+
+                                     22
+used to try and characterise the properties of the idealised Gibbs sampling
+algorithm that can sample exactly π(x|u). Questions regarding the choice
+of step size δ, the preconditioner Σ or the augmentation of u or z, could
+be answered by obtaining characterisations of the convergence rate of the
+idealised algorithm.
+
+Acknowledgements
+We would like to thank both referees for helpful feedback.
+
+References
+ [1] Christophe Andrieu and Matti Vihola. Convergence properties of
+     pseudo-marginal Markov chain Monte Carlo algorithms. Ann. Appl.
+     Probab., 25(2):1030–1077, 2015.
+ [2] M.R. Bass and S.K. Sahu. Effcient parameterisations of Gaus-
+     sian process based models for Bayesian computation using MCMC.
+     http://www.southampton.ac.uk/∼sks/research/papers/final_cpvsncp.pdf,
+     2016.
+ [3] Alexandros Beskos, Gareth Roberts, Andrew Stuart, and Jochen Voss.
+     MCMC methods for diffusion bridges. Stoch. Dyn., 8(3):319–350,
+     2008.
+ [4] S. L. Cotter, G. O. Roberts, A. M. Stuart, and D. White. MCMC
+     methods for functions: modifying old algorithms to make them faster.
+     Statistical Science, 28(3):424–446, 2013.
+ [5] Tiangang Cui, Kody J. H. Law, and Youssef M. Marzouk. Dimension-
+     independent likelihood-informed MCMC. J. Comput. Phys., 304:109–
+     137, 2016.
+ [6] Arnak Dalalyan. Theoretical guarantees for approximate sampling
+     from a smooth and log-concave density. Journal of the Royal Statistical
+     Society. Series B. Statistical Methodology, 3:651–676, 2017.
+ [7] Alexander Davies. Effective implementation of Gaussian process re-
+     gression for machine learning. PhD thesis, Cambridge, 2015.
+ [8] Alain Durmus and Eric Moulines.        Non-asymptotic con-
+     vergence analysis for the unadjusted Langevin algorithm.
+     http://arxiv.org/abs/1507.05021, 2016.
+
+                                    23
+ [9] Maurizio Filippone, Mingjun Zhong, and Mark Girolami. A compar-
+     ative evaluation of stochastic-based inference methods for Gaussian
+     process models. Machine Learning, 93(1):93–114, 2013.
+[10] Charles J Geyer. Practical markov chain monte carlo. Statistical
+     Science, pages 473–483, 1992.
+[11] Mark Girolami and Ben Calderhead. Riemann manifold Langevin and
+     Hamiltonian Monte Carlo methods. Journal of the Royal Statistical
+     Society: Series B (Statistical Methodology), 73(2):123–214, 2011.
+[12] James Hensman, Alexander Matthews, Maurizio Filippone, and
+     Zoubin Ghahramani. MCMC for variationally sparse Gaussian pro-
+     cesses. NIPS, 2015.
+[13] L. Knorr-Held and H. Rue. On Block Updating in Markov Random
+     Field Models for Disease Mapping. Scandinavian Journal of Statistics,
+     29(4):597–614, December 2002.
+[14] K. J. H. Law. Proposals which speed up function-space MCMC. J.
+     Comput. Appl. Math., 262:127–138, 2014.
+[15] Fabrizio Leisen and Antonietta Mira. An extension of Peskun and
+     Tierney orderings to continuous time Markov chains. Statist. Sinica,
+     18(4):1641–1651, 2008.
+[16] Iain Murray and Ryan Prescott Adams. Slice sampling covariance
+     hyperparameters of latent Gaussian models. In J. Lafferty, C. K. I.
+     Williams, R. Zemel, J. Shawe-Taylor, and A. Culotta, editors, Ad-
+     vances in Neural Information Processing Systems 23, pages 1723–1731.
+     2010.
+[17] Iain Murray, Ryan Prescott Adams, and David J.C. MacKay. Elliptical
+     slice sampling. JMLR: W&CP, 9:541–548, 2010.
+[18] Radford M. Neal. Regression and classification using Gaussian process
+     priors. In Bayesian statistics, 6 (Alcoceber, 1998), pages 475–501.
+     Oxford Univ. Press, New York, 1999.
+[19] Omiros Papaspiliopoulos, Gareth O. Roberts, and Martin Sköld. Non-
+     centered parameterizations for hierarchical models and data augmen-
+     tation. In Bayesian statistics, 7 (Tenerife, 2002), pages 307–326.
+     Oxford Univ. Press, New York, 2003. With a discussion by Alan E.
+     Gelfand, Ole F. Christensen and Darren J. Wilkinson, and a reply by
+     the authors.
+
+                                   24
+[20] P. H. Peskun. Optimum Monte-Carlo sampling using Markov chains.
+     Biometrika, 60:607–612, 1973.
+[21] Gareth O. Roberts and Jeffrey S. Rosenthal. Optimal scaling for
+     various Metropolis-Hastings algorithms. Statist. Sci., 16(4):351–367,
+     2001.
+[22] Gareth O. Roberts and Richard L. Tweedie. Exponential convergence
+     of Langevin distributions and their discrete approximations. Bernoulli,
+     2(4):341–363, 1996.
+[23] Chris Sherlock and Gareth Roberts. Optimal scaling of the random
+     walk Metropolis on elliptically symmetric unimodal targets. Bernoulli,
+     15(3):774–798, 2009.
+[24] Geir Storvik. On the flexibility of Metropolis-Hastings acceptance
+     probabilities in auxiliary variable proposal generation. Scand. J. Stat.,
+     38(2):342–358, 2011.
+[25] Yee Whye Teh and Max Welling. Bayesian learning via stochastic
+     gradient Langevin dynamics. In nternational Conference on Machine
+     Learning, pages 1723–1731. 2011.
+[26] Luke Tierney. A note on Metropolis-Hastings kernels for general state
+     spaces. Ann. Appl. Probab., 8(1):1–9, 1998.
+[27] Michalis K. Titsias. Contribution to the discussion of the paper by
+     Girolami and Calderhead. Journal of the Royal Statistical Society:
+     Series B (Statistical Methodology), 73(2):197–199, 2011.
+[28] Yichuan Zhang and Charles A. Sutton. Quasi-newton methods for
+     markov chain monte carlo. In Advances in Neural Information Pro-
+     cessing Systems 24: 25th Annual Conference on Neural Information
+     Processing Systems 2011. Proceedings of a meeting held 12-14 Decem-
+     ber 2011, Granada, Spain., pages 2393–2401, 2011.
+
+
+Appendix/Supplementary material
+Reversibility properties of the marginal sampler
+We start with proving Lemma 1 in the main paper.
+Lemma 2. (a) Suppose that F is symmetric and commutes with C. Then,
+   the transition density N (y|Fx, (I − F2 )C) is reversible with respect
+   to N (x|0, C).
+
+                                     25
+ (b) Suppose that C is invertible with C = Γ2 and F is symmetric. Then
+     the transition density N (y|ΓFΓ−1 x, Γ(I − F2 )Γ) is reversible with
+     respect to N (x|0, C).
+Proof. (a): We need to show that the joint law defined by the prior
+N (dx|0, C) and the kernel N (dy|Fx, (I − F2 )C), say Q(dx, dy) is sym-
+metric, in the sense that Q(dx, dy) = Q(dy, dx). With the kernel defined,
+the joint law defined is jointly Gaussian with mean 0 and covariance
+                        C CFT
+                                                 
+                                           C CF
+                                     =
+                       FC       C          CF C
+where the equality is due to the assumed symmetry and comutability of F.
+This Gaussian law is symmetric.
+(b) Result (a) implies that N (dz; Fu, I − F2 ) is reversible with respect to
+N (du; 0, I) when F is symmetric; let π̃ and q̃ denote the target and transi-
+tion density of these standardized variables. Consider the transformation
+x = Γu, y = Γz, which is invertible by assumption. Then,
+  π(x)q(y|x) = |Γ|−2 π(Γ−1 u)q(Γ−1 z|Γ−1 u) = π̃(u)q̃(z|u) = π̃(z)q̃(u|z)
+             = π(y)q(x|y),
+where first and last equalities follow from change of variables and the
+middle one by the established reversibility of the standardized process.
+   We now show that the marginal sampler proposal is reversible with
+respect to the prior when ∇f = 0. Recall that the marginal sampler
+proposal in that case becomes
+                                                              
+                   δ      −1  δ δ       −1      δ       −1
+  q(y|x) = N y|( I + C) Cx, ( I + C) (I + ( I + C) C)C ,
+                   2          2 2               2
+by using the alternative expression for A in Equation (4) of the main
+article, and after collecting terms. We then work as follows, using Schur’s
+complement:
+                   −1                         −1
+             δ                      1/2 δ
+       I−      I+C        C=I−C             I+C      C1/2
+             2                            2
+                                               −1             −1
+                                      1/2 2 1/2       δ δ
+                            = I+C           C       =      I+C
+                                          δ           2 2
+therefore the variance of the transition density can be written as
+                 (             −2 )
+                         δ
+                   I−      I+C       C2 C = (I − F2 )C,
+                         2
+
+                                     26
+                                          δ
+                                                −1
+for F the autoregressive matrix, F =      2I + C    C.
+
+
+Second order schemes
+
+Our framework can be easily extended to a second-order Taylor expansion of
+f (x). For instance the auxiliary sampler based on u and the corresponding
+marginal sampler are obtained as follows:
+                                                             
+                              2         δ
+          q(y|u, x) ∝ N y| Ax u − (∇f (x) − Hx x) , Ax
+                              δ         2
+                                                        
+                         2      δ                 2
+      q(y|x) = N       y| Ax x − (∇f (x) − Hx x) , A2x + Ax ,
+                         δ      2                 δ
+
+where Hx = ∇∇f (x), and Ax = ((2/δ)I + C−1 − Hx )−1 . It is straightfor-
+ward to show that this defines a Gaussian autoregression that is reversible
+with respect to π(x) when f is a quadratic function, since the second-order
+expansion is now exact. We do not pursue further the construction of
+second-order schemes since they are computationally prohibitive in high
+dimensions due to the need for matrix decompositions at each iteration.
+For such cases, approximations to the Hessian would be needed as those
+discussed in [28].
+
+
+Experiments
+
+In all the experiments the ESS has been estimated as proposed in [10] and
+implemented in the code provided by the authors of [11].
+
+
+Additional experiments with Gaussian process regression
+The three regression datasets along with graphical summaries of MCMC
+output are plotted in Figure 3. Also in the main article we provide
+ESS summaries for the experiment with σ 2 = 0.01. Here we provide for
+simulations with σ 2 = 1 and σ 2 = 0.1, see Table 4 and Table 5 respectively.
+   Also, Figure 4 provides an empirical investigation of the optimal ac-
+ceptance rate for the three proposed algorithms using these regression
+datasets. This and similar investigations suggest that tuning the step size
+δ so that to achieve an acceptance rate around 50% to 60%, as done in all
+our experiments, is effective.
+
+                                     27
+                    5                                                3                                              3
+
+                                                                     2                                              2
+
+                                                                     1                                              1
+
+
+   Response
+                    0                                                0                                              0
+
+                                                                    −1                                             −1
+
+                                                                    −2                                             −2
+
+                   −5                                               −3                                             −3
+                     0      1            2             3        4     0     1            2             3      4      0    1             2          3      4
+                                       Input                                           Input                                          Input
+
+                                    aGrad−z                                         aGrad−z                                       aGrad−z
+                   −1400                                            −240                                           900
+
+                                                                    −260                                           880
+
+
+
+
+  Log−likelihood
+                   −1450                                            −280
+                                                                                                                   860
+                                                                    −300
+                                                                                                                   840
+                   −1500                                            −320
+
+                                                                    −340                                           820
+
+                   −1550                                            −360                                           800
+                        0       5000           10000        15000       0       5000           10000       15000      0       5000        10000        15000
+                                    aGrad−u                                         aGrad−u                                       aGrad−u
+                   −1400                                            −240                                           900
+
+                                                                    −260                                           880
+
+
+
+
+  Log−likelihood
+                   −1450                                            −280
+                                                                                                                   860
+                                                                    −300
+                                                                                                                   840
+                   −1500                                            −320
+
+                                                                    −340                                           820
+
+                   −1550                                            −360                                           800
+                        0       5000           10000        15000       0       5000           10000       15000      0       5000        10000        15000
+                                     mGrad                                             mGrad                                         mGrad
+                   −1400                                            −240                                           900
+
+                                                                    −260                                           880
+
+
+
+
+  Log−likelihood
+                   −1450                                            −280
+                                                                                                                   860
+                                                                    −300
+                                                                                                                   840
+                   −1500                                            −320
+
+                                                                    −340                                           820
+
+                   −1550                                            −360                                           800
+                        0       5000           10000        15000       0       5000           10000       15000      0       5000        10000        15000
+                   −1400                                            −240                                           900
+
+                                                                    −260                                           880
+
+
+
+
+  Log−likelihood
+                   −1450                                            −280
+                                                                                                                   860
+                                                                    −300
+                                                                                                                   840
+                   −1500                                   Ellipt   −320
+                                                           pCN
+                                                                    −340                                           820
+                                                           pCNL
+                                                           pMALA
+                   −1550                                            −360                                           800
+                        0       5000        10000           15000       0       5000        10000          15000      0       5000        10000        15000
+                                Sampling iteration                              Sampling iteration                            Sampling iteration
+
+
+
+Fig. 3. First row shows the three datasets of varying observation noise. The
+next rows show the evolution of f (x) across iterations for all algorithms. Notice
+that in the plot at last row and column the log-likelihood values are shown for
+the first 15000 iterations, while the algorithms were actually run longer to reach
+convergence (see main text).
+                                                                                       28
+      1400
+
+
+
+
+      1200
+
+
+
+
+      1000
+
+
+
+
+       800
+
+
+
+
+       600
+
+
+
+
+       400
+
+
+
+
+       200
+
+
+
+
+        0
+         10     20      30      40      50     60      70      80     90
+
+
+Fig. 4. Effective sample size (ESS) shown in the vertical axis versus acceptance
+rate shown in the horizontal axis for the three proposed algorithms (aGrad-z is
+shown in red, aGrad-u with green and mGrad with blue). To produce this plot
+we have repeatedly tuned all algorithms to achieve acceptance rates in a grid of
+values between 10% and 90%. Then, each time we estimated the ESS based
+on the first component of the latent vector x. All lines are averages across all
+three regression datasets and from ten simulation repeats associated with ten
+different random seeds.
+
+
+
+
+                                      29
+                                aGrad−z                           aGrad−u                             mGrad
+                  2250                              2250                                2250
+
+
+
+
+ Log−likelihood
+                  2200                              2200                                2200
+
+
+
+
+                  2150                              2150                                2150
+                         2000      4000     6000           2000        4000      6000          2000      4000        6000
+                                pMALA                              Ellipt                              pCN
+                  2250                              2250                                2250
+
+
+
+
+ Log−likelihood
+                  2200                              2200                                2200
+
+
+
+
+                  2150                              2150                                2150
+                         2000      4000     6000           2000        4000      6000          2000      4000        6000
+                                 pCNL                             mMALA                               RHMC
+                  2250                              2250                                2250
+
+
+
+
+ Log−likelihood
+                  2200                              2200                                2200
+
+
+
+
+                  2150                              2150                                2150
+                         2000     4000       6000          2000     4000         6000          2000     4000         6000
+                          Sampling iteration                Sampling iteration                  Sampling iteration
+
+
+
+
+Fig. 5. The evolution of the log-likelihood values across all iterations for all
+sampling schemes in the log-Gaussian Cox process example.
+
+
+
+
+                                                                  30
+ Table 4. Comparison of sampling methods in the regression dataset with
+ σ 2 = 1.
+   Method Time(s) Step δ ESS (Min, Med, Max) Min ESS/s (s.d.)
+  aGrad-z     5.5    0.589    (391.7, 517.8, 629.0)    71.05 (6.41)
+  aGrad-u     6.8    0.673    (456.0, 575.2, 696.9)    66.66 (6.28)
+   mGrad      6.0    1.337 (987.4, 1287.5, 1498.4)    167.68 (26.83)
+  pMALA      21.1    0.008      (21.0, 99.1, 274.3)     1.00 (0.28)
+    Ellipt   4.1                (16.7, 66.6, 149.7)     4.03 (1.35)
+     pCN      2.7    0.006      (14.3, 52.3, 130.1)     5.21 (2.40)
+    pCNL     10.5    0.010     (31.9, 125.5, 294.5)     3.03 (0.94)
+
+ Table 5. Comparison of sampling methods in the regression dataset with
+ σ 2 = 0.1.
+   Method Time(s) Step δ ESS (Min, Med, Max) Min ESS/s (s.d.)
+  aGrad-z     5.5    0.053    (326.4, 459.9, 575.4)    59.05 (7.92)
+  aGrad-u     6.8    0.060    (360.4, 500.8, 620.1)    52.78 (6.57)
+   mGrad      5.8    0.121 (973.6, 1196.1, 1408.1)    168.11 (10.69)
+  pMALA      21.2    0.001     (12.7, 58.1, 164.4)      0.60 (0.26)
+    Ellipt   4.3                (9.9, 42.4, 138.6)      2.33 (0.81)
+     pCN      2.7    0.001      (8.7, 37.5, 108.5)      3.19 (1.25)
+    pCNL     10.4    0.001     (12.7, 57.4, 208.5)      1.21 (0.59)
+
+
+Additional experiments for log-Gaussian Cox process
+For the original dataset where x has dimensionality n = 4096, i.e. the
+dataset used in the main article, Figure 5 plots the evolution of the log-
+likelihood f (x) that illustrates convergence and sampling efficiency for all
+compared algorithms.
+    Furthermore, in order to investigate how the dimensionality of x affects
+performance, we down-sampled the initial dataset by making the mesh grid
+sparser so that it became of size 32 × 32. This was done by merging every
+four neighbouring cells into one (so that the area of a new cell becomes
+m = 1/1024) while the observed counts assigned to the initial cells are
+summed up to form the observed count in the larger cell. This creates a
+down-sampled dataset where the latent field x has dimensionality n = 1024,
+i.e. four times smaller than the initial dimensionality. Notice that this
+procedure should keep the likelihood information essentially the same, but
+we should expect now each likelihood term to become (on average) four
+times more informative about the value of its latent value xij . We re-run
+all sampling methods in this down-sampled dataset and Table 6 reports the
+results. We can observe that the ESS scores remain at the same levels as
+for the finer grid dataset, while Min ESS/s gets obviously larger due to the
+
+                                     31
+ Table 6. Comparison of sampling methods in the log-Gaussian Cox model
+ dataset in the down-sampled version where n = 1024.
+   Method     Time(s) Step δ    ESS (Min, Med, Max) Min ESS/s (s.d.)
+  aGrad-z        3.5    0.264      (41.0, 202.8, 512.4) 11.76 (1.95)
+  aGrad-u        4.5    0.691     (93.3, 444.2, 1038.7) 21.06 (5.11)
+   mGrad         3.8    1.410    (170.9, 771.1, 1582.7) 46.78 (16.42)
+  pMALA         12.3    0.006        (3.6, 12.6, 53.8)   0.29 (0.02)
+   Ellipt        3.6                 (4.7, 17.4, 63.5)   1.32 (0.19)
+    pCN          2.0    0.011        (3.5, 11.7, 50.8)   1.78 (0.32)
+   pCNL          6.0    0.006        (3.6, 12.7, 51.3)   0.59 (0.03)
+  mMALA         17.7    0.070       (22.1, 90.5, 185.5)  1.25 (0.33)
+   RHMC         77.9    0.100 (1747.2, 4601.9, 5000.0)  22.52 (1.94)
+
+
+ Table 7. Comparison of sampling methods in Australian Credit dataset. The
+ size of the latent vector x is n = 690 and the input dimensionality is D = 14.
+   Method Time(s) Step δ ESS (Min, Med, Max) Min ESS/s (s.d.)
+  aGrad-z        3.0      1.520      (47.0, 153.6, 424.7)     15.50 (4.64)
+  aGrad-u        3.5      2.649      (96.1, 263.2, 647.3)     27.60 (3.89)
+   mGrad         3.0      5.300    (198.2, 504.2, 1191.0)    66.07 (10.03)
+  pMALA          7.0      0.009        (5.1, 21.2, 89.5)      0.73 (0.09)
+    Ellipt       4.3                   (6.3, 24.8, 94.7)       1.47 (0.19)
+     pCN         1.7      0.013        (4.2, 17.6, 75.4)       2.56 (0.23)
+    pCNL         2.6      0.009        (5.3, 22.1, 88.8)      2.03 (0.30)
+
+
+
+smaller running times. A notable feature in Table 6 is that now the step
+sizes δ found by aGrad-z, aGrad-u and mGrad become approximately four
+times smaller than the ones for the finer dataset. This shows that the step
+sizes are mostly determined by the noise in the likelihood terms, so that
+in the down-sampled dataset the noise is reduced due to the aggregation
+of data from the neighbouring cells.
+
+
+
+
+Additional experiments with binary regression
+
+Figure 6 shows the evolution of the log-likelihood values for the “Heart”
+dataset, detailed results for which are shown in the main article. For the
+rest four datasets such plots look similar. The figure illustrates convergence
+and sampling efficiency. Tables 7, 10, 8, 9 show the performance of the
+different sampling schemes in the rest four binary classification datasets.
+
+                                      32
+Table 8. Comparison of sampling methods in German Credit dataset. The
+size of the latent vector x is n = 1000 and the input dimensionality is D = 24.
+  Method Time(s) Step δ ESS (Min, Med, Max) Min ESS/s (s.d.)
+ aGrad-z         4.4     0.681       (47.1, 161.3, 345.4)     10.74 (1.49)
+ aGrad-u         5.3     1.134       (78.0, 257.0, 518.2)     14.65 (2.66)
+  mGrad          4.5     2.689      (176.0, 528.0, 929.1)     38.73 (6.63)
+ pMALA          15.4     0.016         (6.4, 26.6, 91.6)      0.42 (0.06)
+   Ellipt       5.4                    (4.6, 19.8, 66.7)       0.85 (0.07)
+    pCN          2.6     0.013         (3.8, 14.6, 60.5)       1.48 (0.14)
+   pCNL          7.7     0.016         (6.2, 26.4, 92.1)      0.81 (0.11)
+
+
+
+
+Table 9. Comparison of sampling methods in Pima Indian dataset. The size
+of the latent vector x is n = 532 and the input dimensionality is D = 7.
+  Method Time(s) Step δ ESS (Min, Med, Max) Min ESS/s (s.d.)
+ aGrad-z        2.5       1.667    (96.6, 299.1, 735.5)      39.25 (9.70)
+ aGrad-u        2.9       2.943   (176.0, 529.8, 1072.6)     60.66 (6.49)
+  mGrad         2.4       6.134   (322.2, 947.8, 1594.5)    133.75 (13.25)
+ pMALA          3.6       0.053     (28.4, 93.0, 233.0)       7.93 (2.16)
+   Ellipt       3.2                 (19.2, 66.6, 175.4)       6.06 (1.28)
+    pCN         1.4       0.055     (12.2, 43.1, 128.7)       8.73 (1.16)
+   pCNL         2.1       0.056     (27.8, 93.0, 235.9)      13.35 (3.46)
+
+
+
+
+Table 10. Comparison of sampling methods in Ripley dataset. The size of
+the latent vector x is n = 250 and the input dimensionality is D = 2.
+  Method Time(s) Step δ ESS (Min, Med, Max) Min ESS/s (s.d.)
+ aGrad-z       1.3       3.589     (21.5, 125.5, 630.0)      16.58 (7.09)
+ aGrad-u       1.4       4.526     (28.8, 163.5, 805.3)       19.95 (8.43)
+  mGrad        1.2       9.014    (47.0, 289.4, 1730.3)      38.04 (11.87)
+ pMALA         1.5       0.017      (13.8, 58.2, 240.4)        8.94 (0.87)
+  Ellipt       1.9                  (11.2, 51.2, 206.9)       5.76 (1.63)
+   pCN         0.7       0.019       (7.3, 30.9, 140.6)      10.70 (3.51)
+  pCNL         1.1       0.017      (14.3, 56.1, 222.1)       13.09 (3.25)
+
+
+
+
+                                     33
+                                aGrad−z                                              aGrad−u                              mGrad
+                  −60                                          −60                                          −60
+
+                  −70                                          −70                                          −70
+
+
+
+
+ Log−likelihood
+                  −80                                          −80                                          −80
+
+                  −90                                          −90                                          −90
+
+                  −100                                −100                                                  −100
+
+                  −110                                −110                                                  −110
+
+                  −120                                −120                                                  −120
+                         3000       6000       9000                           3000       6000        9000          3000       6000       9000
+                                pMALA                                                  pCN                                pCNL
+                  −60                                                  −60                                  −60
+
+                  −70                                                  −70                                  −70
+
+
+
+
+ Log−likelihood                                       Log−likelihood
+                  −80                                                  −80                                  −80
+
+                  −90                                                  −90                                  −90
+
+                  −100                                                 −100                                 −100
+
+                  −110                                                 −110                                 −110
+
+                  −120                                                 −120                                 −120
+                         3000      6000        9000                            3000      6000        9000          3000       6000       9000
+                          Sampling iteration                                    Sampling iteration                  Sampling iteration
+
+
+
+
+Fig. 6. The evolution of the log-likelihood values across all iterations for the
+sampling schemes aGrad-z, aGrad-u, mGrad-z, pMALA, pCN and pCNL in the
+Heart dataset. The corresponding plot for Ellipt looks very similar to pCN and it
+is omitted.
+
+
+
+Additional experiments for hyperparameter learning
+
+In the first experiment we consider binary Gaussian process classification
+and we apply the alternative schemes to Pima Indian dataset. We run the
+algorithms for 4 × 104 burn-in iteration and then we collect 5 × 103 samples.
+Figure 7 shows the log-likelihoods across all 4.5 × 104 sampling iterations.
+We can observe that aGrad-z-joint is the best mixing with aGrad-z-gibbs
+coming second. The corresponding plots for Ellipt-gibbs and pCNL-gibbs
+exhibit less variation, and stabilize in slightly smaller log-likelihood values,
+with pCNL being the most problematic. Figure 8 shows boxplots for the
+inferred hyperparameters for the different methods. We observe that while
+aGrad-z-gibbs and aGrad-z-joint largely agree about the inferred values,
+Ellipt-gibbs and pCNL-gibbs have very narrow boxplots. Also pCNL-gibbs
+clearly has stuck to a posterior mode which is rather very different from
+the remaining algorithms. Finally, Table 11 shows performance scores
+for sampling the two hyperparameters which show the clear superiority
+of aGrad-z-joint. Notice that the learned step size κ is much larger for
+aGrad-z-joint than for the remaining schemes. Notice, however, that the
+ESS scores for Ellipt-gibbs and pCNL-gibbs should not be trusted since
+Figure 7 and Figure 8 suggest that these methods do not mix well.
+
+                                                                                 34
+                                                  aGrad−z−gibbs                                                                             aGrad−z−joint
+                   −200                                                                       −200
+
+                   −210                                                                       −210
+
+
+
+
+  Log−likelihood
+                   −220                                                                       −220
+
+                   −230                                                                       −230
+
+                   −240                                                                       −240
+
+                   −250                                                                       −250
+
+                   −260                                                                       −260
+                                             1           2             3         4                                                  1              2              3          4
+                                                                                     4                                                                                           4
+                                                                                 x 10                                                                                        x 10
+                                                    Ellipt−gibbs                                                                              pCNL−gibbs
+                   −200                                                                       −200
+
+                   −210                                                                       −210
+
+
+
+
+  Log−likelihood
+                   −220                                                                       −220
+
+                   −230                                                                       −230
+
+                   −240                                                                       −240
+
+                   −250                                                                       −250
+
+                   −260                                                                       −260
+                                             1        2        3                 4                                                  1         2         3                    4
+                                                 Sampling iteration              x 10
+                                                                                     4                                                   Sampling iteration                  x 10
+                                                                                                                                                                                 4
+
+
+
+
+Fig. 7. The evolution of the log-likelihood values across all iterations in Pima
+Indian.
+
+
+
+
+                                                                                                                7
+                         4
+                                                                                                                6
+
+
+
+          log−variance                                                                        log−lengthscale
+                         3                                                                                      5
+
+                         2                                                                                      4
+                                                                                                                3
+                         1
+                                                                                                                2
+                         0                                                                                      1
+                             aGrad−z−gibbs   aGrad−z−joint   Ellipt−gibbs   pCNL−gibbs                              aGrad−z−gibbs       aGrad−z−joint   Ellipt−gibbs   pCNL−gibbs
+
+
+
+
+                     Fig. 8. The inferred hyperparameters values in Pima Indian dataset.
+
+
+
+
+                                                                                         35
+      Table 11. Performance scores of the sampling methods in Pima
+      dataset for the kernel hyperparameters.
+          Method        Time(s) Step κ ESS (σx2 , `2 ) Min ESS/s
+       aGrad-z-gibbs      599.4    0.005    (5.1, 11.0)   0.01
+       aGrad-z-joint      692.6    0.179 (173.4, 232.5)   0.25
+        Ellipt-gibbs      426.8    0.006      (3.2, 5.7)  0.01
+        pCNL-gibbs        350.7    0.020    (4.4, 15.3)   0.01
+
+
+Efficient implementation of the algorithms
+
+Pilot tuning of step size
+All algorithms discussed in the main article require the choice of a single
+step size parameter δ in order to achieve an acceptance rate that leads to
+good mixing. In our experiments all algorithms that use gradient infor-
+mation are tuned to achieve an acceptance rate around 50%; asymptotic
+theory, e.g. in [21], supports this tuning for pMALA, this is the rate
+that pCNL is tuned to in experiments in [4] and rate that our experi-
+ments suggests to be advantageous for the new auxiliary and marginal
+samplers. On the other hand, pCN is tuned to achieve a rate around
+30% following the recommendation in [4]. A simple observation is that no
+matrix factorisations are needed during the tuning as we adapt δ, since all
+matrices involved in the algorithms, either when Σ = I or Σ = C, share
+the same eigenspace with C regardless of the value of δ, hence an offline
+spectral decomposition of the latter (e.g. using a QR-algorithm) can be
+easily updated at O(n) cost to produce all matrices necessary to carry out
+the algorithms. Additional details regarding the implementation of the
+algorithms is given in the next section.
+
+
+Efficient generation of proposal, computation of acceptance ratio and
+pseudocode for the proposed algorithms
+Here, we discuss how we can efficiently implement all algorithms based on
+a eigenvalue decomposition of the prior covariance matrix C. We provide
+full details for the proposed marginal sampler, while for all remaining
+schemes the implementation follows similar steps.
+    The marginal scheme has proposal
+                                                         
+                            2          δ         2 2
+              q(y|x) = N y| A x + ∇f (x) , A + A                     (12)
+                            δ          2         δ
+
+where A−1 = C−1 + 2δ I and the corresponding Metropolis-Hastings ratio
+
+                                    36
+is
+        exp{f (y) − f (x) + h(x, y) − h(y, x)},                         (13)
+                                         T         −1
+                        2        δ              2
+        h(x, y) = x − A(y + ∇f (y))               A+I     ∇f (y)
+                        δ        4              δ
+To provide an efficient implementation we will be based on a precomputed
+decomposition of C = UΛUT . Based on this A can be written as
+                               A = UΛ1 UT
+                                                              γδ
+where each eigenvalue in the diagonal matrix Λ1 has the form δ+2γ where
+γ is an eigenvalue of C. Similarly
+                           2 2
+                             A + A = UΛ2 UT
+                           δ
+                                          γδ      δ+4γ
+where each eigenvalue of Λ2 has the form δ+2γ  × δ+2γ  . Also it would be
+                                     2
+                                             −1
+useful to know the decomposition of δ A + I      which is
+                               −1
+                         2
+                           A+I       = UΛ3 UT
+                         δ
+where each eigenvalue of Λ3 has the form δ+2γ
+                                         δ+4γ . A sample from q(y|x) can
+be implemented as follows
+                                          
+                 2 T        T
+                                          1
+
+    y = U Λ1       U x + U ∇f (x) + Λ2 η , where η ∼ N (0, I).
+                                          2
+
+                 δ
+To compute this term we consider that the vectors UT x, UT ∇f (x) and
+the whole Λ1 2δ UT x + UT ∇f (x) have already been pre-computed from
+a previous MCMC iteration. Therefore, the above sampling operation
+                              1                             1
+
+involves the computation of Λ12 η, which costs O(n) since Λ12 is diagonal, an
+addition of two vectors and a single matrix-vector multiplication involving
+the most-left U and the remaining term (which is just an already computed
+vector). Thus, overall the proposal of y can be implemented with a single
+matrix-vector multiplication, which costs O(n2 ).
+   The computation of the Metropolis-Hastings ratio can be carried out
+as follows. To compute h(x, y) we are based on the expression
+                                                 T
+                            2 T      1 T
+     h(x, y) = x − UΛ1 ( U y + U ∇f (y))              UΛ3 UT ∇f (y)
+                            δ        2
+                                                   T
+                  T           2 T       1 T
+             = U x − Λ1 ( U y + U ∇f (y))                 Λ3 UT ∇f (y)
+                              δ         2
+
+
+                                     37
+Then, we apply two matrix-vector multiplications, each having cost O(n2 ),
+in order to compute the vectors UT y and UT ∇f (y). With these two
+vectors pre-computed and stored all remaining operations cost O(n). For
+example, the computation of Λ3 UT ∇f (y) is O(n) since Λ3 is diagonal.
+Also the computation of the symmetric term h(y, x) required in the ratio
+is just O(n) since the required vectors UT x and UT ∇f (x) are known
+form the previous iteration. Notice that if y is accepted, then the two
+vectors UT y and UT ∇f (y) will become the already pre-computed vectors
+required in the next iteration. Also when y is accepted we also compute
+Λ1 ( 2δ UT y + UT ∇f (y)) needed for the upcoming proposal step in the next
+iteration. So overall, the marginal scheme requires three matrix-vector
+multiplications per iteration.
+    Working similarly as above, the auxiliary scheme based on u can be
+implemented with three matrix-vector multiplications per iteration, the
+auxiliary scheme based on z as well as pCNL require two such operations,
+while the pCN scheme requires just a single matrix-vector multiplication
+per iteration. Full pseudocode for all three proposed algorithms aGrad-z,
+aGrad-u and mGrad is given by Algorithm 1, Algorithm 2 and Algorithm
+3 respectively. The appearance of ∗s indicate the number and the precise
+lines inside the code we need to perform a matrix-vector multiplication.
+
+
+
+
+                                    38
+Algorithm 1 aGrad-z
+  Input: U and Γ such that UΓUT = C, f (x), ∇f (x), number of burn-in
+  and collection iterations BURN and T.
+  Initialize: x = 0, f x = f (x), gradf x = ∇f (x), the diagonal Λ1 such
+                    γi δ
+  that [Λ1 ]ii = δ+2γ    i
+                           .
+  for i = 1 to BURN + T do           p
+    Draw z = x + (δ/2)gradf x + δ/2η, η ∼ N (0, I).
+                          1 1               
+    Propose y = U Λ12 Λ12 (UT ( 2δ z)) + η , η ∼ N (0, I).           **
+    M-H step: f y = f (y), gradf y = ∇f (y),
+          gzy = (z − y − 4δ gradf y)T gradf y,
+          gzx = (z − x − 4δ gradf x)T gradf x.
+          if rand < min(1, exp(f y − f x + gzy − gzx)) then
+             x = y, f x = f y, gradf x = gradf y.
+          end if
+    Adapt δ or collect sample:
+          if i ≤ BURN
+              adapt δ to achieve acceptance rate in 50% to 60%.
+                                     γi δ
+              update Λ1 : [Λ1 ]ii = δ+2γ  i
+                                            .
+          else
+              collect sample x.
+          end if
+  end for
+
+
+
+
+                                  39
+Algorithm 2 aGrad-u
+  Input: U and Γ such that UΓUT = C, f (x), ∇f (x), number of burn-in
+  and collection iterations BURN and T.
+  Initialize: x = 0, f x = f (x), gradf x = ∇f (x), Ugradf x = UT gradf x,
+                                         γi δ
+  the diagonal Λ1 such that [Λ1 ]ii = δ+2γ    i
+                                                .
+  for i = 1 to BURN p   + T do
+    Draw u = x + δ/2η, η ∼ N (0, I).
+    Udeltau = UT ( 2δ u).                                              *
+                                                    1 
+    Propose y = U Λ1 (Udeltau + Ugradf x) + Λ12 η , η ∼ N (0, I). *
+    M-H step: f y = f (y), gradf y = ∇f (y), Ugradf y = UT gradf y, *
+                                                        T
+        jxyu = xT gradf y − Λ1 (Udeltau + 12 Ugradf y) Ugradf y,
+                                                        T
+        jyxu = yT gradf x − Λ1 (Udeltau + 12 Ugradf x) Ugradf x.
+        if rand < min(1, exp(f y − f x + jxyu − jyxu)) then
+           x = y, f x = f y, gradf x = grady, Ugradf x = Ugradf y.
+        end if
+    Adapt δ or collect sample:
+        if i ≤ BURN
+            adapt δ to achieve acceptance rate in 50% to 60%.
+                                   γi δ
+            update Λ1 : [Λ1 ]ii = δ+2γ  i
+                                          .
+        else
+            collect sample x.
+        end if
+  end for
+
+
+
+
+                                   40
+Algorithm 3 mGrad
+  Input: U and Γ such that UΓUT = C, f (x), ∇f (x), number of burn-in
+  and collection iterations BURN and T.
+  Initialize: x = 0, f x = f (x), gradf x = ∇f (x), Ux = UT x,
+                                                 γi δ
+  Ugradf x = UT gradf x, Λ1 such that [Λ1 ]ii = δ+2γ  i
+                                                        , Λ2 such that
+               γi δ
+  [Λ2 ]ii = δ+2γ    i
+                      × δ+4γ
+                        δ+2γ
+                            i
+                            i
+                              , Λ3 such that [Λ3 ]ii = δ+2γ
+                                                        δ+4γi , tmpSamplex
+                                                            i
+                                                                           =
+       2                                         2    1
+                                                                 
+  Λ1 δ Ux + Ugradf x , tmpMHx = Λ1 δ Ux + 2 Ugradf x .
+  for i = 1 to BURN      + T do               1 
+    Propose y = U tmpSamplex + Λ22 η , η ∼ N (0, I).                       *
+    M-H step: f y = f (y), gradf y = ∇f (y),
+          Uy = UT y, Ugradf y = UT gradf y,                              **
+                                  2
+          tmpSampley = Λ1 δ Uy + Ugradfy ,
+          tmpMHy = Λ1 2δ Uy + 21 Ugradf y ,
+          hxy = (Ux − tmpMHy)T (Λ3 Ugradf y),
+          hyx = (Uy − tmpMHx)T (Λ3 Ugradf x),
+          if rand < min(1, exp(f y − f x + hxy − hyx)) then
+              x = y, f x = f y, gradf x = gradf y,
+              Ux = Uy, Ugradf x = Ugradf y,
+              tmpSamplex = tmpSampley, tmpMHx = tmpMHy.
+          end if
+    Adapt δ or collect sample:
+          if i ≤ BURN
+              adapt δ to achieve acceptance rate in 50% to 60%.
+                                      γi δ
+              update Λ1 : [Λ1 ]ii = δ+2γ   i
+                                             .
+                                   γi δ     δ+4γi
+            update Λ2 : [Λ2 ]ii = δ+2γ  i
+                                          × δ+2γi
+                                                  ,
+           update Λ3 : [Λ3 ]ii = δ+2γ
+                                 δ+4γi ,
+                                     i
+
+
+           update tmpSamplex = Λ1 2δ Ux + Ugradfx ,
+                                                    
+
+           update tmpMHx = Λ1 2δ Ux + 21 Ugradf x .
+        else
+           collect sample x.
+        end if
+  end for
+
+
+
+
+                                      41
+

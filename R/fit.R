@@ -52,9 +52,9 @@ odisp_design <- function(formula, breeding = ~ 0, data, nodes, pairs = NULL,
     stop("phi_max (", phi_max, " km) exceeds the max_range of the pairs (", pairs$max_range, " km)")
   df <- sf::st_drop_geometry(data)
 
-  mf <- stats::model.frame(formula, df, na.action = stats::na.fail)
-  y <- stats::model.response(mf)
-  D <- stats::model.matrix(formula, mf)
+  prevalence <- odisp_model_matrix(formula, df)
+  y <- stats::model.response(prevalence$frame)
+  D <- prevalence$matrix
   n <- df[[trials]]
   if (is.null(n)) stop("column '", trials, "' not found in data")
   if (any(y > n) || any(y < 0)) stop("counts must satisfy 0 <= y <= n")
@@ -64,8 +64,9 @@ odisp_design <- function(formula, breeding = ~ 0, data, nodes, pairs = NULL,
 
   # breeding covariates, only for nodes that are within range of some location
   used <- sort(unique(pairs$j))
-  Z <- stats::model.matrix(breeding, as.data.frame(nodes)[used, , drop = FALSE])
-  Z <- Z[, colnames(Z) != "(Intercept)", drop = FALSE]
+  breeding_design <- odisp_model_matrix(breeding, as.data.frame(nodes)[used, , drop = FALSE],
+                                         drop_intercept = TRUE)
+  Z <- breeding_design$matrix
 
   # pairs sorted by location and distance, so that the compiled loop can stop
   # at the first node beyond the current range
@@ -80,6 +81,7 @@ odisp_design <- function(formula, breeding = ~ 0, data, nodes, pairs = NULL,
                  a = if (scaling == "line") 1 else 2,
                  c = if (scaling == "line") 2 / 3 else pi / 7,
                  formula = formula, breeding = breeding, trials = trials,
+                 prevalence_spec = prevalence$spec, breeding_spec = breeding_design$spec,
                  aridity = aridity),
             class = "odisp_design")
 }
@@ -104,17 +106,8 @@ odisp_eval <- function(par, design, background, deriv = FALSE, engine = "cpp") {
   a <- if (is.null(design$a)) 1 else design$a
   cc <- if (is.null(design$c)) 1 else design$c
 
-  g_lin <- eta0 + gamma * design$logAI
-  if (is.null(design$phi_max)) {
-    phi <- exp(g_lin); dlogphi <- rep(1, length(g_lin))
-  } else {
-    # log phi = log phi_max - softplus(log phi_max - g): equal to g well below
-    # the bound and approaching log phi_max smoothly from below
-    zz <- log(design$phi_max) - g_lin
-    sp <- ifelse(zz > 30, zz, log1p(exp(pmin(zz, 30))))
-    phi <- design$phi_max * exp(-sp)
-    dlogphi <- stats::plogis(zz)
-  }
+  ranges <- odisp_range(eta0, gamma, design$logAI, design$phi_max)
+  phi <- ranges$phi; dlogphi <- ranges$dlogphi
   w <- if (q) as.vector(exp(design$Z %*% theta)) else rep(1, length(design$len))
 
   if (engine == "cpp") {

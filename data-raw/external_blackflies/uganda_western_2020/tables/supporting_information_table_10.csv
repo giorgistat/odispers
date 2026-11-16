@@ -1,0 +1,8 @@
+Parameter,Definition,Prior parameter range,References
+ω,Worm killing efficacy (instantaneous),"[0.1, 0.3]",[16-23]
+ε,Microfilariae killing efficacy (instantaneous),"[0.95, 0.99]","[16-19, 23]"
+,Reduction in microfilariae production by surviving worms,"[0.35, 0.75]","[16-19, 23]"
+T P,A time period during which the drug remains efficacious in reducing the fecundity of the surviving adult worms,9 months,"[17-19, 21, 22]"
+C,Percentage of human population administered ivermectin,data,data
+,The decay rate used in the exponential reduction in vector biting density,"[0.2, 2.8]",data ( Supp  Fig   S 1 )
+,The population-level vector control coverage,0: no VC 1: VC,d ata  

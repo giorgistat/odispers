@@ -1,0 +1,6 @@
+River,Intervention ,Control(s),MBRs  Mean difference  between  intervention and Control,d.f.,F,t,p-value (2-sided),95% CI,
+Yei,Wuli kori,Dongoro,480.50,14,0.03,0.678,0.51,Lower ,Upper 
+Yei,Wuli kori,Dongoro,480.50,14,0.03,0.678,0.51,"-1,039.74","2,000.74"
+Yei,Tawa,Boro,393.50,14,0.00,0.674,0.51,-578.82,"1,109.13"
+Yei,Wuli kori +  Tawa,Dongoro  +Boro,372.83,22,0.016,0.864,0.39,-508.58,"1,254.24"
+,,,,,,,,,

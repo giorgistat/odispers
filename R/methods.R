@@ -63,7 +63,8 @@ print.summary.odisp_fit <- function(x, ...) {
 #'   the prevalence covariates used in the fit.
 #' @param nodes The \code{odisp_network} object used in the fit.
 #' @param pairs Optional \code{odisp_pairs} for \code{newdata}; computed if
-#'   \code{NULL}, using the \code{max_range} of the fit.
+#'   \code{NULL}, using the largest dispersal range at the new locations.
+#'   Supplied pairs must cover that range.
 #' @param ... Not used.
 #' @return A data frame with the dispersal range \code{phi} (km), the
 #'   exposure \code{E}, the force of infection \code{lambda}, the prevalence
@@ -72,17 +73,26 @@ print.summary.odisp_fit <- function(x, ...) {
 #' @export
 predict.odisp_fit <- function(object, newdata, nodes, pairs = NULL, ...) {
   d0 <- object$design
-  if (is.null(pairs)) pairs <- river_pairs(newdata, nodes, d0$max_range)
   df <- sf::st_drop_geometry(newdata)
-  df[[d0$trials]] <- 1L
-  lhs <- all.vars(d0$formula)[1]
-  if (is.null(df[[lhs]])) df[[lhs]] <- 0L
-  des <- odisp_design(d0$formula, d0$breeding, data = sf::st_sf(df, geometry = sf::st_geometry(newdata)),
-                      nodes = nodes, pairs = pairs, trials = d0$trials, aridity = d0$aridity,
-                      scaling = if (is.null(d0$scaling)) "line" else d0$scaling,
-                      phi_max = d0$phi_max)
-  if (!identical(colnames(des$Z), colnames(d0$Z)))
-    stop("breeding covariates for the new locations do not match those of the fit")
+  ai <- df[[d0$aridity]]
+  if (is.null(ai) || any(!is.finite(ai)) || any(ai <= 0))
+    stop("aridity must be positive and finite at every location")
+  phi <- odisp_range(object$coefficients[["eta0"]], object$coefficients[["gamma"]],
+                      log(ai), d0$phi_max)$phi
+  pairs <- odisp_prediction_pairs(newdata, nodes, pairs, phi)
+  used <- sort(unique(pairs$j))
+  # Prediction has no response or trial counts; reuse only the fitted design
+  # conventions and replace its covariates and location-node pairs.
+  des <- d0
+  des$D <- odisp_prediction_matrix(d0$formula, df, d0$prevalence_spec, colnames(d0$D))
+  des$Z <- odisp_prediction_matrix(d0$breeding, as.data.frame(nodes)[used, , drop = FALSE],
+                                    d0$breeding_spec, colnames(d0$Z), drop_intercept = TRUE)
+  ord <- order(pairs$i, pairs$r)
+  des$m <- nrow(df); des$logAI <- log(ai)
+  des$i <- pairs$i[ord]; des$j <- match(pairs$j[ord], used); des$r <- pairs$r[ord]
+  des$start <- as.integer(c(0L, cumsum(tabulate(des$i, nbins = des$m))))
+  des$len <- nodes$len[used]; des$max_range <- pairs$max_range
+  des$y <- des$n <- NULL
   ev <- odisp_eval(object$coefficients, des, object$background)
   data.frame(phi = ev$phi, E = ev$E, lambda = ev$lambda,
              prevalence = -expm1(-ev$lambda), zero_exposure = ev$E == 0)

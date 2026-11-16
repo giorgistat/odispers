@@ -1,0 +1,12 @@
+Year,Country,Species,Trap Days,Trap Type,Median,IQR,Min.,Max.,Total,% Total
+2015,Uganda,S. damnosum s.l.,15,EWT BG-Lure,47,39,12,173,1446,25.6
+2015,Uganda,S. damnosum s.l.,15,EWT Socks,78.5,97.5,35,344,2393,42.3
+2015,Uganda,S. damnosum s.l.,15,HLC,72.0,129.5,16,362,1817,32.1
+2015,Uganda,S. bovis,6,EWT BG-Lure,7.5,20,0,69,106,21.2
+2015,Uganda,S. bovis,6,EWT Socks,3.5,3,0,18,32,6.4
+2015,Uganda,S. bovis,6,HLC,70.5,71,7,96,361,72.3
+2016,Uganda,S. damnosum s.l.,5,EWT CO2+,413,228,114,1233,2394,68.9
+2016,Uganda,S. damnosum s.l.,5,EWT CO2-,83,198,1,644,1082,31.1
+2016,Tanzania,S. damnosum s.l.,15,EWT Black,20,32,5,95,360,10.7
+2016,Tanzania,S. damnosum s.l.,15,EWT Blue,19,42,2,194,563,16.8
+2016,Tanzania,S. damnosum s.l.,15,HLC,147,91.5,70,263,2432,72.5

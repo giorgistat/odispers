@@ -1,0 +1,896 @@
+                                          Statistical Science
+                                          2007, Vol. 22, No. 1, 59–73
+                                          DOI: 10.1214/088342307000000014
+                                           c Institute of Mathematical Statistics, 2007
+
+
+
+                                          A General Framework for the
+                                          Parametrization of Hierarchical Models
+                                          Omiros Papaspiliopoulos, Gareth O. Roberts and Martin Sköld
+
+
+
+
+arXiv:0708.3797v1 [stat.ME] 28 Aug 2007
+                                                                    Abstract. In this paper, we describe centering and noncentering method-
+                                                                    ology as complementary techniques for use in parametrization of broad
+                                                                    classes of hierarchical models, with a view to the construction of effec-
+                                                                    tive MCMC algorithms for exploring posterior distributions from these
+                                                                    models. We give a clear qualitative understanding as to when center-
+                                                                    ing and noncentering work well, and introduce theory concerning the
+                                                                    convergence time complexity of Gibbs samplers using centered and non-
+                                                                    centered parametrizations. We give general recipes for the construction
+                                                                    of noncentered parametrizations, including an auxiliary variable tech-
+                                                                    nique called the state-space expansion technique. We also describe par-
+                                                                    tially noncentered methods, and demonstrate their use in constructing
+                                                                    robust Gibbs sampler algorithms whose convergence properties are not
+                                                                    overly sensitive to the data.
+                                                                    Key words and phrases: Parametrization, hierarchical models, latent
+                                                                    stochastic processes, MCMC.
+
+
+                                                               1. INTRODUCTION                      Research in this area has benefited from the avail-
+                                                                                                    ability of analytic convergence rates for the Gibbs
+                                             It has long been recognized that the parametriza-
+                                                                                                    sampler on Gaussian target distributions, provided
+                                          tion of a hierarchical model can be crucial for the
+                                                                                                    by [37]. However, the development of general para-
+                                          performance of the Gibbs sampler or the Metropolis–
+                                                                                                    metrization strategies for nonlinear hierarchical mod-
+                                          Hastings algorithm which is used to infer about it,
+                                                                                                    els and in particular for models which involve unob-
+                                          and interesting research has been done in that direc-
+                                                                                                    served (latent) stochastic processes has not received
+                                          tion. Parametrization methodology is well developed
+                                                                                                    analogous attention; for example, it is listed as one
+                                          for Gaussian and generalized linear mixed models.
+                                                                                                    of the important directions for future research in
+                                                                                                    the centennial review by Gelfand [12]. While it is
+                                          Omiros Papaspiliopoulos is Assistant Professor,           clearly natural and interpretable to specify models
+                                          Department of Statistics, University of Warwick,
+                                                                                                    according to a hierarchical formulation, more gen-
+                                          Coventry, CV4 7AL, United Kingdom e-mail:
+                                                                                                    eral parametrizations are required for the design of
+                                          o.papaspiliopoulos@warwick.ac.uk. Gareth O. Roberts is
+                                          Professor of Statistics, Department of Mathematics and appropriate Markov chain Monte Carlo (MCMC) al-
+                                          Statistics, Fylde College, Lancaster University,          gorithms for posterior investigation.
+                                          Lancaster LA1 4YF, United Kingdom e-mail:                    Nevertheless, increasingly complex hierarchical
+                                          g.o.roberts@lancaster.ac.uk. Martin Sköld is Research    models are being used in several areas of applied
+                                          Associate, Centre for Mathematical Sciences, Lund         statistics, including econometrics, geostatistics and
+                                          University, Box 188, 221 00 Lund, Sweden e-mail:          genetics, raising high computational challenges. Much
+                                          martins@maths.lth.se.                                     research has been devoted to designing high-tech
+                                           This is an electronic reprint of the original article    MCMC algorithms that aim to optimize performance
+                                           published by the Institute of Mathematical Statistics in within a particular class of models. Such strategies
+                                           Statistical Science, 2007, Vol. 22, No. 1, 59–73. This   are often ad hoc and not always applicable in a wider
+                                           reprint differs from the original in pagination and      framework. Moreover, the bag of MCMC tools and
+                                           typographic detail.                                      tricks has over the years grown to such an extent
+                                                                                                       1
+2                            O. PAPASPILIOPOULOS, G. O. ROBERTS AND M. SKÖLD
+
+that its full power is largely available only to spe-    where µ is the measure with respect to which the
+cialists.                                                density P (X | Θ) is defined. Obviously, there are un-
+   Hence, our aim in this paper has been to focus        limited choices of X which lead to the same posterior
+on a general strategy that applies to a wide range       inference P (Θ | Y ).
+of statistical contexts. To allow this generality, we       In this paper we are concerned with the problem
+may sometimes have to sacrifice the quest for opti-      where MCMC methods are employed to get samples
+mality for that of robustness. Our proposed strategy,    from the joint posterior P (X, Θ | Y ).
+when employing MCMC to perform inference for a              There are several reasons for introducing such an
+given hierarchical model, is to use the Gibbs sampler    X: (i) the observed likelihood P (Y | Θ) might be an-
+or a similar component-wise updating Metropolis–         alytically unavailable or too complicated to make
+Hastings algorithm, and to consider two different        inference about Θ, (ii) X itself might have some sci-
+parametrizations of the model, which we term the         entific interpretation and be of statistical interest,
+centered and the noncentered parametrizations. The       and (iii) MCMC methods might be much more effi-
+former is usually the default option, and has been       ciently applied to P (X, Θ | Y ) than to P (Θ | Y ).
+                                                            We define a (re)parametrization of an augmenta-
+used extensively in the literature. The latter, as we
+                                                         tion scheme X, by any random pair (X ∗ , Θ) with
+argue, turns out to be its natural complement, in the
+                                                         joint prior density P (X ∗ , Θ) (with respect to an ar-
+sense that the Gibbs sampler, when under the one
+                                                         bitrary dominating measure) together with a func-
+parametrization, converges slowly; under the other
+                                                         tion h such that
+it often converges much faster. This complementary
+role of the two parametrizations constitutes the first   (2.1)              X = h(X ∗ , Θ, Y ).
+main advantage of the centered/noncentered frame-        In this general setup, h need not be one-to-one.
+work. The second advantage is the ability to iden-       We call a reparametrization practical if P (Θ | X ∗ ),
+tify, before running any computer program, which         hence P (Θ | X ∗ , Y ), is known up to a normalizing
+of the parametrizations is preferable just by look-      constant.
+ing at the model structure. In this paper, following        Once a parametrization (X ∗ , Θ) is chosen, MCMC
+a tutorial style we show how certain model struc-        is used to obtain samples from the joint posterior
+tures interact with the efficiency of the Gibbs sam-     P (X ∗ , Θ | Y ). These samples can be easily trans-
+pler which is used to infer about them, under both       formed [using (2.1)] to yield samples from P (X, Θ |
+parametrizations. We classify these model structures     Y ). The purpose of the reparametrization in this
+into three categories, and we demonstrate our argu-      framework is solely to improve the efficiency of the
+ments on a series of test models, which correspond       Monte Carlo method.
+to popular models used in econometrics, geostatis-          Hence, for a particular model, we have the dual
+tics and classification. Our test models are presented   choice of an augmentation scheme and a parametriza-
+in their most basic form, since our aim is to present    tion. This paper is concerned with efficient choice of
+the general methods and issues rather than to solve      the latter, since this issue is more amenable to a
+specific problems. However, detailed references are      general discussion than the former.
+provided, to direct the interested reader to papers        Example 2.1 (Random effects model). As a sim-
+which have dealt in detail with MCMC computation         ple example, we consider the simple linear Gaussian
+for the more elaborate versions of the models.           random effects model,
+                                                          Yi ∼ N(Ci Xi , Σy ),
+     2. AUGMENTATION SCHEMES AND
+           PARAMETRIZATIONS                               Xi ∼ N(DΘ, Σx ),       independently for i = 1, . . . , n,
+  In the following we will assume that we are given      where Ci are individual-level covariates, Xi are indivi-
+a set of observed data Y , unknown parameters Θ          dual-level regression parameters, centered around pop-
+with associated prior density P (Θ), and an assumed      ulation parameters Θ, and Σy , Σx are covariance ma-
+model P (Y | Θ), which can be conveniently expressed     trices. In this case X = {X1 , . . . , Xn }, Y = {Y1 , . . . ,
+hierarchically using a hidden layer X as                 Yn }, and a family of practical reparametrizations is
+                  Z                                      described by the transformations
+    P (Y | Θ) =       P (Y | X, Θ)P (X | Θ) dµ(X),                            Xi = Xi∗ + Ai ,
+                               PARAMETRIZATION OF HIERARCHICAL MODELS                                               3
+
+1 ≤ i ≤ n, for vectors A = {Ai , 1 ≤ i ≤ n} which are     controls the range of spatial dependence. In this case
+allowed to depend only on θ. Remarkably, even when        Θ = (µ, σ, α). The data consist of conditionally in-
+A is restricted to depend only linearly on θ, this        dependent observations Yi ∼ f (Yi | X(ui )), where f
+family of reparameterizations is sufficiently flexible    is some density, at a finite number of locations, ui ,
+to include complete posterior orthogonalization of        i = 1, . . . , n; thus Y = {Y1 , . . . , Yn }.
+the state space of (X, Θ).
+                                                            Example 2.3 (Diffusion stochastic volatility mo-
+   In this paper, we shall not focus on reparametriza-    del). Diffusion processes are used extensively in fi-
+tion methods for Θ, which may of course be impor-         nancial mathematics and econometrics for model-
+tant for the construction of efficient MCMC meth-         ing the time-evolution of stock prices and exchange
+ods.                                                      rates. An empirically observed characteristic of fi-
+2.1 Hierarchically Centered Parametrizations              nancial time-series data is that the instantaneous
+                                                          variance is time varying and exhibits a stochastic
+   In this article, we will base the discussion around    behavior. A popular class of diffusion-based models
+a particular form of augmentation scheme described        which can describe this behavior is the stochastic
+by the graphical model in Figure 1. The correspond-       volatility models [5, 15], which have the following
+ing parametrization of the model in terms of (X, Θ)       hierarchical structure:
+is commonly known as the centered parametrization
+(CP). This terminology was first introduced in the                dYt = exp(Xt /2) dB1,t ,        t ∈ [0, T ],
+context of generalized linear hierarchical models by              dXt = b(Xt ) dt + Θ dB2,t ,
+Gelfand, Sahu and Carlin [13, 14], and later in a
+more general context by Papaspiliopoulos, Roberts         where Bj,t , j = 1, 2, are standard Brownian motions.
+and Sköld [33] as the parametrization under which        In this case Yt is a continuous-time process, for ex-
+the data Y are independent of the parameters Θ            ample, the log-price of the exchange rate between
+conditionally on the imputed data X. The hierar-          two currencies. X = {Xt , t ∈ [0, T ]} represents the
+chical model structure in Figure 1 is common in sta-      time-varying log-variance of Yt , which is also as-
+tistical practice and crops up in very diverse areas.     sumed to be a diffusion process, parametrized in
+   Example 2.1 is an example of a hierarchically cen-     terms of b(·) (which we assume to be completely
+tered parametrization and is one of the simplest pos-     known to simplify things) and Θ, which controls
+sible models with graphical structure given in Figure     the variation in the X process. The process Yt is
+1. Here we give some further “canonical” examples,        observed at time instances ti , i = 1, . . . , n, Y = {Yt1 ,
+in their simplest form, in order to illustrate the di-    . . . , Ytn }.
+versity of the areas for which the methods we present
+in this paper are relevant.                               2.2 Convergence of the Gibbs Sampler Under
+                                                              Different Parametrizations
+   Example 2.2 (Geostatistical model). In this case
+X = {X(u), u ∈ B ⊂ R2 } is an unobserved spatial          When used to sample from P (X ∗ , Θ | Y ), the al-
+                                                                                           0
+field, assumed to be a realization from a stochastic gorithm starts with arbitrary Θ , and iterates
+process, for example, a Gaussian process with mean              j.1 Update X ∗ j from the distribution
+and covariance functions specified up to a few un-
+known parameters Θ (see, e.g., [9]). For example,                    of X ∗ | Θj−1 , Y .
+one could take µ to be the mean level (the specifica- (2.2)
+                                                                j.2 Update Θj from the distribution
+tion could easily be adapted to include covariates),
+and σ 2 Σ(α) to be the covariance function, where                    of Θ | X ∗j , Y .
+σ 2 is the overall variance and Σ(α) is a positive-
+                                                        for j = 1, . . . , N . The output Θ1 , . . . , ΘN is now a
+definite correlation matrix with parameter α which
+                                                        dependent and approximate sample from P (Θ | Y ).
+                                                        The problem that the sample is approximate is an
+                                                        important one; see, for example, [19] for a recent re-
+                                                        view and synthesis of the methods available for elim-
+                                                        inating the so-called burn-in problem. However, the
+Fig. 1. Graphical model of the centered parametrization major weakness of MCMC is that the serial depen-
+(CP).                                                   dence can be very strong within the Monte Carlo
+4                                   O. PAPASPILIOPOULOS, G. O. ROBERTS AND M. SKÖLD
+
+                                                                  Thus, values of γ close to 1 correspond to slowly
+                                                                  mixing algorithms, resulting in high autocorrelation
+                                                                  in the sampled Θ values, and are caused by high de-
+                                                                  pendence between the updated components. Here
+                                                                  “close to 1” should be interpreted as very close:
+                                                                  an algorithm with γ = 0.9 or even 0.99 mixes suf-
+                                                                  ficiently well for most practical purposes. Hence, as
+                                                                  suggested in the Introduction, we will not aim for
+                                                                  γ ≈ 0 but rather try to provide the user with an
+                                                                  alternative for those (surprisingly common) “very
+                                                                  close to 1” situations. It is also important to real-
+Fig. 2. Posterior distributions of Θ given observed (dotted)      ize that γ corresponds to the worst-case scenario; it
+and full augmented (solid) data for a particular value X ∗ j of   is the rate at which the slowest-mixing functionals
+imputed data X ∗ .                                                converge to their stationary means. For geometri-
+                                                                  cally ergodic algorithms, a more intuitive measure
+sample, rendering it unreliable for posterior infer-              of efficiency is what we will call the mixing time,
+ence, since it will give estimates with very high (or             and denote by τ ,
+even infinite) variance.                                                             1     1
+   A useful heuristic interpretation of the (lack of)                       τ =−        ≈          for γ ≈ 1.
+                                                                                   log γ 1 − γ
+performance of Gibbs sampling schemes like (2.2)
+is given in Figure 2. An efficient algorithm here is              τ is proportional to the number of iterations needed
+one where the support of P (Θ | X ∗j , Y ) closely mim-           for the Markov chain to be within certain (total vari-
+ics that of the target P (Θ | Y ) and performance is              ation, say) distance from stationarity.
+closely related to the relative sizes of the typical dis-            As we have mentioned, the centered is often the
+tance traveled in a single update [i.e., the “size” of            default parametrization and we will refer to the Gibbs
+the support of P (Θ | X ∗ j , Y )] and the distance we            sampler under CP [i.e., (2.2) with X ∗ = X] as the
+need to travel to cover the support of P (Θ | Y ) (i.e.,          centered algorithm (CA), and denote by γc and τc
+the “size” of this support). This heuristic can be                its convergence rate and mixing time, respectively.
+neatly formalized using the concept of the Bayesian               There are a number of reasons why a CA forms a
+fraction of missing information (e.g., [23, 39]), de-             natural starting point. Conveniently, the conditional
+fined for a real-valued, square-integrable function of            independence structure in Figure 1 implies that the
+interest f (Θ) as                                                 conditional posterior P (Θ | X, Y ) = P (Θ | X) is of-
+                                                                  ten easy to sample from. Moreover, the analysis in
+                          E(Var(f (Θ) | X ∗ , Y ) | Y )
+(2.3)    γf = 1 −                                       .         [13, 14] showed that the CA is very efficient for loca-
+                              Var(f (Θ) | Y )                     tion parameters in (generalized) linear mixed mod-
+Liu [23] shows that the maximal correlation coeffi-               els.
+cient, defined as                                                    Nevertheless, in view of (2.5) the potential draw-
+                                                                  backs of hierarchical centering are easily understood.
+(2.4)                        γ = sup γf ,
+                                    f                             Note that X and Θ are generally strongly depen-
+                                                                  dent a priori, and to diminish this dependence the
+where the supremum is taken over all square-in-
+                                                                  data Y need to be strongly informative about X; for
+tegrable functions f , is the geometric convergence
+                                                                  a simple illustration see Figure 3. Section 3, how-
+rate of the Gibbs sampler under the (X ∗ , Θ) para-
+                                                                  ever, reveals important situations where the data,
+metrization. He also shows (see also [1, 24]) that
+                                                                  even when they are informative about Θ, cannot di-
+          γ = sup Corr(f (Θj ), f (Θj+1 ))                        minish the prior dependence between X and Θ. In
+                f
+(2.5)                                                             particular, in Section 3 we demonstrate that CA:
+                                                    2           (1) can have a mixing time which increases as the
+            =    sup Corr(f (Θ), g(X ∗ ) | Y )            ,       sample size increases, for example, when the latent
+                    f,g
+                                                                  model P (X | Θ) fails to satisfy classical regularity
+where Θi , Θi+1 are consecutive output values of the              conditions (Section 3.1); (2) can have very unstable
+Gibbs sampler started at stationary, Θ0 ∼ P (Θ | Y ).             behavior (e.g., be nongeometrically ergodic), due to
+                                  PARAMETRIZATION OF HIERARCHICAL MODELS                                                    5
+
+
+
+
+Fig. 3. Schematic figure depicting the region of highest support of prior (unshaded) and posterior (shaded) distributions, for
+the CP where Y is weakly (left) and strongly (right) informative about X. This illustrates how strongly informative data break
+down prior dependence between Θ and X, whereas weakly informative data do not.
+
+
+certain robustness properties of the model [in this             of parametrizations we will denote them by X̃ rather
+case the maximal correlation coefficient is not ap-             than X ∗ . We will also use the notation NCA when
+propriate to quantify the dependence between X                  referring to the Gibbs sampler under NCP, and γnc , τnc
+and Θ (Section 3.2)]; and (3) can be reducible due              to refer to its convergence rate and mixing time, re-
+to the choice of the augmentation scheme, for exam-             spectively.
+ple, when the observed data are finite dimensional                 Since X̃ and Θ are a priori independent, the NCA
+but the imputed data are infinite dimensional, as in            can be much more efficient than the CA when X is
+Example 2.3 (Section 3.3).                                      relatively (to Θ) weakly identified by the data. In
+  One remedy to these problems is to use the Gibbs              lieu, when X is well identified, X̃ and Θ are often a
+sampler under a reparametrization. An important—                posteriori strongly dependent by means of (2.1); an
+and as we show in this paper, complementary to                  illustration is given in Figure 5.
+CP—subclass of reparametrizations X ∗ are the hi-                  In this paper, we consider CP and NCP as gen-
+erarchically noncentered parametrizations (NCPs).               eral classes of practical parametrizations. Neither is
+The name originates from normal linear hierarchical             “optimal” in any reasonable sense, and clearly for
+models [13], but Papaspiliopoulos [30] gave the gen-            any particular problem there might be parametriza-
+eral definition, that a reparametrization X ∗ is called         tions which outperform (in terms of the efficiency
+noncentered when X ∗ and Θ are a priori indepen-                of the corresponding Gibbs sampler) both of them.
+dent. It is often straightforward for a given model             However, the merit of the centered/noncentered al-
+to find a noncentered parametrization, as Section               gorithms lies in that we can say very general things
+3 shows, but sometimes we need to resort to more                about their performance regardless of the specifici-
+involved techniques, as we discuss in Section 4.                ties of the particular model they are applied to.
+  As an example, we return to Example 2.1, and                  Their strength lies in their ease of extension to high-
+note that the parametrization which takes                       dimensional parameter spaces and complicated data
+                      X̃i = Xi − DΘ                             structures. Moreover CA and NCA are complemen-
+                                                                tary, in the sense that NCAs are likely to perform
+trivially satisfies the requirements of being an NCP.           well when the CAs do not and conversely, as we show
+In more complex problems, identifying NCPs is typ-              in Section 3. For all these reasons, as we will show
+ically much harder.
+  Returning to the general case, the graphical model
+corresponding to this parametrization is given in
+Figure 4. Of course, the conditions of a practical
+reparametrization are trivially satisfied since by con-
+struction P (Θ | X ∗ ) = P (Θ) is available up to a nor-
+malizing constant and hence we can use complex
+transformations h without having to worry about
+computing Jacobian terms. To distinguish this class                          Fig. 4.   Graphical model of NCP.
+6                             O. PAPASPILIOPOULOS, G. O. ROBERTS AND M. SKÖLD
+
+
+
+
+Fig. 5. Schematic figure of prior (unshaded) and posterior (shaded) probability regions for the NCP where Y is weakly (left)
+and strongly (right) informative about X (not X̃ ). Here strong data induce strong posterior dependence between Θ and X̃ .
+Contrast the panels with the corresponding in Figure 3.
+
+
+in the paper, in several cases we can predict their            lin [13], and Example 2.1. Consider the simple hier-
+performance just by examining the model at hand.               archical model described by
+   It is worth mentioning at this stage that the con-
+vergence rate analysis we have presented in this sec-             Yi ∼ N(X, σy2 ),   independently for i = 1, . . . , n,
+tion does not directly apply to algorithms which                  X = X̃ + Θ,        X̃ ∼ N(0, σx2 ),
+update either of the components X ∗ or Θ using
+a Metropolis–Hastings step. This updating is often             where P (Θ) ∝ 1 is chosen. Here (Θ, X) is the CP
+done in complex models, where drawing directly from            and (Θ, X̃) is the NCP.
+the typically multivariate distribution P (X ∗ |Θ, Y )            The fact that the model is Gaussian implies that
+is not feasible. However, the intuition that the higher        the supremum in (2.4) is attained by linear func-
+the posterior dependence between X ∗ and Θ the                 tionals; thus τc = O(1/ log n). This is similar to the
+slower the convergence can be useful even for these            asymptotic argument Gelfand, Sahu and Carlin [13]
+more general algorithms.                                       used to support the use of the CA for linear models.
+                                                               On the other hand, τnc = O(n). Hence, the CA im-
+                  3. CASE STUDIES                              proves while the NCA deteriorates with sample size
+   We here give a few stylized examples to illustrate          for this simple model.
+the importance of the choice of centering/noncentering Example 3.2 (Hidden Markov model). Consider
+and their complementary roles. The examples are the following trivial hidden Markov model (HMM):
+divided into three subcategories, corresponding to
+models that are likely to occur in practice and where      Yi ∼ N(Xi , σy2 ), independently for i = 1, . . . , n,
+choice of parametrization can be crucial. Bear in
+mind that the examples are stripped down to their         Xi = X̃ i + Θ,
+most basic versions for illustrative purposes. To avoid where X̃ i follows Markov dynamics with station-
+losing the big picture we use simple heuristic argu- ary distribution N(0, σ 2 ), for instance through X̃ i =
+                                                                                 x
+ments; however, all the claims can be proved rela- ρX̃                   2 1/2 σ Z for some appropriate stan-
+                                                            i−1 + (1 − ρ )      x i
+tively easily. The notation adopted below clarifies dard normal innovation Z and constant |ρ| < 1.
+                                                                                      i
+how NCP is constructed.                                 Also assume that the proper prior P (Θ) ≡ N(0, 1)
+3.1 Models where the Efficiency Depends on              is chosen. This time both τc and τnc are O(1).
+     Sample Size                                           In the case where X̃ i are chosen to be indepen-
+                                                        dent, a complete analytic solution is available for the
+   An important characteristic of any MCMC algo- Gibbs sampler (from [37]). For instance, the pres-
+rithm is how its efficiency scales with the size of the
+                                                        ence of the data to “tie down” the hidden states is
+data set.
+                                                        crucial for the performance of CA. In the absence
+   Example 3.1 (Repeated measurements). Our first of data, that is, when we want to sample from the
+example is in the flavor of Gelfand, Sahu and Car- prior, τnc = O(1) (trivially since NCA delivers i.i.d.
+                                PARAMETRIZATION OF HIERARCHICAL MODELS                                                 7
+
+samples from the prior), but now τc = O(n) and per-       this model challenging from a computational per-
+formance of CA will deteriorate with n. We note           spective is the presence of the asymmetric error in
+that the assumption of conditional independence in        the observation equation. This does not cause prob-
+the hidden states is not crucial (see Example 3.3         lems to CA, since it is easy to see that τc = O(1). On
+though). Both algorithms will be O(1) if the X pro-       the contrary, since Θ | X̃, Y ∼ Exp(nλ) truncated on
+cess is modeled to have moderate serial dependence        Θ > maxi {Yi − X̃ i }, Var(Θ | X̃, Y ) = (nλ)−2 ; thus
+(the NCP needs to be defined appropriately in this        τnc ≥ O(n). Similar models are also used for reaction-
+case); see, for example, [33].                            time data; see, for example, [34].
+
+  The assumption of Gaussian errors in the obser-          Example 3.5 (Rounded data). Here we consider
+vation and hidden equation is a very important one.       models for truncated data. Assume for example that
+The remaining examples in this section, and those            Yi = ⌊Xi ⌋,       independently for i = 1, . . . , n,
+in Section 3.2, elaborate on these non-Gaussian ex-
+                                                            Xi = X̃ i + Θ,     X̃ i ∼ N(0, σx2 ),
+tensions.
+                                                          where we use the notation ⌊x⌋ to denote the largest
+  Example 3.3 (Nonregular parameters). The fol-           integer less than or equal to x.
+lowing example illustrates how CA can deteriorate           Under CP the augmented and the observed in-
+with n even if the number of random effects and data      formation are of the same O(n); thus τc = O(1).
+are equal (n). Nonregular in this example refers to       On the other hand, P (Θ | X̃, Y ) is supported in
+the problem of estimating Θ given X. Assume the           [maxi {Yi − X̃ i }, mini {Yi + 1 − X̃ i }]; hence Var(Θ |
+hierarchical model                                        X̃, Y ) = O(n−2 ) and τnc = O(n).
+  Yi ∼ N(Xi , 1),   independently for i = 1, . . . , n,     Example 3.6 (Bayesian classification). Consider
+                                                          the problem of Bayesian classification as in, for ex-
+  Xi = ΘX̃ i ,      X̃ i ∼ Uniform(0, 1),
+                                                          ample, Lavine and West [22]. Assume we are in-
+where P (Θ) ∝ 1 is chosen. What makes this model          terested in whether a set of covariates Y can be
+particular is that Var(Θ | X) = O(n−2 ) while Var(Θ |     used to distinguish between two classes of individu-
+Y ) = O(n−1 ) and hence τc ≥ O(n). On the other           als (e.g., healthy/sick). Based on a training sample
+hand, it can be shown that τnc = O(1).                    with known classes, we have derived the posterior
+  A similar problem with CA can occur in a variety        predictive distributions f0 and f1 of the covariates
+of situations where the latent model P (X|Θ) fails        based on the respective classes. The same covariates
+to satisfy classical regularity conditions, including,    are now measured on a number n of individuals with
+for example, latent autoregressions Xi = ΘXi−1 + εi       unknown status. Hence, we have independent data
+for Gaussian innovations in the explosive case Θ > 1      Y1 , . . . , Yn from the two-component mixture model
+[45] and Exponential innovations in general [28].         with density Θf0 (Yi ) + (1 − Θ)f1 (Yi ), where Θ is
+                                                          the proportion of individuals of class 0 to which
+  In the above example CA ran into problems due           we assign a uniform prior. For computational conve-
+to the changing support of P (X | Θ) with Θ. Below,       nience, this model is usually augmented with indi-
+we give two examples where instead the support of         cators Xi and rewritten in hierarchical form as (see,
+P (X | Θ, Y ) changes with Y and the relative perfor-     e.g., [8])
+mances of CA and NCA are reversed.                          Yi ∼ fXi (Yi ),      independently for i = 1, . . . , n,
+   Example 3.4 (Stochastic frontier models). This          Xi = 1{X̃ i ≤ Θ},      X̃ i ∼ Uniform(0, 1).
+is a class of models very popular in economics (see,
+e.g., [17]), which in their simplest form are written     Here P
+                                                               we might consider two extreme scenarios (with
+as                                                        N = ni=1 Xi ):
+                                                          1. Perfect classification. If f0 and f1 have disjoint
+  Yi = Xi − ui ,
+                                                             supports, we can perfectly distinguish the classes
+  ui ∼ Exp(λ),      independently for i = 1, . . . , n,      and P (Θ | X, Y ) = P (Θ | Y ). Hence, the CA will
+                                                             produce independent replications from the poste-
+  Xi = Θ + X̃ i ,   X̃ i ∼ N(0, σx2 ),
+                                                             rior. For the NCA, however, Θ | X̃, Y ∼
+where the ui ’s represent company-specific inefficien-       Uniform(X̃ (N ) , X̃ (N +1) ). Hence Var(Θ | X̃, Y ) =
+cies, and we again choose P (Θ) ∝ 1. What makes              O(n−2 ) and τnc > O(n) since Var(Θ | Y ) = O(n−1 ).
+8                            O. PAPASPILIOPOULOS, G. O. ROBERTS AND M. SKÖLD
+
+2. Completely unrelated covariates. Now assume the           the performance of CA and NCA is reversed, and
+   covariates turn out not to be related to class, that      CA is uniformly ergodic while NCA is subgeometric.
+   is, f0 = f1 . Here P (Θ | X̃, Y ) = P (Θ) and the
+   NCA will produce independent replications. On                Papaspiliopoulos and Roberts [32] derive very gen-
+   the other hand, Θ | X ∼ Beta(N + 1, (n − N ) +            eral results for hierarchical models with linear struc-
+   1) and Var(Θ | X) = O(n−1 ) while Var(Θ | Y ) =           ture, including time-series and spatial models where
+   O(1). Hence, τc > O(n).                                   X is a latent Gaussian field which is observed at cer-
+                                                             tain locations with heavy-tailed noise. Models with
+Of course realistic examples often tend to fall in be-
+                                                             heavy-tailed observation error are used for protect-
+tween scenarios 1 and 2 above. Nevertheless, they
+                                                             ing the inference about X from outlying observa-
+convey some intuition about the behavior in their
+                                                             tions; see, for example, [3, 20, 43].
+neighborhoods.
+3.2 Models where the Efficiency Depends on the               3.3 Models where the Efficiency Depends on the
+    Tails of the Links                                           Amount of Imputation
+  Section 2.1 related the convergence rate of the           In modern complex hierarchical modeling, it is
+two-component Gibbs sampler to the maximal cor-          common to impute infinite-dimensional objects X,
+relation coefficient γ between the updated compo-        or alternatively very fine finite-dimensional approxi-
+nents. Nevertheless, γ is a measure of global depen-     mations of them. The canonical example in this case
+dence; it is thus inappropriate when the dependence      is the diffusion stochastic volatility model, presented
+between X and Θ is very different in different parts     in Example 2.3 and revisited in Example 3.8 be-
+of the space. In these situations, CA can have quali-    low, but this type of augmentation scheme is under-
+tatively very different behavior than NCA. The fol-      taken also in Bayesian nonparametric modeling, as
+lowing characteristic example is taken from [32].        we show in Example 3.9 below. Often in such sit-
+   Example 3.7 (Heavy-tailed HMM ). Consider the uations ergodicity constraints link X and Θ, in the
+following “innocent”-looking modification of the sense that Θ (or some components of it, if it is a vec-
+HMM given in Example 3.2:                                tor) might be completely specified given X. Then,
+    Yi ∼ Cauchy(Xi , σy ),                               the convergence of CA deteriorates as the approxi-
+                                                         mation gets finer (it is reducible in the limit). One
+                     independently for i = 1, . . . , n, approach to circumvent this problem is to jointly up-
+                                 2                       date Θ and X, advocated, for example, in Darren
+   Xi = X̃ i + Θ, X̃ i ∼ N(0, σx ),
+where the improper prior P (Θ) ∝ 1 is chosen. There- Wilkinson’s discussion to [33] and in [21]. However,
+fore, we have robustified the observation equation joint updates are often complicated to implement,
+by replacing the Gaussian error by a Cauchy with and might, for example, necessitate reversible-jump
+median Xi and scale parameter σy . Figure 6 shows algorithms that are difficult to tune and diagnose.
+the contours of the posterior distribution of (X, Θ), Here we argue that NCA often provides a simpler
+for n = 1, Y = 0, σy = 1, σx2 = 5. Near the mode, and efficient alternative in such situations. The ex-
+X and Θ are approximately independent: however, amples are natural opposites to Example 3.1 in the
+as Θ → ∞, the conditional posterior distribution of sense that dimension of augmented rather than ob-
+X | Θ, Y tends to be concentrated around Θ and ig- served data increases with n.
+nores the data Y . The reason for this is that when
+                                                            Example 3.8 (Diffusion stochastic volatility model,
+|Θ−Y | is large, the two sources of information about
+X, the prior and the likelihood, are conflicting with    revisited).    Here we revisit the model presented in
+each other, and inference for X is dominated by the Example 2.3. Assume for illustration that one obser-
+link with the lighter tails. In fact, Papaspiliopoulos vation from the price        R t1 process  is available, Y = Yt1 ,
+                                                         thus  Y   | X  ∼  N(0,          eXs ds). However, the distri-
+and Roberts [32] show that CA is not even geomet-                                    0
+rically ergodic (therefore γc = 1), whereas NCA is bution of the path integral is not known; thus in
+geometrically (in fact it is uniformly) ergodic. Note order to compute the likelihood one needs to im-
+that in the complementary model                          pute the whole path X = {Xs , 0 ≤ s ≤ t1 }, or as
+                2
+   Yi ∼ N(Xi , σy ), independently for i = 1, . . . , n, it is usually done, a very fine discretization X1:n =
+                                                         {Xit1 /n , i = 0, . . . , n}, for large n, and approximate
+  Xi = X̃ i + Θ,      X̃ i ∼ Cauchy(0, σx ),             the integral appropriately. However, the quadratic
+                                 PARAMETRIZATION OF HIERARCHICAL MODELS                                                  9
+
+variation identity                                         [38] suggested an alternative reparametrization X ∗ ,
+                  n                                        which qualifies to be called noncentered only when
+                      (Xit1 /n − X(i−1)t1 /n )2 = Θ2
+                 X
+            lim                                            b = 0 (a case, however, which has motivated the con-
+          n→∞
+                 i=1                                       struction). If we define Xt∗ = Xt /Θ, then direct ap-
+shows that Θ is completely determined by any string plication of Îto’s formula shows that
+of sample path X (n = ∞), whereas for large but fi-                                 b(ΘXt∗ )
+                                                                                ∗
+nite n, X1:n and Θ are very strongly dependent a                           dX   t =              dt + dB2,t .
+                                                                                          Θ
+priori. The limiting centered algorithm which im-
+                                                           Clearly, when b = 0, X ∗ is an NCP and in fact coin-
+putes X is actually reducible: for any starting Θ0 ,
+                                                           cides with the one suggested earlier. When b 6= 0, the
+P (X | Y, Θ0 ) is a distribution on the path space con-
+                                                           distribution of X ∗ does depend on Θ; however, any
+centrated on paths for which their quadratic varia-
+                                                           realization of X ∗ contains only finite information
+tion is (Θ0 )2 ; and conditionally on such X 1 ∼ P (X |
+                                                           about Θ. (Diffusion sample paths on a fixed time
+Y, Θ0 ), P (Θ | Y, X 1 ) is concentrated on Θ0 . Roberts
+                                                           interval, say [0, t1 ], under mild regularity conditions
+and Stramer [38] show that the CA on (X1:n , Θ) is
+                                                           contain finite information about any parameters in
+O(n); that is, the better we try to approximate the
+                                                           the drift, but infinite information about parameters
+likelihood [and therefore the posterior P (Θ | Y )], the
+                                                           in the diffusion coefficient.) Therefore, the Gibbs al-
+worse the convergence of the algorithm.
+                                                           gorithm which updates Θ and a fine approximation
+   A possible choice for NCP is to take X̃ = {B2,s , 0 ≤      ∗ = {X ∗
+s ≤ t1 }, the driving Brownian motion of the volatil-
+                                                           X1:n       it1 /n , i = 0, . . . , n} will also be O(1). In the
+                                                           context of diffusion processes, this parametrization
+ity equation, and the associated approximation X̃ 1:n =
+                                                           is particularly appealing, as it will be demonstrated
+{B2,it1 /n , i = 0, . . . , n}; this approach has recently
+                                                           in Section 5.
+been adopted in [5]. NCA is O(1), thus it does not
+deteriorate as the approximation to the true con-             Example 3.9 (Bayesian nonparametrics). A very
+tinuous-time model gets better. Roberts and Stramer active area of research is that of Bayesian nonpara-
+
+
+
+
+Fig. 6. Contour plot of the posterior distribution of (X, Θ) from the heavy-tailed HMM, with n = 1, Y = 0, σy = 1, σx2 = 5.
+Notice that near the mode, X and Θ are roughly independent, whereas they become highly dependent in the tails.
+10                              O. PAPASPILIOPOULOS, G. O. ROBERTS AND M. SKÖLD
+
+metric statistics. In this area, unknown distributions                          4. CONSTRUCTING NCP’S
+and functions are modeled using flexible stochastic
+                                                                       We have already promoted the centered/noncentered
+process priors. For example, a popular choice is the
+Dirichlet process prior [11], which is a prior on the               methodology as a default strategy for tackling chal-
+space of all distribution functions on a given space,               lenging computational problems, and we have given
+say Z. When we write that P ∼ DP (Θ, H), we im-                     insight on when each should be used (or avoided)
+ply that P is a random measure distributed accord-                  through the case studies in Section 3. Typically, CP
+ing to the Dirichlet process prior with parameters                  is naturally suggested by the augmentation scheme
+Θ > 0, and H which is a (known) distribution on Z.                  chosen for a particular hierarchical model (in fact
+Many methods for carrying out inference on models                   usually they coincide). On the other hand, in the
+containing hidden Dirichlet components work by in-                  examples we have presented so far NCP has been
+tegrating out the Dirichlet process. In what follows                quite obvious (maybe with the exception of the dif-
+we will deliberately not adopt this approach, with a                fusion model in Example 3.8). Some tricks we have
+view toward generalizations to other nonparametric                  applied were:
+models where integrating out is not an option.
+                                                                    • Location: if X ∼ F (· − Θ),
+  A constructive series representation [42] gives that
+                                                                      then h(X̃, Θ) = X̃ + Θ, X̃ ∼ F (·) (e.g., Examples
+                              ∞
+(3.1)               P (·) =
+                              X
+                                    pi δZi (·),                       3.2, 3.7).
+                              i=1
+                                                                    • Scale: if X ∼ F (·/Θ),
+where Zi are i.i.d. variables from H, and                             then h(X̃, Θ) = ΘX̃, X̃ ∼ F (·) (e.g., Examples
+                                                                      3.3, 3.8).
+ p1 = X1      and                                                   • Inverse CDF: if X ∼ FΘ (·) where FΘ is a distri-
+ pi = (1 − X1 )(1 − X2 ) · · · (1 − Xi−1 )Xi ,      for i ≥ 2,        bution function on R,
+                                                                      then h(X̃, Θ) = FΘ−1 (X̃), X̃ ∼ Uniform(0, 1) (Ex-
+where the Xi ’s are independent Beta(1, Θ) variables.
+Therefore, every realization of P is an infinite mix-                 amples 3.6, 3.9).
+ture of random point masses pi , located at random                  Clearly, the above “recipes” can be combined in dif-
+locations Zi ∈ Z. Notice that X and Θ are linked                    ferent ways. For example, suppose that X is a latent
+through the ergodicity constraint                                   Gaussian field as in Example 2.2. An NCP that has
+                          n                                         been successfully applied in this context (see, e.g.,
+                       1X
+               lim −         log(1 − Xi ) = Θ.                      [25] in the context of log-Gaussian Cox processes
+              n→∞      n i=1
+                                                                    and [7] for spatial generalized linear mixed models)
+P is commonly used at an intermediate stage in hi-                  is
+erarchical models. A popular class of such models,
+used for classification, density estimation and non-                (4.1)      X = h(X̃, Θ) = σΣ(α)1/2 X̃ + µ,
+parametric regression, is the Dirichlet mixture mod-
+                                                                    for a vector of i.i.d. standard normals X̃ and where
+els; see, for example, [10, 26]. When X = {X1 , X2 , . . .}
+                                                                    Σ(α)1/2 is, for example, provided by a Cholesky fac-
+and Z = {Z1 , Z2 , . . .} are imputed in order to facili-
+tate inference for the hierarchical model, as for ex-               torization of Σ(α). Similarly, if X1 , . . . , Xt is a Markov
+ample in [31], the CA is reducible since X and Θ are                chain with transition CDF FΘ (· | ·), the inverse CDF
+linked by the constraint given above. Approximate                   can be applied recursively to construct an NCP
+centered methods, which impute only an approxima-                   through Xi = FΘ−1 (X̃ i | Xi−1 ) for a sequence of in-
+tion X1 : n = {X1 , . . . , Xn }, Z1 : n = {Z1 , . . . , Zn }, as   dependent uniforms X̃ 1 , . . . , X̃ n .
+in [18], will have O(n) mixing time. Papaspiliopou-                   It is not easy to give very general instructions on
+los and Roberts [31] suggest a simple NCP to come                   how to produce an NCP for arbitrary latent struc-
+round this problem, given by the inverse-CDF con-                   tures. In a way, this is the price to pay for having a
+struction, Xi = 1 − (X̃ i )1/Θ for i.i.d. uniforms X̃ i ∼           method which in principle could be applied in any
+Uniform(0, 1).                                                      context. However, several probabilistic relationships
+   Similar computational problems appear in a vari-                 can be exploited; see, for example, [30]. Generally, if
+ety of other nonparametric models, where, for exam-                 you know how to simulate from the prior P (X | Θ),
+ple, Lévy processes are used at intermediate stages                a careful inspection of the algorithm often naturally
+in hierarchical models. For a description of such mod-              suggests an NCP. Indeed, the tricks displayed above
+els, see, for example, [44].                                        are all standard tools in simulation. Noncentering
+                                         PARAMETRIZATION OF HIERARCHICAL MODELS                                            11
+
+of stochastic processes can often be achieved by ref-              new value Θ′ . Specifically, X̃ can live on an infinite-
+erence to various representation theorems. For ex-                 dimensional space (while the dimension of X can
+ample, we followed this approach in Example 3.9                    still be finite) and this flexibility makes noncenter-
+using a constructive representation of the Dirichlet               ing feasible to apply in very general contexts; see the
+process.                                                           example below for an illustration and [36] for a fully
+  An important observation, however, which can be                  worked example. The method described in Example
+used to construct NCP for complex latent struc-                    4.1 below has recently been found necessary in or-
+tures is that X̃ can take values on a much higher-                 der to construct MCMC algorithms for inference for
+dimensional space than X and the function h in                     discretely observed diffusion processes in [2].
+(2.1) can be noninvertible, as we discuss in the se-
+                                                                      Example 4.1 (Latent Poisson processes). Pois-
+quel.
+                                                                   son processes are natural a priori models for event
+4.1 State-Space Expansion                                          times and spatial locations of objects. Often data are
+  Notice that the Gibbs sampler which samples from                 partial or consist of a noisy image from which spatial
+the posterior P (X̃, Θ | Y ) can be implemented in the             locations (X) and intensity (Θ) are to be inferred.
+following manner. Assume that the current state is                 Note that in latent point process models, X | Θ, Y
+(X j−1 , Θj−1 ):                                                   can rarely be updated exactly and slow reversible-
+                                                                   jump algorithms are commonly applied. Hence, it
+   j.1 Update X according to the distribution of                   is especially important here that the MCMC algo-
+      X | Θj−1 , Y , to give X j−1/2 .                             rithm can move freely along the Θ-axis.
+                                                                      We will discuss two possible ways to construct an
+                                                       j−1/2
+   j.2 Transform (X j−1/2 , Θj−1 ) → X̃                        .   NCP X̃ for a Poisson process X with rate Θ on
+                                                                   the unit interval. They both involve state-space ex-
+   j.3 Update Θj according to the distribution of
+                                                                   panding techniques (see, e.g., [30, 33]) where X̃ is
+               j−1/2
+      Θ | X̃           ,Y .                                        formally an infinite-dimensional object. The ideas
+                                                                   carry over in a straightforward manner to Poisson
+                              j−1/2
+   j.4 Transform (X̃                  , Θj ) → X j .               processes on arbitrary spaces with general intensity
+                                                                   functions parametrized in terms of a vector of pa-
+Here step j.4 is unnecessary if it is possible to sam-
+                                                                   rameters Θ:
+ple directly from the distribution in j.1. We have
+included steps j.1–2 and j.4, rather than a single                 1. X̃ is a unit rate Po-process on [0, 1] × [0, ∞).
+                    j
+step updating X̃ from X̃ | Θj−1 , Y , for two reasons:                If {(ũ1 , ṽ1 ), . . .} is an enumeration of the point-
+first, it illustrates how code from a scheme like (2.2)               coordinates of X̃, we define X = h(X̃, Θ) = {ũi ;
+could be reused, and second, it allows for situations                 ṽi ≤ Θ} (see the left frame in Figure 7).
+where X̃ | Θj−1 , Y is not easily updated.                         2. X̃ is a unit rate Po-process on [0, ∞) with points
+   While step j.2 in (4.2) above will often be im-                    {ũ1 , . . .} and X = h(X̃, Θ) = {ũi /Θ; ũi ≤ Θ}.
+plemented through a deterministic transformation                   Again, what makes the above strategies feasible is
+X̃ = h−1 (X, Θ), equality in distribution is sufficient.           that for a fixed Θ, X and hence L(h(X̃, Θ), Θ) only
+Hence, the step can be performed by a draw from X̃ |               depends on a finite subset of the points in X̃. Hence,
+X j , Θj−1 , which allows for situations where h is a
+                                                                   if Θ is updated using a Metropolis–Hastings algo-
+many-to-one function. In Example 3.6, for instance,
+                                                                   rithm, we only need to store partial information
+where X = 1{X̃ ≤ Θ}, in step j.2 we draw X̃ from
+                                                                   about X̃ in each step. More implementation details
+a Uniform(Θ, 1) if X = 0 and from a Uniform(0, Θ)
+                                                                   with an application to shot-noise type stochastic
+distribution if X = 1.
+                                                                   volatility processes can be found in [36].
+   Another idea, suggested and elaborated in [30], is
+that step j.3 in (4.2) can sometimes be performed                    Example 4.2 (Hidden Markov jump processes).
+using only partial information about X̃, and hence                 Given the above recipes for constructing NCPs for
+the full X̃ need not be computed in step j.2. This                 Poisson processes, the step to Markov jump pro-
+is the case when j.3 is performed through an ac-                   cesses is not far. Such models are natural for de-
+cept/reject mechanism like the Metropolis–Hastings                 scribing the variation of populations and epidemics
+algorithm and h(X̃, ·) only needs to be computed                   in time; see, for example, [4, 27, 29, 35] for a variety
+for the current value Θj−1 of Θ and a proposed                     of applications of hidden Markov jump processes.
+12                              O. PAPASPILIOPOULOS, G. O. ROBERTS AND M. SKÖLD
+
+
+
+
+Fig. 7. Two different NCPs of a Θ-rate Poisson process on the unit interval. In the left figure X̃ is a unit rate Po-process
+on [0, 1] × [0, ∞) and in the right on [0, ∞). Circles denote the points of X̃ and crosses the points of X obtained after the
+many-to-one transformation X = h(X̃, Θ).
+
+
+
+  For example, we might consider an immigration-                    the two strategies might vary within the support
+death process X(t), t ∈ [0, T ], defined through                    of P (X, Θ | Y ). We have already encountered this
+                                                                    problem in Example 3.7 (see especially Figure 6);
+         P (X(t + h) = k | X(t) = l)
+                                                                    here a CP is preferable around the mode while it is
+            = λh + o(h),                   k = l + 1,               necessary to use an NCP in the tails.
+            = 1 − (λ + lµ)h + o(h),        l = l,                     Fortunately, it is not necessary to make a choice
+                                                                    between a CA and an NCA: alternating the two
+            = lµh + o(h),                  k = l − 1,               within the same algorithm might greatly improve
+            = o(h),                        otherwise,               the robustness without causing increase in compu-
+                                                                    tational time of practical relevance. In fact, such a
+for i = 0, 1, . . . and with Θ = (λ, µ) for immigration             combined strategy has been shown to be necessary
+and death rates λ and µ, respectively.                              in a number of practical situations (e.g., [16, 27, 32]).
+   Processes like X(t) are often simulated recursively
+based on a sequence of independent exponential and                  5.1 Correcting for the Presence of Data
+uniform variables, corresponding to interarrival times                 Both CPs and NCPs are constructed exclusively
+and type of event, respectively. Hence, we define                   based on the prior distributions of the model. Since
+X̃ i = (z̃i , ũi ), i = 1, . . . , with z̃i and ũi being Exp(1)   this prior distribution is usually manageable (in com-
+and Uniform(0, 1), respectively. Further, denoting                  parison with the posterior), we have seen how both
+by τi the time of the ith event, the transformation                 parametrizations can be applied through a wide class
+X = h(X̃, Θ) is defined recursively through                         of statistical models and data structures. Inevitably,
+     τi = τi−1 + z̃i /(λ + X(τi−1 )µ),                              the a priori construction can also be viewed as a
+                                                                    weakness and one might argue that when efficiently
+ X(t) = X(τi−1 ) + 21{ũi ≤ λ/(λ + X(τi−1 )µ)} − 1,                 parametrizing the posterior, data should be taken
+                                                t ∈ [τi−1 , τi ),   into account.
+                                                                       In this section we will discuss models where sim-
+for τ0 = 0, i = 1, . . . .                                          ple data-based modifications of CPs and NCPs ei-
+                                                                    ther are necessary or simply improve performance.
+      5. ROBUSTNESS AND DATA-BASED                                  We show that even when CPs and NCPs are un-
+              MODIFICATIONS                                         successful, they often form the first step toward an
+  When implementing “automatic” MCMC routines                       efficient strategy.
+in software one is often faced with the problem that,
+                                                                      5.1.1 Correcting the CP. Problems relating to the
+under the same model, performance can vary be-
+                                                                    CP are fairly easily understood and it is natural to
+tween different data sets (see, e.g., [6]). Hence, for
+                                                                    look for reparametrizations in terms of conditionally
+example, CP might be preferred by some data sets
+                                                                    pivotal quantities X ∗ .
+and NCP by others, depending on how informative
+                                                                      Consider, for example, a linear reparametrization
+the particular realization of the data is for X. An-
+other problem is that the relative performance of                   (5.1)      X = v 1/2 (Θ, Y )X ∗ + m(Θ, Y ),
+                                  PARAMETRIZATION OF HIERARCHICAL MODELS                                                      13
+
+where the linearity in X ∗ ensures that P (Θ | X ∗ )            seen that a CA which imputes X1:n has O(n) mixing
+is available. If X belongs to a location-scale fam-             time, due to the quadratic variation identity bind-
+ily, an NCP is given by v(Θ, Y ) = Var(X | Θ) and               ing Θ with X1:n , and should be avoided. Neverthe-
+m(Θ, Y ) = E(X | Θ). For more general families this             less, the NCA which was successful in Example 3.8
+can be seen as a first-order approximation of an                does not work here, since by construction, Y is a
+NCP. When correcting this parametrization for the               deterministic function of Θ and X̃. Therefore it is
+presence of data, it is natural to consider v(Θ, Y ) =          impossible to update Θ given X̃ without violating
+Var(X | Θ, Y ) and m(Θ, Y ) = E(X | Θ, Y ). Indeed,             the constraint imposed by the data.
+when also X | Θ, Y is location-scale, this choice will             The natural sequence of reparametrizations for
+make X ∗ independent of Θ. The approach allows                  this problem is given by
+data to decide the parametrization and naturally                X(t) = ΘX̃(t) = h̃(X ∗ , Θ, Y ) = Θ(X ∗ (t) − tY /Θ);
+gives an NCP for “infinitely weak data” and a CP
+for “infinitely strong data.” Hence, (5.1) can be in-           see [38] for more details.
+terpreted as a partially noncentered parametrization               Example 5.2 (Gaussian Markov random fields).
+(see [30, 33]).                                                 In many applications, observed data can be repre-
+   While these choices of v and m are not analytically          sented as a Gaussian field sampled at irregularly
+available in general, they can often be sufficiently            spaced locations. A well-known problem with this
+well approximated from, for example, a quadratic                approach is that likelihood computations can be bur-
+expansion of the log-posterior; see [6] for a successful        densome, especially for large data sets, due to the
+application in the context of spatial GLMMs.                    necessary inversion of the covariance matrix. On the
+  5.1.2 Correcting the NCP. Of course, we can also              other hand, if the covariance matrix is sparse, com-
+consider reparametrizations of NCPs, that is,                   putations can be speeded up considerably. One ap-
+                                                                proach (due to Rue [40]) to allow for fast estimation
+(5.2)    X = h(X̃, Θ) = h(h̃(X ∗ , Θ, Y ), Θ).                  is to approximate the Gaussian field by a Markov
+   While in (5.1) it was natural to search for an ap-           random field, by embedding the points into a rect-
+proximate pivotal quantity X ∗ , the function h̃ in             angular lattice equipped with a (suitable) Markov
+(5.2) often fills the purpose of relieving hard con-            random field neighborhood structure. As a result,
+straints on X imposed by data. The situation arises             the covariance matrix Σ of the approximate model
+naturally in models for discretely observed stochas-            is sparse. The unavailable observations at the empty
+tic processes, where the unobserved process values              lattice points are treated as missing data and are
+are augmented to facilitate likelihood calculations or          imputed. For notational simplicity, we assume that
+prediction.                                                     only the location parameter Θ is unknown. More-
+                                                                                                                   ′ )T to be the
+                                                                over, we set X = (Y1 , . . . , Yn , X1′ , . . . , Xm
+   Example 5.1 (Discretely observed diffusions).                values of the field at the lattice point, arranged such
+This is close in spirit to Examples 2.3 and 3.8. We             that the first n values are actually observed, and the
+again assume that Xt is the solution to the stochas-            remaining m are unobserved. Therefore, under the
+tic differential equation                                       approximate model, X | Θ ∼ N(Θ, Σ), (X, Θ) is the
+                dXt = b(Xt ) dt + Θ dX̃ t ;                     CP, and X is a partially observed process. Given the
+                                                                complete data X, and assuming a flat prior for Θ,
+however, instead of X being unobserved, here it is              we have that
+discretely observed. Thus, assuming for simplicity
+one observation, the data are Y = Xt1 , for some                   P (Θ | X) ∝ exp(−(X − Θ1)T Σ−1 (X − Θ1)/2),
+0 < t1 . The likelihood function, P (Xt1 | Θ), is typi-         where 1 = (1, . . . , 1)T .
+cally unavailable when b(x) is a nonlinear function               Often a large number of lattice points needs to be
+of x. Instead, it is easy (using the so-called Gir-             augmented (n ≪ m) (see, e.g., [41]), hence the aug-
+sanov formula) to write down the likelihood given               mented data can contain vastly more information
+the complete path X = {Xs , s ≤ t1 }, or at least to            about Θ than observed data Y = (Y1 , . . . , Yn ) and
+approximate it accurately enough using a fine dis-              the CA will perform poorly. On the other hand, the
+cretization X1:n = {Xit1 /n , i = 0, . . . , n}, for large n.   corresponding NCA defined through X̃ = X − Θ1 ∼
+It can be recognized that the setting is very sim-              N(0, Σ) will in fact be reducible since Θ = Yi − X̃ i ,
+ilar to that in Example 3.8, and we have already                i = 1, . . . , n.
+14                             O. PAPASPILIOPOULOS, G. O. ROBERTS AND M. SKÖLD
+
+                                                     ∗ ) to
+  Here it is natural to choose X ∗ = (X1∗ , . . . , Xm        strategies can usually be constructed, either by con-
+be zero mean with the appropriate covariance struc-           structing a suitable continuum of parametrizations
+ture and                                                      between centered and noncentered, or perhaps by
+                                                              more data-specific methods such as the construction
+     X = X̃ + Θ1 = h̃(X ∗ , Θ, Y )                            used for diffusion processes in Example 5.1. Partially
+                                                 ∗ T
+       = (Y1 − Θ, . . . , Yn − Θ, X1∗ , . . . , Xm ) + Θ1.    noncentered parametrizations are sometimes diffi-
+                                                              cult to construct, though the methods have appeal-
+Hence, in effect we center the observed and noncen-           ing robustness characteristics with respect to differ-
+ter the unobserved values.                                    ent data sets and data types.
+                                                                 Further work is required in a number of directions.
+                    6. DISCUSSION                             Applications of (partial) noncentering parametriza-
+                                                              tions are as yet uncommon, and much remains to be
+   We have tried to demonstrate in this paper the             learned about the effectiveness of the method, par-
+very wide applicability and complementary roles of            ticularly taking into account the possible additional
+centering and noncentering approaches to parame-              computing overheads sometimes associated with the
+trization of hierarchical models. Neither centering           use of these methods. Also further study is required
+nor noncentering methods are uniformly effective;             to generalize our theoretical knowledge beyond the
+however, we give a clear qualitative (and in some             examples we are able to cover here.
+cases quantitative) understanding of when noncen-
+tering parametrizations are likely to be effective.                        ACKNOWLEDGMENTS
+Conveniently, the two strategies possess complemen-             The first author would like to thank Mike Pitt for
+tary strengths, making their combined use an attrac-          useful suggestions, and EPSRC Grant GR/S61577/01
+tive and relatively robust option.                            for financial support. The Editor handling this pa-
+   A significant advantage of centered over noncen-           per made helpful comments which have improved
+tered methods is that they explicitly use the con-            the presentation of the paper.
+ditional independence structure inherent from the
+hierarchical setup. It is common for conjugate con-
+                                                                                REFERENCES
+ditional distributions for parameters to exist only
+when using the CP. Thus, in some cases this can lead           [1] Amit, Y. (1991). On rates of convergence of stochastic
+                                                                       relaxation for Gaussian and non-Gaussian distribu-
+to a significant relative computational cost for the                   tions. J. Multivariate Anal. 38 82–99. MR1128938
+NCP. Our experience suggests that in many cases,               [2] Beskos, A., Papaspiliopoulos, O., Roberts, G. O.
+any extra computational burden is more than offset                     and Fearnhead, P. (2006). Exact and computa-
+by the convergence advantages resulting from the                       tionally efficient likelihood-based estimation for dis-
+appropriate use of noncentering. See [27] for a sim-                   cretely observed diffusion processes (with discus-
+                                                                       sion). J. R. Stat. Soc. Ser. B Stat. Methodol. 68
+ulation study of algorithm efficiency in the partially                 333–382. MR2278331
+observed stochastic epidemic context. This work ex-            [3] Carter, C. K. and Kohn, R. (1994). On Gibbs sam-
+plicitly considers the loss of efficiency due to the                   pling for state space models. Biometrika 81 541–
+breakdown of conjugacy and compares this with the                      553. MR1311096
+                                                               [4] Catlin, S. N., Abkowitz, J. L. and Guttorp, P.
+benefits of more rapid convergence.
+                                                                       (2001). Statistical inference in a two-compartment
+   Noncentered parametrizations are certainly not                      model for hematopoiesis. Biometrics 57 546–553.
+unique. We describe how quite general classes of                       MR1855690
+models allow the easy construction of noncentered              [5] Chib, S., Pitt, M. and Shephard, N. (2004).
+parametrizations. Perhaps the most generally appli-                    Likelihood      based      inference   for   diffusion
+                                                                       driven models. Working paper. Available at
+cable technique for this purpose is the state-space                    www.nuff.ox.ac.uk/economics/papers/2004/w20/chibpittshep
+expansion technique. Here a key feature of noncen-             [6] Christensen, O. F., Roberts, G. O. and Sköld, M.
+tered parametrizations is that they are by construc-                   (2006). Robust Markov chain Monte Carlo meth-
+tion always practical, that is, P (Θ|X̃) = P (Θ) is al-                ods for spatial generalized linear mixed models J.
+ways available up to a normalizing constant.                           Comput. Graph. Statist. 15 1–17. MR2269360
+                                                               [7] Christensen, O. F. and Waagepetersen, R. (2002).
+   It is by now well established empirically and in                    Bayesian prediction of spatial count data using gen-
+some cases theoretically, that parametrizations which                  eralized linear mixed models. Biometrics 58 280–
+are superior to both the centered and noncentered                      286. MR1908167
+                                   PARAMETRIZATION OF HIERARCHICAL MODELS                                            15
+
+ [8] Diebolt, J. and Robert, C. P. (1994). Estimation of           [25] Møller, J., Syversveen, A. R. and Waagepetersen,
+          finite mixture distributions through Bayesian sam-                R. P. (1998). Log Gaussian Cox processes. Scand.
+          pling. J. Roy. Statist. Soc. Ser. B 56 363–375.                   J. Statist. 25 451–482. MR1650019
+          MR1281940                                                [26] Müller, P., Erkanli, A. and West, M. (1996).
+ [9] Diggle, P. J., Tawn, J. A. and Moyeed, R. A. (1998).                   Bayesian curve fitting using multivariate normal
+          Model-based geostatistics (with discussion). Appl.                mixtures. Biometrika 83 67–79. MR1399156
+          Statist. 47 299–350. MR1626544                           [27] Neal, P. and Roberts, G. O. (2005). A case study
+[10] Escobar, M. D. (1994). Estimating normal means with                    in noncentering for data augmentention: Stochastic
+          a Dirichlet process prior. J. Amer. Statist. Assoc.               epidemics. Stat. Comput. 15 315–327. MR2205394
+          89 268–277. MR1266299                                    [28] Nielsen, B. and Shephard, N. (2003). Likelihood anal-
+[11] Ferguson, T. S. (1974). Prior distributions on spaces                  ysis of a first-order autoregressive model with expo-
+          of probability measures. Ann. Statist. 2 615–629.                 nential innovations. J. Time Ser. Anal. 24 337–344.
+          MR0438568
+                                                                            MR1984600
+[12] Gelfand, A. E. (2000). Gibbs sampling. J. Amer.
+                                                                   [29] O’Neill, P. D. and Roberts, G. O. (1999). Bayesian
+          Statist. Assoc. 95 1300–1304. MR1825281
+                                                                            inference for partially observed stochastic epi-
+[13] Gelfand, A. E., Sahu, S. K. and Carlin, B. P.
+                                                                            demics. J. Roy. Statist. Soc. Ser. A 162 121–129.
+          (1995). Efficient parameterisations for normal linear
+                                                                   [30] Papaspiliopoulos,         O.     (2003).    Non-centered
+          mixed models. Biometrika 82 479–488. MR1366275
+[14] Gelfand, A. E., Sahu, S. K. and Carlin, B. P.                          parametrizations for hierarchical models and
+          (1996). Efficient parametrizations for generalized                data augmentation. Ph.D. dissertation, Dept.
+          linear mixed models. In Bayesian Statistics 5 (J.                 Mathematics and Statistics, Lancaster Univ.
+          M. Bernardo, J. O. Berger, A. P. Dawid and A. F.         [31] Papaspiliopoulos, O. and Roberts, G. (2004). Ret-
+          M. Smith, eds.) 165–180. Oxford Univ. Press, New                  rospective Markov chain Monte Carlo methods for
+          York. MR1425405                                                   Dirichlet process hierarchical models. Available at
+[15] Ghysels, E., Harvey, A. C. and Renault, E. (1996).                     www.warwick.ac.uk/staff/O.Papaspiliopoulos/research.html
+          Stochastic volatility. In Statistical Methods in Fi-     [32] Papaspiliopoulos, O. and Roberts, G. (2005). Stabil-
+          nance (G. S. Maddala and C. R. Rao, eds.) 119–191.                ity of the Gibbs sampler for Bayesian hierarchical
+          North-Holland, Amsterdam. MR1602124                               models. Submitted.
+[16] Griffin, J. E. and Steel, M. F. J. (2003). Flexible           [33] Papaspiliopoulos, O., Roberts, G. O., and Sköld,
+          mixture modelling of stochastic frontiers. Technical              M. (2003). Non-centered parameterizations for hi-
+          Report 418, Dept. Statistics, Univ. Warwick.                      erarchical models and data augmentation (with dis-
+[17] Griffin, J. E. and Steel, M. F. J. (2004). Semi-                       cussion). In Bayesian Statistics 7 (J. M. Bernardo,
+          parametric Bayesian inference for stochastic frontier             M. J. Bayarri, J. O. Berger, A. P. Dawid, D. Heck-
+          models. J. Econometrics 123 121–152. MR2126161                    erman, A. F. M. Smith and M. West, eds.) 307–326.
+[18] Ishwaran, H. and Zarepour, M. (2000). Markov chain                     Oxford Univ. Press, New York. MR2003180
+          Monte Carlo in approximate Dirichlet and beta two-       [34] Peruggia, M., Van Zandt, T. and Chen, M. (2002).
+          parameter process hierarchical models. Biometrika                 Was it a car or a cat I saw? An analysis of re-
+          87 371–390. MR1782485                                             sponse times for word recognition. Case Studies in
+[19] Jones, G. L. and Hobert, J. P. (2001). Honest ex-                      Bayesian Statistics VI. Lecture Notes in Statist. 167
+          ploration of intractable probability distributions via            319–334. Springer, New York. MR1959665
+          Markov chain Monte Carlo. Statist. Sci. 16 312–334.      [35] Renshaw, E. and Gibson, G. J. (1998). Can Markov
+          MR1888447                                                         chain Monte Carlo be usefully applied to stochastic
+[20] Kitagawa, G. (1987). Non-Gaussian state-space mod-
+                                                                            processes with hidden birth times? Inverse Prob-
+          eling of nonstationary time series (with discussion).
+                                                                            lems 14 1581–1606. MR1662484
+          J. Amer. Statist. Assoc. 82 1032–1063. MR0922169
+                                                                   [36] Roberts, G. O., Papaspiliopoulos, O. and Della-
+[21] Knorr-Held, L. and Rue, H. (2002). On block updat-
+                                                                            portas, P. (2004). Bayesian inference for non-
+          ing in Markov random field models for disease map-
+                                                                            Gaussian Ornstein–Uhlenbeck stochastic volatility
+          ping. Scand. J. Statist. 29 597–614. MR1988414
+[22] Lavine, M. and West, M. (1992). A Bayesian method                      processes. J. R. Stat. Soc. Ser. B Stat. Methodol.
+          for classification and discrimination. Canad. J.                  66 369–393. MR2062382
+          Statist. 20 451–461. MR1208356                           [37] Roberts, G. O. and Sahu, S. K. (1997). Updating
+[23] Liu, J. S. (1994). Fraction of missing information and                 schemes, correlation structure, blocking and param-
+          convergence rate of data augmentation. In Comput-                 eterization for the Gibbs sampler. J. Roy. Statist.
+          ing Science and Statistics: Proc. 26th Symposiom                  Soc. Ser. B 59 291–317. MR1440584
+          on the Interface 490–496. Interface Foundation of        [38] Roberts, G. O. and Stramer, O. (2001). On inference
+          North America, Fairfax Station, VA.                               for partially observed nonlinear diffusion models us-
+[24] Liu, J. S., Wong, W. H. and Kong, A. (1995). Covari-                   ing the Metropolis–Hastings algorithm. Biometrika
+          ance structure and convergence rate of the Gibbs                  88 603–621. MR1859397
+          sampler with various scans. J. Roy. Statist. Soc.        [39] Rubin, D. B. (1987). Multiple Imputation for Nonre-
+          Ser. B 57 157–169. MR1325382                                      sponse in Surveys. Wiley, New York. MR0899519
+16                            O. PAPASPILIOPOULOS, G. O. ROBERTS AND M. SKÖLD
+
+[40] Rue, H. (2001). Fast sampling of Gaussian Markov ran-     [44] Walker, S. G., Damien, P., Laud, P. W. and Smith,
+         dom fields. J. R. Stat. Soc. Ser. B Stat. Methodol.           A. F. M. (1999). Bayesian nonparametric infer-
+         63 325–338. MR1841418                                         ence for random distributions and related func-
+[41] Rue, H. and Tjelmeland, H. (2002). Fitting Gaussian               tions (with discussion). J. R. Stat. Soc. Ser. B Stat.
+         Markov random fields to Gaussian fields. Scand. J.            Methodol. 61 485–527. MR1707858
+         Statist. 29 31–49. MR1894379                          [45] White, J. S. (1958). The limiting distribution of the
+[42] Sethuraman, J. (1994). A constructive definition                  serial correlation coefficient in the explosive case.
+         of Dirichlet priors. Statist. Sinica 4 639–650.               Ann. Math. Statist. 29 1188–1197. MR0100952
+         MR1309433
+[43] Shephard, N. (1994). Partial non-Gaussian state space.
+         Biometrika 81 115–131. MR1279661
+

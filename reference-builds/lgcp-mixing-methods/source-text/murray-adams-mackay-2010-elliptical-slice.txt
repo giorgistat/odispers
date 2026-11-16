@@ -1,0 +1,580 @@
+                                       Elliptical slice sampling
+
+
+
+            Iain Murray                       Ryan Prescott Adams                      David J.C. MacKay
+         University of Toronto                 University of Toronto                  University of Cambridge
+
+
+                      Abstract                                  In some circumstances MCMC provides good results
+                                                                with minimal model-specific implementation. Gibbs
+                                                                sampling, in particular, is frequently used to sample
+    Many probabilistic models introduce strong
+                                                                from probabilistic models in a straightforward way, up-
+    dependencies between variables using a latent
+                                                                dating one variable at a time. In models with strong
+    multivariate Gaussian distribution or a Gaus-
+                                                                dependencies among variables, including many with
+    sian process. We present a new Markov chain
+                                                                Gaussian priors, Gibbs sampling is known to perform
+    Monte Carlo algorithm for performing infer-
+                                                                poorly. Several authors have previously addressed the
+    ence in models with multivariate Gaussian
+                                                                issue of sampling from models containing strongly cor-
+    priors. Its key properties are: 1) it has simple,
+                                                                related Gaussians, notably the recent work of Titsias
+    generic code applicable to many models, 2) it
+                                                                et al. (2009). In this paper we provide a technique
+    has no free parameters, 3) it works well for
+                                                                called elliptical slice sampling that is simpler and of-
+    a variety of Gaussian process based models.
+                                                                ten faster than other methods, while also removing the
+    These properties make our method ideal for
+                                                                need for preliminary tuning runs. Our method provides
+    use while model building, removing the need
+                                                                a drop-in replacement for MCMC samplers of Gaussian
+    to spend time deriving and tuning updates
+                                                                models that are currently using Gibbs or Metropolis–
+    for more complex algorithms.
+                                                                Hastings and we demonstrate empirical success against
+                                                                competing methods with several different GP-based
+                                                                likelihood models.
+1    Introduction
+The multivariate Gaussian distribution is commonly              2    Elliptical slice sampling
+used to specify a priori beliefs about dependencies
+                                                                Our objective is to sample from a posterior distri-
+between latent variables in probabilistic models. The
+                                                                bution over latent variables that is proportional to
+parameters of such a Gaussian may be specified directly,
+                                                                the product of a multivariate Gaussian prior and a
+as in graphical models and Markov random fields, or
+                                                                likelihood function that ties the latent variables to the
+implicitly as the marginals of a Gaussian process (GP).
+                                                                observed data. We will use f to indicate the vector
+Gaussian processes may be used to express concepts of
+                                                                of latent variables that we wish to sample and denote
+spatial or temporal coherence, or may more generally
+                                                                a zero-mean Gaussian distribution with covariance Σ by
+be used to construct Bayesian kernel methods for non-
+                                                                       N (f ; 0, Σ) ≡ |2πΣ|− /2 exp − 21 f > Σ−1 f . (1)
+                                                                                            1
+                                                                                                                  
+parametric regression and classification. Rasmussen
+and Williams (2006) provide a recent review of GPs.
+                                                                We also use f ∼ N (0, Σ) to state that f is drawn from
+Inferences can only be calculated in closed form for            a distribution with the density in (1). Gaussians
+the simplest Gaussian latent variable models. Recent            with non-zero means can simply be shifted to have
+work shows that posterior marginals can sometimes be            zero-mean with a change of variables; an example
+well approximated with deterministic methods (Kuss              will be given in Section 3.3. We use L(f ) = p(data | f )
+and Rasmussen, 2005; Rue et al., 2009). Markov chain            to denote the likelihood function so that our target
+Monte Carlo (MCMC) methods represent joint pos-                 distribution for the MCMC sampler is
+terior distributions with samples (e.g. Neal, 1993).                                    1
+MCMC can be slower but applies more generally.                                 p?(f ) =   N (f ; 0, Σ) L(f ),       (2)
+                                                                                        Z
+                                                                where Z is the normalization constant, or the marginal
+Appearing in Proceedings of the 13th International Con-
+ference on Artificial Intelligence and Statistics (AISTATS)
+                                                                likelihood, of the model.
+2010, Chia Laguna Resort, Sardinia, Italy. Volume 9 of          Our starting point is a Metropolis–Hastings method
+JMLR: W&CP 9. Copyright 2010 by the authors.
+                                                                introduced by Neal (1999). Given an initial state f , a
+
+
+                                                              541
+                                                  Elliptical slice sampling
+
+
+new state                                                            Input: current state f , a routine that samples from
+         0
+              p                                                      N (0, Σ), log-likelihood function log L.
+        f =       1 − 2 f +  ν,    ν ∼ N (0, Σ)        (3)         Output: a new state f 0 . When f is drawn from p?(f ) ∝
+                                                                     N (f ; 0, Σ) L(f ), the marginal distribution of f 0 is also p?.
+is proposed, where  ∈ [−1, 1] is a step-size parameter.
+The proposal is a sample from the prior for  = 1 and                1. Sample from p( ν 0 , ν 1 , θ | (ν 0 sin θ+ν 1 cos θ = f ) ):
+more conservative for values closer to zero. The move                                        θ ∼ Uniform[0, 2π]
+is accepted with probability                                                                ν ∼ N (0, Σ)
+                                                                                          ν 0 ← f sin θ + ν cos θ
+             p(accept) = min(1, L(f 0 )/L(f )),          (4)                              ν 1 ← f cos θ − ν sin θ
+                                                                     2. Update θ ∈ [0, 2π] using slice sampling (Neal, 2003)
+otherwise the next state in the chain is a copy of f .                  on:
+Neal reported that for some Gaussian process classifiers                        p?(θ | ν 0 , ν 1 ) ∝ L(ν 0 sin θ + ν 1 cos θ)
+the Metropolis–Hastings method was many times faster                 3. return f 0 = ν 0 sin θ + ν 1 cos θ
+than Gibbs sampling. The method is also simpler to
+implement and can immediately be applied to a much               Figure 1: Intuition behind elliptical slice sampling. This
+wider variety of models with Gaussian priors.                    is a valid algorithm, but will be adapted (Figure 2).
+A drawback, identified by Neal (1999), is that the
+step-size  needs to be chosen appropriately for the             We will first intuitively construct a valid method by
+Markov chain to mix efficiently. This may require                positing an augmented probabilistic model in which
+preliminary runs. Usually parameters of the covariance           the step-size is a variable. Standard slice sampling algo-
+Σ and likelihood function L are also inferred from data.         rithms then apply to that model. We will then adjust
+Different step-size parameters may be needed as the              the algorithm for our particular setting to provide a
+model parameters are updated. It would be desirable              second, slightly tidier algorithm.
+to automatically search over the step-size parameter,            Our augmented probabilistic model replaces the origi-
+while maintaining a valid algorithm.                             nal latent variable with prior f ∼ N (0, Σ) with
+For a fixed auxiliary random draw, ν, the locus of
+                                                                                     ν 0 ∼ N (0, Σ)
+possible proposals by varying  ∈ [−1, 1] in (3) is half
+of an ellipse. A more natural parameterization is                                    ν 1 ∼ N (0, Σ)
+                                                                                                                                    (6)
+                                                                                       θ ∼ Uniform[0, 2π]
+                    0
+                   f = ν sin θ + f cos θ,                (5)                           f = ν 0 sin θ + ν 1 cos θ.
+defining a full ellipse passing through the current state f      The marginal distribution over the original latent vari-
+and the auxiliary draw ν. For a fixed θ there is an              able f is still N (0, Σ), so the distribution over data
+equivalent  that gives the same proposal distribution           is identical. However, we can now sample from the
+in the original algorithm. However, if we can search             posterior over the new latent variables:
+over the step-size, the full ellipse gives a richer choice
+of updates for a given ν.                                        p?(ν 0 , ν 1 , θ) ∝ N (ν 0 ; 0, Σ) N (ν 1 ; 0, Σ) L(f (ν 0 , ν 1 , θ)),
+
+2.1   Sampling an alternative model                              and use the values of f deterministically derived from
+                                                                 these samples. Our first approach applies two Monte
+‘Slice sampling’ (Neal, 2003) provides a way to sample           Carlo transition operators that leave the new latent
+ along a line with an adaptive step-size. Proposals are          posterior invariant.
+ drawn from an interval or ‘bracket’ which, if too large,
+                                                                 Operator 1: jointly resample the latents ν 0 , ν 1 , θ
+ is shrunk automatically until an acceptable point is
+                                                                 given the constraint that f (ν 0 , ν 1 , θ) is unchanged. Be-
+ found. There are also ways to automatically enlarge
+                                                                 cause the effective variable of interest doesn’t change,
+ small initial brackets. Naively applying these adaptive
+                                                                 the likelihood does not affect this conditional distribu-
+ algorithms to select the value of  in (3) or θ in (5)
+                                                                 tion, so the update is generic and easy to implement.
+ does not result in a Markov chain transition operator
+with the correct stationary distribution. The locus of           Operator 2: use a standard slice sampling algorithm
+ states is defined using the current position f , which          to update the step-size θ given the other variables.
+ upsets the reversibility and correctness of the update.
+                                                                 The resulting algorithm is given in Figure 1. The
+We would like to construct a valid Markov chain tran-            auxiliary model construction makes the link to slice
+sition operator on the ellipse of states that uses slice         sampling explicit, which makes it easy to understand
+sampling’s existing ability to adaptively pick step sizes.       the validity of the approach. However, the algorithm
+
+
+                                                               542
+                                              Murray, Adams, MacKay
+
+
+can be neater and the [0, 2π] range for slice sampling               Input: current state f , a routine that samples from
+is unnatural on an ellipse. The algorithm that we will               N (0, Σ), log-likelihood function log L.
+present in detail results from eliminating ν 0 and ν 1               Output: a new state f 0 . When f is drawn from p?(f ) ∝
+and a different way of setting slice sampling’s initial              N (f ; 0, Σ) L(f ), the marginal distribution of f 0 is also p?.
+proposal range. The precise connection will be given
+                                                                      1. Choose ellipse: ν ∼ N (0, Σ)
+in Section 2.4. A more direct, technical proof that
+                                                                      2. Log-likelihood threshold:
+the equilibrium distribution of the Markov chain is the
+                                                                                            u ∼ Uniform[0, 1]
+target distribution is presented in Section 2.3.
+                                                                                        log y ← log L(f ) + log u
+Elliptical slice sampling, our proposed algorithm is
+                                                                      3. Draw an initial proposal, also defining a bracket:
+given in Figure 2, which includes the details of the slice
+                                                                                                θ ∼ Uniform[0, 2π]
+sampler. An example run is illustrated in Figure 3(a–d).
+Even for high-dimensional problems, the states consid-                              [θmin , θmax ] ← [θ−2π, θ]
+ered within one update lie in a two-dimensional plane.                4. f 0 ← f cos θ + ν sin θ
+In high dimensions f and ν are likely to have similar                 5. if log L(f 0 ) > log y then:
+lengths and be an angle of π/2 apart. Therefore the                   6.      Accept: return f 0
+ellipse will typically be fairly close to a circle, although          7. else:
+                                                                              Shrink the bracket and try a new point:
+this is not required for the validity of the algorithm.
+                                                                      8.      if θ < 0 then: θmin ← θ else: θmax ← θ
+As intended, our slice sampling approach selects a                    9.      θ ∼ Uniform[θmin , θmax ]
+new location on the randomly generated ellipse in (5).               10.      GoTo 4.
+There are no rejections: the new state f 0 is never equal
+to the current state f unless that is the only state on                Figure 2: The elliptical slice sampling algorithm.
+the ellipse with non-zero likelihood. The algorithm
+proposes the angle θ from a bracket [θmin , θmax ] which
+is shrunk exponentially quickly until an acceptable
+state is found. Thus the step size is effectively adapted
+on each iteration for the current ν and Σ.
+                                                                      (a)                            (b)
+2.2   Computational cost
+
+Drawing ν costs O(N 3 ), for N -dimensional f and gen-
+eral Σ. The usual implementation of a Gaussian sam-
+pler would involve caching a (Cholesky) decomposition
+of Σ, such that draws on subsequent iterations cost
+O(N 2 ). For some problems with special structure draw-               (c)                            (d)
+ing samples from the Gaussian prior can be cheaper.
+In many models the Gaussian prior distribution cap-
+tures dependencies: the observations are independent
+conditioned on f . In these cases, computing L(f ) will
+cost O(N ) computation. As a result, drawing the ν
+random variate will be the dominant cost of the update                                                (e)
+in many high-dimensional problems. In these cases
+the extra cost of elliptical slice sampling over Neal’s
+                                                                 Figure 3: (a) The algorithm receives f = as input. Step 1
+Metropolis–Hastings algorithm will be small.                     draws auxiliary variate ν= , defining an ellipse centred at
+As a minor performance improvement, our implementa-              the origin ( ). Step 2: a likelihood threshold defines the
+                                                                 ‘slice’ ( ). Step 3: an initial proposal is drawn, in this
+tion optionally accepts the log-likelihood of the initial        case not on the slice. (b) The first proposal defined both
+state, if known from a previous update, so that it               edges of the [θmin , θmax ] bracket; the second proposal ( )
+doesn’t need to be recomputed in step 2.                         is also drawn from the whole range. (c) One edge of the
+                                                                 bracket ( ) is moved to the last rejected point such that
+                                                                     is still included. Proposals are made with this shrinking
+2.3   Validity                                                   rule until one lands on the slice. (d) The proposal here ( )
+                                                                 is on the slice and is returned as f 0 . (e) Shows the reverse
+Elliptical slice sampling considers settings of an angle         configuration discussed in Section 2.3:        is the input f 0 ,
+variable, θ. Figure 2 presented the algorithm as it              which with auxiliary ν 0 = defines the same ellipse. The
+would be used: there is no need to index or remember             brackets and first three proposals ( ) are the same. The
+the visited angles. For the purposes of analysis we              final proposal ( ) is accepted, a move back to f .
+
+
+                                                               543
+                                                         Elliptical slice sampling
+
+
+will denote the ordered sequence of angles considered                   Substituting (9) into (7) shows that ensuring that the
+during the algorithm by {θk } with k = 1..K.                            forward and reverse angles are equally probable,
+We first identify the joint distribution over a state                              p({θk } | f , ν, y) = p({θk0 } | f 0 , ν 0 , y),   (12)
+drawn from the target distribution (2) and the other
+random quantities generated by the algorithm:                           results in the reversible property (10).
+
+   p(f , y, ν, {θk }) = p?(f ) p(y | f ) p(ν) p({θk } | f , ν, y)       The algorithm does satisfy (12): The probability of the
+                                                                        first angle is always 1/2π. If more angles were considered
+             1                                                          before an acceptable state was found, these angles were
+       =       N (f ; 0, Σ) N (ν; 0, Σ) p({θk } | f , ν, y), (7)
+             Z                                                          drawn with probabilities 1/(θmax − θmin ). Whenever
+where the vertical level y was drawn uniformly                          the bracket was shrunk in step 8, the side to shrink must
+in [0, L(f )], that is, p(y | f ) = 1/L(f ). The final term,            have been chosen such that fK remained selectable as it
+p({θk } | f , ν, y), is a distribution over a random-sized set          was selected later. The reverse transition uses the same
+of angles, defined by the stopping rule of the algorithm.               intermediate proposals, making the same rejections
+                                                                        with the same likelihood threshold, y. Because the
+Given the random variables in (7) the algorithm de-                     algorithm explicitly includes the initial state, which in
+terministically computes positions, {fk }, accepting the                reverse is fK at θ0 = 0, the reverse transition involves
+first one that satisfies a likelihood constraint. More                  the same set of shrinking decisions as the forwards
+generally each angle specifies a rotation of the two                    transitions. As the same brackets are sampled, the
+a priori Gaussian variables:                                            1/(θmax − θmin ) probabilities for drawing angles are the
+                                                                        same for the forwards and reverse transitions.
+           ν k = ν cos θk − f sin θk
+                                                                (8)     The reversibility of the transition operator (10) implies
+            fk = ν sin θk + f cos θk ,        k = 1..K.
+                                                                        that the target posterior distribution (2) is a station-
+For any choice of θk this deterministic transformation                  ary distribution of the Markov chain. Drawing f from
+has unit Jacobian. Any such rotation also leaves the                    the stationary distribution and running the algorithm
+joint prior probability invariant,                                      draws a sample from the joint auxiliary distribution (7).
+                                                                        The deterministic transformations in (8) and (11) have
+  N (ν k ; 0, Σ) N (fk ; 0, Σ) = N (ν; 0, Σ) N (f ; 0, Σ)       (9)     unit Jacobian, so the probability density of obtaining
+                                                                        a joint draw corresponding to (f 0 , y, ν 0 , {θk0 }) is equal
+for all k, which can easily be verified by substituting                 to the probability given by (7) for the original vari-
+values into the Gaussian form (1).                                      ables. The reversible property in (10) shows that this
+It is often useful to consider how an MCMC algorithm                    is the same probability as generating the variables by
+could make a reverse transition from the final state f 0                first generating f 0 from the target distribution and gen-
+back to the initial state f . The final state f 0 = fK was              erating the remaining quantities using the algorithm.
+the result of a rotation by θK in (8). Given an initial                 Therefore, the marginal probability of f 0 is given by
+state of f 0 = fK , the algorithm could generate ν 0 = ν K              the target posterior (2).
+in step 1. Then a rotation of −θK would return back                     Given the first angle, the distribution over the first pro-
+to the original (f , ν) pair. Moreover, the same ellipse                posed move is N (f cos θ, Σ sin2 θ). Therefore, there is a
+of states is accessible and rotations of θk − θK will                   non-zero probability of transitioning to any region that
+reproduce any intermediate fk<K locations visited by                    has non-zero probability under the posterior. This is
+the initial run of the algorithm.                                       enough to ensure that, formally, the chain is irreducible
+In fact, the algorithm is reversible:                                   and aperiodic (Tierney, 1994). Therefore, the Markov
+                                                                        chain has a unique stationary distribution and repeated
+            p(f , y, ν, {θk }) = p(f 0 , y, ν 0 , {θk0 }),     (10)     applications of elliptical slice sampling to an arbitrary
+                                                                        starting point will asymptotically lead to points drawn
+the equilibrium probability of a forwards draw (7) is                   from the target posterior distribution (2).
+the same as the probability of starting at f 0 , drawing
+the same y (possible because L(f 0 ) > y), ν 0 = ν K and                2.4   Slice sampling variants
+                        (
+                    0    θk − θK k < K                                  There is some amount of choice in how the slice sampler
+           angles, θk =                               (11)
+                         −θK         k = K,                             on the ellipse could be set up. Other methods for
+                                                                        proposing angles could have been used, as long as they
+resulting in the original state f being returned. The                   satisfied the reversible condition in (12). The particular
+reverse configuration corresponding to the result of a                  algorithm proposed in Figure 2 is appealing because it
+forwards run in Figure 3(d) is illustrated in Figure 3(e).              is simple and has no free parameters.
+
+
+                                                                      544
+                                                  Murray, Adams, MacKay
+
+
+The algorithm must choose the initial edges of the                 2.5   Limitations
+bracket [θmin , θmax ] randomly. It would be aesthet-
+ically pleasing to place the edges of the bracket at               A common modeling situation is that an unknown
+                                                                                                 2
+the opposite side of the ellipse to the current position,          constant offset, c ∼ N (0, σm   ), has been added to the
+at ±π. However this deterministic bracket placement                entire latent vector f . The resulting variable, g = f+c, is
+                                                                                                                     2
+would not be reversible and gives an invalid algorithm.            still Gaussian distributed, with the constant σm     added
+                                                                   to every element of the covariance matrix. Neal (1999)
+The edge of a randomly-chosen bracket could lie on                 identified that this sort of covariance will not tend
+the ‘slice’, the acceptable region of states. Our recom-           to produce useful auxiliary draws ν. An iteration of
+mended elliptical slice sampling algorithm, Figure 2,              the Markov chain can only add a nearly-constant shift
+would accept this point. The initially-presented algo-             to the current state. Indeed, covariances with large
+rithm, Figure 1, effectively randomly places the end-              constant terms are generally problematic as they tend
+points of the bracket but without checking this location           to be poorly conditioned. Instead, large offsets should
+for acceptability. Apart from this small change, it can            be modeled and sampled as separate variables.
+be shown that the algorithms are equivalent.
+                                                                   No algorithm can sample effectively from arbitrary dis-
+In typical problems the slice will not cover the whole             tributions. As any distribution can be factored as in
+ellipse. For example, if f is a representative sample              (2), there exist likelihoods L(f ) for which elliptical slice
+from a posterior, often −f will not be. Increasing the             sampling is not effective. Many Gaussian process appli-
+probability of proposing points close to the current               cations have strong prior smoothness constraints and
+state may increase efficiency. One way to do this would            relatively weak likelihood constraints. This important
+be to shrink the bracket more aggressively (Skilling               regime is where we focus our empirical comparison.
+and MacKay, 2003). Another would be to derive a
+model from the auxiliary variable model (6), but with
+a non-uniform distribution on θ. Another way would                 3     Related work
+be to randomly position an initial bracket of width less
+than 2π — the code that we provide optionally allows               Elliptical slice sampling builds on a Metropolis–
+this. However, as explained in section 2.2, for high-              Hastings (M–H) update proposed by Neal (1999). Neal
+dimensional problems such tuning will often only give              reported that the original update performed moderately
+small improvements. For smaller problems we have                   better than using a more obvious M–H proposal,
+seen it possible to improve the cpu-time efficiency of
+                                                                                f 0 = f +  ν,     ν ∼ N (0, Σ),          (13)
+the algorithm by around two times.
+Another possible line of research is methods for biasing           and much better than Gibbs sampling for Gaussian
+proposals away from the current state. For example                 process classification. Neal also proposed using Hy-
+the ‘over-relaxed’ methods discussed by Neal (2003)                brid/Hamiltonian Monte Carlo (Duane et al., 1987;
+have a bias towards the opposite side of the slice from            Neal, 1993), which can be very effective, but requires
+the current position. In our context it may be desirable           tuning and the implementation of gradients. We now
+to encourage moves close to θ = π/2, as these moves are            consider some other alternatives that have similar re-
+independent of the previous position. These proposals              quirements to elliptical slice sampling.
+are only likely to be useful when the likelihood terms are
+very weak, however. In the limit of sampling from the              3.1   ‘Conventional’ slice sampling
+prior due to a constant likelihood, the algorithm already
+samples reasonably efficiently. To see this, consider              Elliptical slice sampling builds on the family of methods
+the distribution over the outcome after N iterations               introduced by Neal (2003). Several of the existing
+initialized at f 0 :                                               slice sampling methods would also be easy to apply:
+                                                                   they only require point-wise evaluation of the posterior
+              N                N                  N                up to a constant. These methods do have step-size
+              Y                X                  Y
+    fN = f0         cos θn +         ν m sin θm       cos θn ,     parameters, but unlike simple Metropolis methods,
+              n=1              m=1            n=m+1                typically the performance of slice samplers does not
+                                                                   crucially rely on carefully setting free parameters.
+where ν n and θn are values drawn at iteration n. Only             The most popular generic slice samplers use simple
+one angle is drawn per iteration when sampling from                univariate updates, although applying these directly
+the prior, because the first proposal is always accepted.          to f would suffer the same slow convergence problems
+The only dependence on the initial state is the first              as Gibbs sampling. While Agarwal and Gelfand (2005)
+term, the coefficient of which shrinks towards zero                have applied slice sampling for sampling parameters
+exponentially quickly.                                             in Gaussian spatial process models, they assumed a
+
+
+                                                                 545
+                                              Elliptical slice sampling
+
+
+linear-Gaussian observation model. For non-Gaussian            (2009) also identified suitable subsets for local updates
+data it was suggested that “there seems to be little role      and then investigated sampling proposals from the
+for slice sampling.”                                           conditional Gaussian prior.
+Elliptical slice sampling changes all of the variables in      In fact, local updates can be combined with any tran-
+f at once, although there are potentially better ways of       sition operator for models with Gaussian priors. If
+achieving this. An extensive search space of possibilities     fA is a subset of variables to update and fB are the
+includes the suggestions for multivariate updates made         remaining variables, we can write the prior as:
+by Neal (2003).                                                                                   
+                                                                             fA           Σ      ΣA,B
+One simple possible slice sampling update performs a                             ∼ N 0, A,A                     (14)
+                                                                             fB           ΣB,A ΣB,B
+univariate update along a random line traced out by
+varying  in (13). As the M–H method based on the              and the conditional prior is:
+line worked less well than that based on an ellipse, one
+might also expect a line-based slice sampler to perform            p(fA | fB ) = N (fA ; m, S), where
+less well. Intuitively, in high dimensions much of the             m = ΣA,B Σ−1                           −1
+                                                                             B,B fB , and S = ΣA,A −ΣA,B ΣB,B ΣB,A .
+mass of a Gaussian distribution is in a thin ellipsoidal
+shell. A straight line will more rapidly escape this shell     A change of variables g = fA−m allows us to express    the
+than an ellipse passing through two points within it.
+                                                                                                                 »     –
+                                                               conditional posterior as: p?(g) ∝ N (g; 0, S) L g+m fB
+                                                                                                                          .
+                                                               We can then apply elliptical slice sampling, or any al-
+3.2   Control variables                                        ternative, to update g (and thus fA ). Updating groups
+                                                               of variables according to their conditional distributions
+Titsias et al. (2009) introduced a sampling method
+                                                               is a standard way of sampling from a joint distribution.
+inspired by sparse Gaussian process approximations.
+M control variables fc are introduced such that the
+joint prior p(f , fc ) is Gaussian, and that f still has       4       Experiments
+marginal prior N (0, Σ). For Gaussian process models a
+parametric family of joint covariances was defined, and        We performed an empirical comparison on three Gaus-
+the model is optimized so that the control variables           sian process based probabilistic modeling tasks. Only
+are informative about the original variables: p(f | fc )       a brief description of the models and methods can
+is made to be highly peaked. The optimization is a             be given here. Full code to reproduce the results is
+pre-processing step that occurs before sampling begins.        provided as supplementary material.
+The idea is that the small number of control variables fc
+will be less strongly coupled than the original variables,     4.1      Models
+and so can be moved individually more easily than the
+                                                               Each of the models associates a dimension of the latent
+components of f . A proposal involves resampling one
+                                                               variable, fn , with an ‘input’ or ‘feature’ vector xn . The
+control variable from the conditional prior and then
+                                                               models in our experiments construct the covariance
+resampling f from p(f | fc ). This move is accepted or
+                                                               from the inputs using the most common method,
+rejected with the Metropolis–Hastings rule.
+                                                                                        PD
+                                                                   Σij = σf2 exp − 21 d=1 (xd,i − xd,j )2 /`2 , (15)
+                                                                                                                 
+Although the method is inspired by an approximation
+used for large datasets, the accept/reject step uses the
+full model. After O(N 3 ) pre-processing it costs O(N 2 )      the squared-exponential or “Gaussian” covariance.
+to evaluate a proposed change to the N -dimensional            This covariance has “lengthscale” parameter ` and
+vector f . One ‘iteration’ in the paper consisted of an        an overall “signal variance” σf2 . Other covariances may
+update for each control variable and so costs O(M N 2 )        be more appropriate in many modeling situations, but
+— roughly M elliptical slice sampling updates. The             our algorithm would apply unchanged.
+control method uses fewer likelihood evaluations per           Gaussian regression: given observations y of the
+iteration, although has some different minor costs asso-       latent variables with Gaussian noise of variance σn2 ,
+ciated with book-keeping of the control variables.
+                                                                                            Q               2
+                                                                                Lr (f ) =   n N (yn ; fn , σn ),      (16)
+3.3   Local updates
+                                                               the posterior is Gaussian and so fully tractable. We
+In some applications it may make sense to update only          use this as a simple test that the method is working
+a subset of the latent variables at a time. This might         correctly. Differences in performance on this task will
+help for computational reasons given the O(N 2 ) scaling       also give some indication of performance with a simple
+for drawing samples of subsets of size N . Titsias et al.      log-concave likelihood function.
+
+
+                                                             546
+                                                  Murray, Adams, MacKay
+
+
+We generated ten synthetic datasets with input fea-                                               Control Variables                       Elliptical slice sampling
+
+ture dimensions from one to ten. Each dataset was                                       −35                                    −35
+
+of size N = 200, with inputs {xn }N
+                                  n=1 drawn uniformly                           log L
+                                                                                        −40                                    −40
+from a D-dimensional unit hypercube and function                                        −45                                    −45
+values drawn from a Gaussian prior, f ∼ N (0, Σ), using                                       0           500        1000            0              500            1000
+covariance (15) with lengthscale ` = 1 and unit signal                                         # Control variable moves                         # Iterations
+variance, σf2 = 1. Noise with variance σn2 = 0.32 was
+added to generate the observations.                                Figure 4: Traces of log-likelihoods for the 1-dimensional GP
+                                                                   regression experiment. Both lines are made with 333 points
+Gaussian process classification: a well-explored                   plotted after each sweep through M = 3 control variables
+application of Gaussian processes with a non-Gaussian              and after every 3 iterations of elliptical slice sampling.
+noise model is binary classification:                                                            Control Variables                           Elliptical slice sampling
+                         Q                                                     −40                                             −40
+                Lc (f ) = n σ (yn fn ) ,         (17)                          −60                                             −60
+                                                                               −80                                             −80
+                                                                       log L
+                                                                               −100                                            −100
+where yn ∈ {−1, +1} are the label data and σ(a) is a
+                                                                               −120                                            −120
+sigmoidal function: 1/(1+e−a ) for the logistic classifier;                    −140                                            −140
+a cumulative Gaussian for the probit classifier.                                        0               5000           10000          0                5000              10000
+                                                                                              # Control variable moves                             # Iterations
+
+We ran tests on the USPS classification problem
+as set up by Kuss and Rasmussen (2005). We                         Figure 5: As in Figure 4 but for 10-dimensional regression
+                                                                   and plotting every M = 78 iterations. (Control variables
+used log σf = 3.5, log ` = 2.5 and the logistic likelihood.        didn’t move on this run.)
+Log Gaussian Cox process: an inhomogeneous Pois-
+son process with a non-parametric rate can be con-                 ing small moves. It can be difficult to judge overall
+structed by using a shifted draw from a Gaussian pro-              sampling quality from trace plots alone.
+cess as the log-intensity function. Approximate infer-
+ence can be performed by discretizing the space into               As a quantitative measure of quality we estimated the
+bins and assuming that the log-intensity is uniform in             “effective number of samples” from log-likelihood traces
+each bin (Møller et al., 1998). Each bin contributes a              using R-CODA (Cowles et al., 2006). Figure 6 shows
+Poisson likelihood:                                                 these results along with computer time taken. The step
+                                                                    size for Neal’s Metropolis method was chosen using a
+                  Y λn yn exp(−λn )
+      Lp (f ) =                       ,   λn = efn +m ,   (18)      grid search to maximize performance. Times are for the
+                  n
+                          yn !                                      provided implementations under Matlab v7.8 on a sin-
+                                                                    gle 64 bit, 3 GHz Intel Xeon CPU. Comparing runtimes
+where the model explains the yn counts in bin n as
+                                                                    is always problematic, due to implementation-specific
+drawn from a Poisson distribution with mean λn . The
+                                                                    details. Our numbers of effective samples are primarily
+offset to the log mean, m, is the mean log-intensity of
+                                                                    plotted for the same number of O(N 2 ) updates with
+the Poisson process plus the log of the bin size.
+                                                                    the understanding that some correction based loosely
+We perform inference for a Cox process model of the                 on runtime should be applied.
+dates of mining disasters taken from a standard data
+                                                                   The control variables approach was particularly recom-
+set for testing point processes (Jarrett, 1979). The
+                                                                   mended for Gaussian processes with low-dimensional
+191 events were placed into 811 bins of 50 days each.
+                                                                   input spaces. On our particular low-dimensional
+The Gaussian process parameters were fixed to σf2 = 1
+                                                                   synthetic regression problems using control variables
+and ` = 13516 days (a third of the range of the dataset).
+                                                                   clearly outperforms all the other methods. On the
+The offset m in (18) was set to m = log(191/811), to
+                                                                   model of mining disasters, control variable sampling
+match the empirical mean rate.
+                                                                   has comparable performance to elliptical slice sampling
+                                                                   with about 50% less run time. On higher-dimensional
+4.2     Results                                                    problems more control variables are required; then
+                                                                   other methods cost less. Control variables failed to sam-
+A trace of the samples’ log-likelihoods, Figure 4, shows
+                                                                   ple in high-dimensions (Figure 5). On the USPS classifi-
+that elliptical slice sampling and control variables sam-
+                                                                   cation problem control variables ran exceedingly slowly
+pling have different behavior. The methods make differ-
+                                                                   and we were unable to obtain any meaningful results.
+ent types of moves and only control variables sampling
+contains rejections. Using long runs of either method              Elliptical slice sampling obtained more effective samples
+to estimate expectations under the target distribution             than Neal’s M–H method with the best possible step
+is valid. However, sticking in a state due to many                 size, although at the cost of increased run time. On the
+rejections can give a poor estimator as can always mak-            problems involving real data, elliptical slice sampling
+
+
+                                                                 547
+                                               Elliptical slice sampling
+
+
+
+
+Figure 6: Number of effective samples from 105 iterations after 104 burn in, with time and likelihood evaluations required.
+The means and standard deviations for 100 runs are shown (divide the “error bars” by 10 to get standard errors on the
+mean, which are small). Each iteration involves one O(N 2 ) operation (e.g. one ν draw or updating one control variable).
+Each group of bars in the top two rows has been rescaled for readability: the numbers beneath each group show the
+number of effective samples or CPU time in seconds for elliptical slice sampling, which always has bars of height 1.
+
+was better overall whereas M–H has more effective              Radford Neal, Sam Roweis, Christophe Andrieu and
+samples per unit time (in our implementation) on the           the reviewers for useful suggestions. RPA is funded by
+synthetic problems. The performance differences aren’t         the Canadian Institute for Advanced Research.
+huge; either method would work well enough.
+                                                               References
+Elliptical slice sampling takes less time than slice sam-
+                                                               D. K. Agarwal and A. E. Gelfand. Slice sampling for
+pling along a straight line (line sampling involves addi-         simulation based fitting of spatial data models. Statistics
+tional prior evaluations) and usually performs better.            and Computing, 15(1):61–69, 2005.
+                                                               M. K. Cowles, N. Best, K. Vines, and M. Plummer. R-
+                                                                  CODA 0.10-5, 2006. http://www-fis.iarc.fr/coda/.
+5    Discussion
+                                                               S. Duane, A. D. Kennedy, B. J. Pendleton, and D. Roweth.
+                                                                  Hybrid Monte Carlo. Physics Letters B, 195(2):216–222,
+The slice samplers use many more likelihood evaluations           September 1987.
+than the other methods. This is partly by choice:              R. G. Jarrett. A note on the intervals between coal-mining
+our code can take a step-size parameter to reduce the             disasters. Biometrika, 66(1):191–193, 1979.
+number of likelihood evaluations (Section 2.4). On             M. Kuss and C. E. Rasmussen. Assessing approximate infer-
+these problems the time for likelihood computations               ence for binary Gaussian process classification. Journal
+                                                                  of Machine Learning Research, 6:1679–1704, 2005.
+isn’t completely negligible: speedups of around ×2 may
+                                                               J. Møller, A. R. Syversveen, and R. P. Waagepetersen.
+be possible by tuning elliptical slice sampling. Our              Log Gaussian Cox processes. Scandinavian Journal of
+default position is that ease-of-use and human time is            Statistics, 25(3):451–482, 1998.
+important and that the advantage of having no free             R. M. Neal. Probabilistic inference using Markov chain
+parameters should often be taken in exchange for a                Monte Carlo methods. Technical Report CRG-TR-93-1,
+factor of two in runtime.                                         Dept. of Computer Science, University of Toronto, 1993.
+                                                               R. M. Neal. Regression and classification using Gaussian
+We fixed the parameters of Σ and L in our experi-                 process priors. In J. M. Bernardo et al., editors, Bayesian
+ments to simplify the comparison. Fixing the model                Statistics 6, pages 475–501. OU Press, 1999.
+potentially favors the methods that have adjustable            R. M. Neal. Slice sampling. Annals of Statistics, 31(3):
+                                                                  705–767, 2003.
+parameters. In problems were Σ and L change dra-
+                                                               C. E. Rasmussen and C. K. I. Williams. Gaussian Processes
+matically, a single step-size or optimized set of control         for machine learning. MIT Press, 2006.
+variables could work very poorly.                              H. Rue, S. Martino, and N. Chopin. Approximate Bayesian
+Elliptical slice sampling is a simple generic algorithm           inference for latent Gaussian models by using integrated
+                                                                  nested Laplace approximations. Journal of the Royal
+with no tweak parameters. It performs similarly to the            Statistical Society: Series B, 71(2):319–392, 2009.
+best possible performance of a related M–H scheme,             J. Skilling and D. J. C. MacKay. Slice sampling — a binary
+and could be applied to a wide variety of applications            implementation. Annals of Statistics, 31(3), 2003.
+in both low and high dimensions.                               L. Tierney. Markov chains for exploring posterior distribu-
+                                                                  tions. The Annals of Statistics, 22(4):1701–1728, 1994.
+Acknowledgements                                               M. Titsias, N. D. Lawrence, and M. Rattray. Efficient
+                                                                  sampling for Gaussian process inference using control
+Thanks to Michalis Titsias for code, Sinead Williamson            variables. In Advances in Neural Information Processing
+and Katherine Heller for a helpful discussion, and to             Systems 21, pages 1681–1688, 2009.
+
+
+                                                            548
+

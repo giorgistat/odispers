@@ -53,6 +53,45 @@ How the fit works:
 
 The full analysis is in `inst/scripts/paper/07_fit_u_field.R`.
 
+## Latent breeding sites on the river graph
+
+`odisp_fit_lgcp()` is an experimental fit for prevalence data when breeding-site locations and their number are unknown. It uses the same village binomial model and Wendland kernel. A log-Gaussian Cox process supplies the sites. On a river mesh with midpoint $s_j$ and cell length $\ell_j$ in km, the model is
+
+$$
+\lambda_j = r_0 \exp\{z_j^\top\theta+(Au)_j\}, \qquad
+N_j \mid u,\theta \sim \mathrm{Poisson}(\ell_j\lambda_j), \qquad
+E_i = \sum_j K_\phi(\lVert x_i-s_j\rVert) N_j .
+$$
+
+The counts are conditionally independent across cells. Every village sees the **same** counts, so two nearby villages can receive exposure from the same site. The continuous integrated intensity in `odisp_fit_u()` corresponds to the conditional mean of this exposure at matching intensity. The extra conditional covariance between village exposures is $\sum_j \ell_j\lambda_j K_{ij}K_{kj}$. A village can therefore have zero exposure even with rivers inside its kernel radius.
+
+With the default complementary log-log village link, $h_i=E_i\exp(x_i^\top\beta)$ is cumulative infection hazard and $p_i=1-\exp(-h_i)$. Pass `link = "logit"` to treat $h_i$ as infection odds, giving $p_i=h_i/(1+h_i)$. Both choices give zero risk at zero exposure. River-site intensity uses the same log link in both fits.
+
+In a marked LGCP fit, `occurrence = ~ climate, occurrence_exposure = TRUE` adds the current realized exposure linearly to the activity logit. In the continuous integrated model, `odisp_fit_zil()` accepts `occurrence_scale` and `risk_scale`, each either `"log"` or `"linear"`. For example, `occurrence_scale = "log", risk_scale = "linear"` places log exposure in the activity logit and raw exposure in the active-village log hazard. At exactly zero exposure the risk is defined as zero. With the raw-exposure hazard, very small positive exposures can still have a positive limiting risk.
+
+```r
+set.seed(1106)
+# Prepared by the full_river_covariates.R script; see scripts/lgcp in the package.
+a <- readRDS("adjusted/inputs.rds")
+fit <- odisp_fit_lgcp(y ~ z_logAI, ~ 0 + z_flow + z_slope + z_flood,
+                      a$villages, a$nodes, a$graph, a$pairs, phi = 40,
+                      range = 25, sigma_u = 0.5, source_rate = 0.04,
+                      prior_sd = 1.5, marks = "two_point",
+                      field_update = "block_slice", relocate = TRUE)
+head(fit$cells)    # mean number of sites and probability occupied by river cell
+head(fit$fitted)   # posterior mean exposure and prevalence by village
+```
+
+`source_rate` is the reference density per km at zero field, and the example fixes that density while estimating standardized river covariate effects and two site strengths. A breeding formula such as `~ 0 + log(DIS_AV_CMS)` adds a source covariate, and `~ 1` estimates a log multiplier on the reference density. The reference density and the transmission intercept both affect average prevalence. Varying the source density is important when interpreting inferred site numbers.
+
+**Where Laplace enters.** Conditional on the integer counts, the log likelihood for the graph field is a Poisson log likelihood with a Gaussian prior. The sampler finds its mode, factors the exact negative Hessian, and proposes a Gaussian update. A Metropolis step corrects the approximation. Separate count updates use the joint village likelihood. Thus the approximation to continuous site locations comes from the river mesh, and posterior summaries also have Monte Carlo error. Field scale, field range and dispersal radius are fixed for each run.
+
+Set `marks = "two_point"` to give each site strength $1-d$ or $1+d$ with equal probability. The spread $d$ has a uniform prior on $(0,1)$, so the mean strength stays at one and $d=0$ recovers the unit-strength null. The fit reports posterior draws of $d$, cell occupancy and total marked strength. On large undirected networks, `field_update = "block_slice", relocate = TRUE` updates separate river blocks and proposes moving individual sites between neighboring cells. The compiled count sampler recomputes the survey likelihood only at villages touched by a proposal.
+
+The full-river scripts also support WGS84 longitude and latitude on the source intensity. Specify `--coordinates` when preparing the predictors. The kernel radius (`--radius` during preparation) and graph correlation range (`--field-range` during fitting) are separate. The range comparison scripts give the village diagnostics and simulate new site patterns and surveys for each setting.
+
+Set `field_update = "slice"` to use elliptical slice sampling for the same field. The installed scripts in `system.file("scripts/lgcp", package = "odispers")` compare direct integration, Laplace and conditional variational Bayes on one cell, and run an eight-village REMO sensitivity analysis. The latter uses the optional `posterior` package for chain diagnostics. The published point-pattern fit and code are available from the [Biometrika article](https://doi.org/10.1093/biomet/asag043) and the [authors' companion repository](https://github.com/d-saduakhas/GraphLGCP).
+
 ## Installation
 
 ```r

@@ -96,7 +96,7 @@ odisp_fit_u <- function(formula, breeding, data, nodes, graph, pairs = NULL, phi
 odisp_u_setup <- function(formula, breeding, data, nodes, graph, pairs, phi, trials, aridity, prior_sd) {
   if (!inherits(graph, "odisp_graph")) stop("'graph' must come from river_graph()")
   if (nrow(graph$A) != nrow(nodes)) stop("'graph' was built from different nodes")
-  if (is.null(pairs)) pairs <- river_pairs(data, nodes, phi)
+  pairs <- odisp_prediction_pairs(data, nodes, pairs, phi)
   # starting point and prior centre: the model without u and Z
   f0 <- suppressWarnings(odisp_fit(formula, breeding, data = data, nodes = nodes, pairs = pairs,
                                    max_range = pairs$max_range, trials = trials, aridity = aridity,
@@ -121,6 +121,7 @@ odisp_u_setup <- function(formula, breeding, data, nodes, graph, pairs, phi, tri
        A = graph$A[used, , drop = FALSE], graph = graph, used = used, has = has, m_all = d$m,
        m_beta = cf[seq_len(p)], m_theta = cf[p + seq_len(q)], s2 = prior_sd^2,
        lchoose = sum(lchoose(d$n[has], d$y[has])), fit0 = f0, phi = phi,
+       prevalence_spec = d$prevalence_spec, breeding_spec = d$breeding_spec,
        formula = formula, breeding = breeding, nodes_names = colnames(d$Z))
 }
 
@@ -404,7 +405,8 @@ odisp_u_optimise <- function(S, field, range, z, start, trace) {
                          paste(sprintf("%.3f", exp(lh)), collapse = ", "), res$logLik,
                          length(state$cache)))
   est <- c(res$x$beta, res$x$theta)
-  names(est) <- c(paste0("beta.", colnames(S$X)), paste0("theta.", S$nodes_names))
+  names(est) <- c(paste0("beta.", colnames(S$X)),
+                 if (length(S$nodes_names)) paste0("theta.", S$nodes_names))
   dimnames(res$Vfix) <- list(names(est), names(est))
   sig_field <- if (field == "u") fld$sig_u else if (field == "S") fld$sig_s else NA
   structure(list(coefficients = est, vcov = res$Vfix, field = field,
@@ -456,17 +458,18 @@ print.odisp_ufit <- function(x, ...) {
 #' @export
 predict.odisp_ufit <- function(object, newdata, nodes, graph, pairs = NULL, ...) {
   S <- object$setup; phi <- S$phi
-  if (is.null(pairs)) pairs <- river_pairs(newdata, nodes, phi)
+  pairs <- odisp_prediction_pairs(newdata, nodes, pairs, phi)
   keep <- pairs$r < phi
   i <- pairs$i[keep]; j <- pairs$j[keep]; t <- pairs$r[keep] / phi
-  Bn <- stats::model.matrix(S$breeding, as.data.frame(nodes)[j, , drop = FALSE])
-  Bn <- Bn[, colnames(Bn) != "(Intercept)", drop = FALSE]
+  Bn <- odisp_prediction_matrix(S$breeding, as.data.frame(nodes)[j, , drop = FALSE],
+                                 S$breeding_spec, colnames(S$B), drop_intercept = TRUE)
   uj <- if (!is.null(object$u)) as.vector(graph$A[j, , drop = FALSE] %*% object$u) else 0
   q <- length(S$m_theta)
   w <- exp(as.vector(Bn %*% object$coefficients[length(S$m_beta) + seq_len(q)]) + uj)
   E <- as.vector(tapply(c(nodes$len[j] * (1 - t)^4 * (1 + 4 * t) / (2 / 3 * phi) * w, rep(0, pairs$m)),
                         c(i, seq_len(pairs$m)), sum))
-  X <- stats::model.matrix(stats::delete.response(stats::terms(S$formula)), sf::st_drop_geometry(newdata))
+  X <- odisp_prediction_matrix(S$formula, sf::st_drop_geometry(newdata),
+                                S$prevalence_spec, colnames(S$X))
   lin <- as.vector(X %*% object$coefficients[seq_len(length(S$m_beta))])
   s_new <- NULL
   if (!is.null(object$s)) {

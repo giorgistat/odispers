@@ -1,0 +1,202 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[swedish]{babel}
+\usepackage{lmodern,microtype,amsmath,amssymb,booktabs,tabularx,enumitem}
+\usepackage[margin=25mm]{geometry}
+\usepackage[round,authoryear]{natbib}
+\usepackage{xcolor}
+\definecolor{ink}{HTML}{163D57}
+\usepackage[colorlinks=true,linkcolor=ink,citecolor=ink,urlcolor=ink]{hyperref}
+\hypersetup{pdftitle={Metoder för bättre blandning i river-LGCP},pdfauthor={Metodöversikt för odispers}}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt}
+\setlist{nosep,leftmargin=*}
+\newcommand{\E}{\mathbb E}
+\newcommand{\N}{\mathcal N}
+\title{Metoder för bättre blandning i river-LGCP\\[4pt]\large En riktad litteraturöversikt och plan för utvärdering}
+\author{}
+\date{10 november 2026}
+\begin{document}
+\begin{center}
+{\LARGE Metoder för bättre blandning i river-LGCP\par}
+\vspace{6pt}
+{\large En riktad litteraturöversikt och plan för utvärdering\par}
+\vspace{8pt}
+10 november 2026
+\end{center}
+\vspace{8pt}
+
+\textbf{Rekommendation.} Börja med att jämföra de redan implementerade globala uppdateringarna med den nuvarande blockmetoden. Den första nya metod jag skulle pröva är en gles implementering av \emph{auxiliary gradient sampling}, framför allt aGrad-z. Förkonditionerad Hamiltonsk Monte Carlo (HMC) är nästa huvudkandidat. Dessa val riktar sig mot fältets långsamma rörelser på stora rumsliga skalor. Om beroendet mellan fält och latenta punktantal dominerar behövs också gemensamma förslag eller en ändrad augmentation.
+
+Detta är en riktad metodöversikt med 14 primärkällor, inte en uttömmande systematisk sökning. Urvalet täcker blockuppdatering, Gaussiska fält, gradientmetoder, omparametrisering, temperering, approximation och tillförlitlig korsvalidering. Rekommendationerna är en bedömning för vår kod; inga nya samplare har utvärderats här.
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{.25\linewidth}>{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}p{.19\linewidth}@{}}
+\toprule
+Metod & Vad den kan förbättra här & Prioritet \\
+\midrule
+Global ESS / Laplace-MH & Gemensamma rörelser i fält och intensitetskoefficienter; finns redan i koden & Omedelbar jämförelse \\
+aGrad-z / mGrad & Globala förslag som använder både prior och likelihoodgradient & Första nya metod \\
+Förkonditionerad HMC & Längre sammanhängande rörelser genom den kontinuerliga posteriorn & Nästa huvudkandidat \\
+LIS / DILI & Särskild behandling av riktningar där likelihooden ändrar priorn mest & Efter spektral pilot \\
+Gemensamma förslag / kollapsning & Beroende mellan fält och andra latenta variabler & Parallellt metodspår \\
+Parallel tempering & Eventuella kvarstående barriärer mellan posteriora regimer & Vid belagd barriär \\
+INLA / PSIS & Approximation respektive återanvändning av posteriora drag & Separata verktyg \\
+\bottomrule
+\end{tabularx}
+\end{center}
+\clearpage
+
+\section{Vilket problem behöver lösas?}
+
+I den undersökta körningen har fältet 145\,329 noder. Den nuvarande metoden, \texttt{block\_slice}, uppdaterar små sammanhängande block med elliptisk slice sampling, villkorat på resten av fältet och punktantalen. För block som berör byarnas upptagningsområde är medianstorleken nio noder. Det är alltså \emph{elliptical-slice-within-Gibbs}, med lokala block; ett steg är inte ett oberoende drag från blockets fullständiga betingade fördelning.
+
+Fyra tidigare fulladatakedjor för tail-down-modellen med räckvidd 800 km gav $\widehat R=2.25$ och bulk-ESS omkring 5 för hela nätverkets fältmedelvärde. För medelvärdet inom byarnas upptagningsområde var motsvarande värden 1.70 och 6.3; autokorrelationen vid lagg 100 var omkring 0.90. Kedjorna uppvisade drift. Dessa tal visar bristande utforskning och är inte tillförlitliga precisionsmått för färdiga posteriora skattningar. Resultaten gäller denna konfiguration och de övervakade funktionerna; de mäter inte fältblandningen i varje CV-fold.
+
+Två mekanismer måste skiljas åt: långsam förflyttning mellan rumsliga skalor inom fältet och starkt beroende mellan fält, punktantal, intensitetskoefficienter och spridningsbredd. Små block är en rimlig förklaring till den första mekanismen, men de befintliga körningarna isolerar inte orsaken.
+
+
+
+\section{Varför vanlig LGCP-litteratur bara delvis är direkt tillämplig}
+
+I en vanlig LGCP-tillämpning observeras punkterna eller cellantalen. Hos oss är fortplantningsplatserna latenta; observationerna är byarnas infektionsdata. Med $N_j$ för antalet platser i cell $j$ kan den relevanta delen skrivas
+\[
+ g\sim\N(0,Q^{-1}),\qquad
+ N_j\mid g,\theta\sim\operatorname{Poisson}(\mu_j),\qquad
+ \mu_j=\ell_j\rho_0\exp\{z_j^\top\theta+(Wg)_j\}.
+\]
+Här är $\ell_j$ cellängd, $z_j$ intensitetskovariater och $W$ interpolation från fältnoder till celler. Punktantal och märken bestämmer byarnas exponering genom spridningskärnan. Byutfallen beror därefter på exponering, aktivitetsindikatorer och regressionskoefficienter.
+
+\textbf{Villkorat på punktantalen} får vi emellertid precis en Gaussisk prior kombinerad med en Poissonlikelihood. Sätt $x=(\theta^\top,g^\top)^\top$, $B=[Z,W]$, $a_j=\log(\ell_j\rho_0)$ och $P=\operatorname{diag}(\tau^{-2}I,Q)$, med positiv definit priorprecision $P$. Då är
+\begin{align}
+ \log\pi(x\mid N)&=f(x)-\tfrac12x^\top Px+\text{konstant},\\
+ f(x)&=N^\top(a+Bx)-\mathbf1^\top\exp(a+Bx),\\
+ \nabla f(x)&=B^\top(N-\mu),\qquad \mu=\exp(a+Bx),\\
+ -\nabla^2\log\pi(x\mid N)&=P+B^\top\operatorname{diag}(\mu)B.
+\end{align}
+Detta är direkt algebra för den implementerade modellen. Den betingade tätheten är strikt logkonkav när $P$ är positiv definit. Det utesluter inte flera regimer i den \emph{gemensamma} posteriorn med latenta antal och spridningsbredd.
+
+Gradienter, Hessianprodukter och glesa Gaussiska drag finns därför nära till hands. Den viktiga utvärderingsfrågan är om en bättre betingad fältuppdatering också förbättrar \emph{hela} kedjan. Ett experiment med fixerade antal kan besvara den första frågan, men inte den andra.
+
+\section{Blockuppdatering, global ESS och Laplace-MH}
+
+\citet{knorrheld2002block} visar i sjukdomskartering att starkt beroende kan göra enpunktsuppdateringar mycket ineffektiva, och att större gemensamma block kan ge betydande förbättringar. I deras exempel är gemensam uppdatering av fält och tillhörande hyperparameter särskilt fördelaktig. Detta är empiriskt stöd för blockstrategin, inte en garanti för vår modell. Här hålls fältets räckvidd och skala fasta inom varje modell.
+
+Elliptisk slice sampling, ESS, utnyttjar en Gaussisk prior genom att söka längs en ellips som bestäms av nuvarande tillstånd och ett oberoende priordrag \citep{murray2010elliptical}. Metoden kräver ingen inställd steglängd, men kan behöva många likelihoodberäkningar. Att varje iteration avslutas med ett accepterat tillstånd innebär inte låg autokorrelation.
+
+\textbf{Bedömning för koden.} Alternativet \texttt{field\_update="slice"} uppdaterar redan $(\theta,g)$ globalt. \texttt{"laplace"} använder den betingade moden och Hessianen i ett gemensamt Gaussiskt oberoendeförslag med Metropolis--Hastings-korrigering. Det senare har den avsedda diskretiserade posteriorn som mål; det är inte samma sak som att ersätta posteriorn med en Laplaceapproximation. Båda är naturliga jämförelser innan en ny metod byggs.
+
+Globala ESS-steg kan bli små när Poissonlikelihooden är informativ. Ett globalt Gaussiskt Laplaceförslag kan få svag överlappning med målfördelningen i hög dimension, trots strikt logkonkavitet. Större eller flerskaliga block och en på förhand fixerad blandning av lokala och globala korrekta uppdateringar är därför också relevanta kandidater. Beräkningstid för faktorisering och antal likelihoodutvärderingar ska ingå i jämförelsen.
+
+\section{Gradientbaserade metoder: högst prioriterade nyutveckling}
+
+\subsection{Auxiliary gradient sampling}
+
+\citet{titsias2018auxiliary} konstruerar aGrad-z, aGrad-u och mGrad för tätheter med Gaussisk prior. Förslagen använder både priorns struktur och likelihoodens gradient. Deras LGCP-experiment har 4\,096 fältvariabler, observerade Poissonantal och fixerade hyperparametrar. I tabell 2 är genomsnittlig minsta ESS per sekund 0.40 för aGrad-z, 1.35 för mGrad, 0.08 för elliptisk slice sampling och 1.22 för RMHMC. Det är ett konkret motiv för att prova metoderna, inte en prognos för vår betydligt större modell.
+
+För vår notation kan aGrad-z skrivas med $\delta>0$ och $A=(P+2I/\delta)^{-1}$:
+\begin{align}
+ z&=x+\tfrac\delta2\nabla f(x)+\sqrt{\delta/2}\,\varepsilon,
+       &&\varepsilon\sim\N(0,I),\\
+ y\mid z&\sim\N\bigl((2/\delta)Az,A\bigr).
+\end{align}
+Förslaget accepteras med sannolikhet $\min(1,\exp r)$, där
+\begin{align}
+ r&=f(y)-f(x)+h(z,y)-h(z,x),\\
+ h(z,v)&=\bigl(z-v-\tfrac\delta4\nabla f(v)\bigr)^\top\nabla f(v).
+\end{align}
+Detta är artikelns supplement, algoritm 1, uttryckt med precision $P$ i stället för kovarians. $f$ innehåller här bara Poissonloglikelihooden, inte priorn.
+
+\textbf{Bedömning för koden.} aGrad-z är en attraktiv första implementation eftersom den använder lösningar och Gaussiska drag med precision $P+2I/\delta$. Vid fixerade $P$ och $\delta$ kan en gles faktorisering återanvändas även när $N$ ändras. Den täta egenvärdesuppdelning som används i artikelns pseudokod ska inte kopieras till 145\,329 noder. Steglängdsanpassning kräver nya faktoriseringar; det är en faktisk kostnad under uppvärmning. Valet av skalning mellan koefficienter och fält måste också testas. mGrad har starka resultat i studien men behöver en egen analys av gles beräkningskostnad.
+
+\subsection{pCN, pCNL och förkonditionerad HMC}
+
+\citet{cotter2013functions} beskriver prioranpassade förslag på funktionsrum. Det enkla pCN-förslaget är
+\[
+ y=\sqrt{1-\beta^2}\,x+\beta\xi,\qquad
+ \xi\sim\N(0,P^{-1}),\quad 0<\beta\leq1,
+\]
+med acceptans $\min\{1,\exp[f(y)-f(x)]\}$. pCNL lägger till likelihoodgradienten. Principen att bevara den Gaussiska referensfördelningen motverkar vissa problem vid finare diskretisering. Den garanterar inte snabb blandning vid stark datainformation eller posteriora barriärer.
+
+HMC använder gradienter och ett hjälpmomentum för att göra längre sammanhängande förslag. \citet{beskos2011hilbert} utvecklar en variant på Hilbertrum. \citet{girolami2011riemann} studerar geometriskt anpassade metoder och visar ett relevant LGCP-exempel. Fältets metrik är där konstant vid fixerade hyperparametrar; resultatet är inte ett allmänt belägg för att dyr, positionsberoende RMHMC alltid behövs.
+
+\textbf{Bedömning för koden.} Prova först HMC för hela $(\theta,g)\mid N$, med priorvitning eller en fast approximation till posteriorns krökning. Vitning betyder exempelvis $x=L^{-\top}u$ när $P=LL^\top$, så att $u$ har standardnormal prior. En lämplig skalning kan behöva ta hänsyn även till Poissonlikelihooden. HMC kräver flera gradientberäkningar per förslag, vilket måste vägas mot förbättrad blandning. Diskreta punktantal och märken kan inte direkt följa samma vanliga HMC-dynamik. De behöver egna uppdateringar eller en korrekt marginaliserad modell.
+
+\section{När bättre fältsteg inte räcker}
+
+\subsection{Likelihood-informed subspace och DILI}
+
+\citet{cui2016dili} kombinerar priorstruktur med ett delrum som fångar de riktningar där data ändrar priorn mest. Delrummet kan användas för särskilt anpassade förslag, medan komplementet behandlas med prioranpassade rörelser. Metoden är intressant när den relevanta förändringen verkligen kan beskrivas i relativt få riktningar.
+
+\textbf{Bedömning för koden.} Våra långsamma rumsliga medelvärden motiverar en spektral pilot, men visar inte att ett litet sådant delrum finns. Den betingade fältlikelihooden innehåller cellantalen, inte bara de 900 byutfallen. Man kan därför inte anta att dess informationsrang är högst 900. DILI är ett senare alternativ om globala gradientsteg fortfarande hanterar de stora rumsliga skalorna dåligt.
+
+\subsection{Omparametrisering och mindre augmentation}
+
+\citet{papaspiliopoulos2007parametrization} visar hur centrerade och icke-centrerade parametriseringar kan ge mycket olika blandning i hierarkiska modeller; vilken som fungerar bäst beror på informationsläget. Här är $Q$ fast. Att skriva $g=L_Q^{-\top}u$ är då en linjär vitning, inte automatiskt en lösning på beroendet mellan $g$ och $N$.
+
+\textbf{Bedömning för koden.} Gemensamma förslag för intensitet och punktantal är ett viktigt forskningsspår om dessa rör sig tillsammans mycket långsamt. Alla Poisson-, mark- och bylikelihoodfaktorer samt framåt- och bakåtsannolikheter måste då ingå korrekt. Att helt enkelt dra nya antal från priorn efter ett fältsteg är inte ett sådant korrigerat gemensamt förslag.
+
+En konkret, mindre marginalisering är att summera bort byns aktivitetsindikator $A_i$. Med aktivitetsrisk $q_i$, aktiv infektionsrisk $p_i$ och provstorlek $n_i$ blir byns likelihood
+\[
+ L_i=
+ \begin{cases}
+ q_i\operatorname{Bin}(y_i;n_i,p_i),&y_i>0,\\
+ 1-q_i+q_i(1-p_i)^{n_i},&y_i=0.
+ \end{cases}
+\]
+Detta är en direkt identitet för vår modell. Den kan minska en beroendekälla men tar inte bort latenta platser eller deras koppling till fältet. Samplaren måste ändras konsekvent; enstaka borttagna aktivitetsfaktorer ger inte en korrekt kollapsad algoritm.
+
+Pseudo-marginal MCMC kan använda en icke-negativ, väntevärdesriktig skattning av en marginal likelihood i en utvidgad målfördelning \citep{andrieu2009pseudo}. Det ger ett principiellt sätt att integrera svåra latenta variabler numeriskt. För oss återstår emellertid att konstruera en tillräckligt stabil skattare över gemensamma platsmönster. Det är ett mer krävande alternativ, inte förstahandsvalet. Att ersätta slumpmässiga antal med förväntad exponering är ingen exakt marginalisering.
+
+\subsection{Parallel tempering}
+
+\citet{syed2022tempering} beskriver en icke-reversibel variant av parallel tempering: flera kedjor körs mot en följd av fördelningar och utbyter tillstånd. Detta riktar sig mot svår passage mellan regimer, medan bättre lokal utforskning fortfarande behövs inom varje fördelning.
+
+\textbf{Bedömning för koden.} Skillnader mellan kedjor med olika initial spridningsbredd räcker inte för att fastslå multimodalitet. Först bör vi pröva bättre gemensamma kontinuerliga steg. Om tydliga barriärer kvarstår är temperering relevant, men multiplicerar kostnaden per CV-fold. Temperaturvägen måste definieras för hela den valda gemensamma tätheten. Vid temperering från priorn kräver noll likelihood för omöjliga positiva byutfall särskild hantering av stödet.
+
+\section{Approximation och korsvalidering}
+
+\subsection{INLA och andra approximationer}
+
+\citet{rue2009inla} utvecklar INLA för latenta Gaussiska modeller och behandlar också LGCP. Den klassiska strukturen kombinerar ett Gaussiskt latent fält med en faktoriserad observationslikelihood och ett mindre antal hyperparametrar. Vår fullständiga modell innehåller dessutom diskreta latenta punktantal, märken och en gemensam exponering som påverkar flera byar.
+
+\textbf{Bedömning för koden.} Standard-INLA för observerade punktmönster kan därför inte direkt ersätta den nuvarande inferensen. En Laplaceapproximation för $g\mid N$ kan användas som delverktyg; utan MH-korrigering blir den emellertid en approximation. Variationsinferens eller en mer omfattande Laplaceapproximation kan vara användbar för initialisering och snabb orientering, men osäkerhet och prediktiva svansar behöver jämföras mot en tillförlitlig referens. Någon separat översikt över variationsmetoder ingår inte här.
+
+\subsection{Vad behövs för trovärdig CV?}
+
+Beroende MCMC-drag kan användas för prediktiva integraler. Problemet är låg effektiv stickprovsstorlek och ofullständig utforskning. Fler sparade drag eller uttunning undanröjer inte detta problem. \citet{vehtari2021rhat} rekommenderar bland annat ranknormaliserad $\widehat R<1.01$, flera kedjor och funktionsanpassade ESS- och Monte Carlo-felmått. En godkänd $\widehat R$ är ett diagnostiskt villkor, inte ett konvergensbevis.
+
+\textbf{För våra foldar:} kontrollera fältmedelvärden, rumsliga kontraster, antal platser, spridningsbredd och de prediktiva funktioner som används i modelljämförelsen. Varje fold har en egen träningsposterior. Kontrollkedjor och en längre efterkörning måste visa att resultaten är stabila innan modellrankningen används.
+
+För logaritmisk prediktiv poäng måste rätt estimand övervakas:
+\[
+ \log\left\{\frac1S\sum_{s=1}^{S}p(y_{\mathrm{test}}\mid\psi^{(s)})\right\}
+ \quad\text{är inte}\quad
+ \frac1S\sum_{s=1}^{S}\log p(y_{\mathrm{test}}\mid\psi^{(s)}).
+\]
+Här innehåller $\psi^{(s)}$ relevanta träningsposteriora storheter och likelihooden ska integrera de testlatenta variabler som prediktionsuppgiften kräver. Monte Carlo-felet för den valda aggregerade poängen kan bedömas med lämpliga batchar eller oberoende efterkörningar när kedjorna blivit stabila. Det ska vara litet i relation till skillnaderna mellan modellerna. Detta fel ska redovisas separat från osäkerhet på grund av val av data och foldindelning.
+
+PSIS-LOO är ett sätt att återanvända posteriora drag genom importancevikter \citep{vehtari2017loo,vehtari2024psis}. Det reparerar inte drag som saknar posteriora regimer. Att hålla ute en stor grupp är också svårare än en observation, eftersom vikterna kan bli mycket variabla. För våra geografiska foldar bör separata anpassningar därför vara referensen. Om PSIS prövas ska både svansdiagnostik och MCMC-beroende beaktas. Valet mellan förutsägelse vid befintliga respektive nya platser måste anges före jämförelsen.
+
+\section{Föreslaget nästa experiment}
+
+\begin{enumerate}
+\item \textbf{Isolera fältproblemet.} Fixera ett dokumenterat antalstillstånd och jämför \texttt{block\_slice}, global ESS, Laplace-MH och därefter aGrad-z. Det visar vilka metoder som effektivt utforskar samma kontinuerliga betingade fördelning. Använd både små kontrollproblem och den faktiska grafen.
+\item \textbf{Utvärdera hela modellen.} Kör de bästa alternativen med uppdaterade antal, märken, aktivitet och bredd. Använd minst fyra genomförbara, varierade starttillstånd, även för fältet. Ett bra resultat med fixerade antal är inte tillräckligt.
+\item \textbf{Mät användbar precision per tid.} Rapportera uppvärmning och faktorisering separat samt total tid. Följ fältmedelvärden, långvågiga kontraster, antal, exponering och prediktiva poäng. Jämför ESS per sekund först när drift och mellan-kedjeskillnader är under kontroll.
+\item \textbf{Gör CV efter blandningskontrollen.} Använd identiska foldar för metoderna, kontrollera varje träningsanpassning och välj körlängd efter prediktivt Monte Carlo-fel. Modellskillnader mindre än den numeriska osäkerheten ska inte tolkas som en säker rangordning.
+\end{enumerate}
+
+Det första utvecklingsbeslutet är därför väl avgränsat: jämför befintliga globala steg och implementera därefter aGrad-z med gles precision. HMC blir nästa jämförelse. Gemensamma antal--fält-förslag och temperering motiveras av vad dessa experiment visar, inte av kedjelängden ensam.
+
+\paragraph{Källor och reproducerbarhet.}
+Det tillhörande dokumentet \texttt{reference.md} innehåller exakta sidlokaliseringar, versionsskillnader, fullständig BibTeX och länkar till sparade primärkällor och sökbar text. Bibliografin använder publicerade årtal; flera lästa fulltexter är författarversioner. Källornas metodbeskrivningar har kontrollerats, men deras bevis har inte genomgått en oberoende matematisk granskning. Kodbeskrivningen avser arbetskopian den 10 november 2026; blandningsresultaten kommer från den tidigare dokumenterade fulladatakörningen.
+
+\clearpage
+\small
+\setlength{\bibsep}{4pt plus 1pt}
+\bibliographystyle{plainnat}
+\bibliography{reference}
+\end{document}

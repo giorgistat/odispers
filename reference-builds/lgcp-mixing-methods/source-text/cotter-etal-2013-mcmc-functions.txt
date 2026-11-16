@@ -1,0 +1,1393 @@
+  MCMC Methods for Functions: Modifying Old
+     Algorithms to Make Them Faster
+
+     Cotter, Simon and Roberts, Gareth and Stuart,
+               Andrew and White, David
+
+                                   2013
+
+
+
+
+                     MIMS EPrint: 2014.71
+
+
+
+
+      Manchester Institute for Mathematical Sciences
+                     School of Mathematics
+
+
+                  The University of Manchester
+
+
+
+Reports available from:   http://eprints.maths.manchester.ac.uk/
+    And by contacting:    The MIMS Secretary
+                          School of Mathematics
+                          The University of Manchester
+                          Manchester, M13 9PL, UK
+
+
+
+                                                             ISSN 1749-9097
+                                          Statistical Science
+                                          2013, Vol. 28, No. 3, 424–446
+                                          DOI: 10.1214/13-STS421
+                                           c Institute of Mathematical Statistics, 2013
+
+
+
+                                          MCMC Methods for Functions: Modifying
+                                          Old Algorithms to Make Them Faster
+                                          S. L. Cotter, G. O. Roberts, A. M. Stuart and D. White
+
+                                                                    Abstract. Many problems arising in applications result in the need
+
+
+
+
+arXiv:1202.0709v3 [stat.CO] 10 Oct 2013
+                                                                    to probe a probability distribution for functions. Examples include
+                                                                    Bayesian nonparametric statistics and conditioned diffusion processes.
+                                                                    Standard MCMC algorithms typically become arbitrarily slow under
+                                                                    the mesh refinement dictated by nonparametric description of the un-
+                                                                    known function. We describe an approach to modifying a whole range of
+                                                                    MCMC methods, applicable whenever the target measure has density
+                                                                    with respect to a Gaussian process or Gaussian random field reference
+                                                                    measure, which ensures that their speed of convergence is robust under
+                                                                    mesh refinement.
+                                                                       Gaussian processes or random fields are fields whose marginal distri-
+                                                                    butions, when evaluated at any finite set of N points, are RN -valued
+                                                                    Gaussians. The algorithmic approach that we describe is applicable not
+                                                                    only when the desired probability measure has density with respect
+                                                                    to a Gaussian process or Gaussian random field reference measure,
+                                                                    but also to some useful non-Gaussian reference measures constructed
+                                                                    through random truncation. In the applications of interest the data is
+                                                                    often sparse and the prior specification is an essential part of the over-
+                                                                    all modelling strategy. These Gaussian-based reference measures are a
+                                                                    very flexible modelling tool, finding wide-ranging application. Examples
+                                                                    are shown in density estimation, data assimilation in fluid mechanics,
+                                                                    subsurface geophysics and image registration.
+                                                                       The key design principle is to formulate the MCMC method so that
+                                                                    it is, in principle, applicable for functions; this may be achieved by use
+                                                                    of proposals based on carefully chosen time-discretizations of stochas-
+                                                                    tic dynamical systems which exactly preserve the Gaussian reference
+                                                                    measure. Taking this approach leads to many new algorithms which
+                                                                    can be implemented via minor modification of existing algorithms, yet
+                                                                    which show enormous speed-up on a wide range of applied problems.
+
+                                                                    Key words and phrases: MCMC, Bayesian nonparametrics, algorithms,
+                                                                    Gaussian random field, Bayesian inverse problems.
+
+
+
+                                          S. L. Cotter is Lecturer, School of Mathematics,
+                                          University of Manchester, M13 9PL, United Kingdom
+                                          e-mail: simon.cotter@manchester.ac.uk. G. O. Roberts
+                                          is Professor, Statistics Department, University of
+                                          Warwick, Coventry, CV4 7AL, United Kingdom. A. M.                 This is an electronic reprint of the original article
+                                          Stuart is Professor e-mail: a.m.stuart@warwick.ac.uk              published by the Institute of Mathematical Statistics in
+                                          and D. White is Postdoctoral Research Assistant,                  Statistical Science, 2013, Vol. 28, No. 3, 424–446. This
+                                          Mathematics Department, University of Warwick,                    reprint differs from the original in pagination and
+                                          Coventry, CV4 7AL, United Kingdom.                                typographic detail.
+                                                                                                        1
+2                                  COTTER, ROBERTS, STUART AND WHITE
+
+               1. INTRODUCTION                             projected prior chosen to reflect available data and
+   The use of Gaussian process (or field) priors is        quantities of interest [e.g., {u(xi ); 1 ≤ i ≤ m} say].
+widespread in statistical applications (geostatistics      Instead it is necessary to consider the entire dis-
+[48], nonparametric regression [24], Bayesian emula-       tribution of {u(x); x ∈ D}. This poses major com-
+tor modelling [35], density estimation [1] and inverse     putational challenges, particularly in avoiding un-
+quantum theory [27] to name but a few substantial          satisfactory compromises between model approxi-
+areas where they are commonplace). The success of          mation (discretization in x typically) and compu-
+using Gaussian priors to model an unknown func-            tational cost.
+tion stems largely from the model flexibility they            There is a growing need in many parts of ap-
+afford, together with recent advances in computa-          plied mathematics to blend data with sophisticated
+tional methodology (particularly MCMC for exact            models involving nonlinear partial and/or stochastic
+likelihood-based methods). In this paper we describe       differential equations (PDEs/SDEs). In particular,
+a wide class of statistical problems, and an algo-         credible mathematical models must respect physi-
+rithmic approach to their study, which adds to the         cal laws and/or Markov conditional independence
+growing literature concerning the use of Gaussian          relationships, which are typically expressed through
+process priors. To be concrete, we consider a pro-         differential equations. Gaussian priors arises natu-
+cess {u(x); x ∈ D} for D ⊆ Rd for some d. In most          rally in this context for several reasons. In partic-
+of the examples we consider here u is not directly         ular: (i) they allow for straightforward enforcement
+observed: it is hidden (or latent) and some compli-        of differentiability properties, adapted to the model
+cated nonlinear function of it generates the data at       setting; and (ii) they allow for specification of prior
+our disposal.                                              information in a manner which is well-adapted to
+   Gaussian processes or random fields are fields          the computational tools routinely used to solve the
+whose marginal distributions, when evaluated at any        differential equations themselves. Regarding (ii), it
+finite set of N points, are RN -valued Gaussians.          is notable that in many applications it may be com-
+Draws from these Gaussian probability distributions        putationally convenient to adopt an inverse covari-
+can be computed efficiently by a variety of tech-          ance (precision) operator specification, rather than
+niques; for expository purposes we will focus pri-         specification through the covariance function; this
+marily on the use of Karhunen–Loéve expansions to         allows not only specification of Markov conditional
+construct such draws, but the methods we propose           independence relationships but also the direct use
+simply require the ability to draw from Gaussian           of computational tools from numerical analysis [45].
+measures and the user may choose an appropriate               This paper will consider MCMC based computa-
+method for doing so. The Karhunen–Loéve expan-
+                                                           tional methods for simulating from distributions of
+sion exploits knowledge of the eigenfunctions and
+                                                           the type described above. Although our motivation
+eigenvalues of the covariance operator to construct
+                                                           is primarily to nonparametric Bayesian statistical
+series with random coefficients which are the desired
+                                                           applications with Gaussian priors, our approach can
+draws; it is introduced in Section 3.1.
+                                                           be applied to other settings, such as conditioned dif-
+   Gaussian processes [2] can be characterized by ei-
+ther the covariance or inverse covariance (precision)      fusion processes. Furthermore, we also study some
+operator. In most statistical applications, the co-        generalizations of Gaussian priors which arise from
+variance is specified. This has the major advantage        truncation of the Karhunen–Loéve expansion to a
+that the distribution can be readily marginalized to       random number of terms; these can be useful to pre-
+suit a prescribed statistical use. For instance, in geo-   vent overfitting and allow the data to automatically
+statistics it is often enough to consider the joint dis-   determine the scales about which it is informative.
+tribution of the process at locations where data is           Since in nonparametric Bayesian problems the un-
+present. However, the inverse covariance specifica-        known of interest (a function) naturally lies in an
+tion has particular advantages in the interpretabil-       infinite-dimensional space, numerical schemes for
+ity of parameters when there is information about          evaluating posterior distributions almost always rely
+the local structure of u. (E.g., hence the advantages      on some kind of finite-dimensional approximation
+of using Markov random field models in image anal-         or truncation to a parameter space of dimension du ,
+ysis.) In the context where x varies over a contin-        say. The Karhunen–Loéve expansion provides a nat-
+uum (such as ours) this creates particular computa-        ural and mathematically well-studied approach to
+tional difficulties since we can no longer work with a     this problem. The larger du is, the better the ap-
+                                      MCMC METHODS FOR FUNCTIONS                                                     3
+
+proximation to the infinite-dimensional true model         serve µ or µ0 and then to employ as proposals for
+becomes. However, off-the-shelf MCMC methodol-             Metropolis–Hastings methods specific discretizations
+ogy usually suffers from a curse of dimensionality         of these differential equations which exactly pre-
+so that the numbers of iterations required for these       serve the Gaussian reference measure µ0 when Φ ≡
+methods to converge diverges with du . Therefore,          0; thus, the methods do not reject in the trivial
+we shall aim to devise strategies which are robust to      case where Φ ≡ 0. This typically leads to algorithms
+the value of du . Our approach will be to devise al-       which are minor adjustments of well-known meth-
+gorithms which are well-defined mathematically for         ods, with major algorithmic speed-ups. We illustrate
+the infinite-dimensional limit. Typically, then, finite-   this idea by contrasting the standard random walk
+dimensional approximations of such algorithms pos-         method with the pCN algorithm (studied in detail
+sess robust convergence properties in terms of the         later in the paper) which is a slight modification of
+choice of du . An early specialised example of this        the standard random walk, and which arises from
+approach within the context of diffusions is given         the thinking outlined above. To this end, we define
+in [43].
+   In practice, we shall thus demonstrate that small,      (1.2)         I(u) = Φ(u) + 12 kC −1/2 uk2
+but significant, modifications of a variety of stan-       and consider the following version of the standard
+dard Markov chain Monte Carlo (MCMC) methods               random walk method:
+lead to substantial algorithmic speed-up when tack-
+ling Bayesian estimation problems for functions de-        • Set k = 0 and pick u(0) .
+fined via density with respect to a Gaussian pro-          • Propose v (k) = u(k) + βξ (k) , ξ (k) ∼ N (0, C).
+cess prior, when these problems are approximated           • Set u(k+1) = v (k) with probability a(u(k) , v (k) ).
+on a finite-dimensional space of dimension du ≫ 1.         • Set u(k+1) = u(k) otherwise.
+Furthermore, we show that the framework adopted            • k → k + 1.
+encompasses a range of interesting applications.
+                                                             The acceptance probability is defined as
+1.1 Illustration of the Key Idea
+                                                                    a(u, v) = min{1, exp(I(u) − I(v))}.
+   Crucial to our algorithm construction will be a
+detailed understanding of the dominating reference         Here, and in the next algorithm, the noise ξ (k) is
+Gaussian measure. Although prior specification             independent of the uniform random variable used in
+might be Gaussian, it is likely that the posterior         the accept–reject step, and this pair of random vari-
+distribution µ is not. However, the posterior will at      ables is generated independently for each k, leading
+least be absolutely continuous with respect to an ap-      to a Metropolis–Hastings algorithm reversible with
+propriate Gaussian density. Typically the dominat-         respect to µ.
+ing Gaussian measure can be chosen to be the prior,          The pCN method is the following modification of
+with the corresponding Radon–Nikodym derivative            the standard random walk method:
+just being a re-expression of Bayes’ formula               • Set k = 0 and pick    (0)
+                                                                       (k)
+                                                                             p u . (k)
+                     dµ                                    • Propose v = (1 − β 2 )u +βξ (k) , ξ (k) ∼ N (0, C).
+                          (u) ∝ L(u)
+                     dµ0                                   • Set u(k+1) = v (k) with probability a(u(k) , v (k) ).
+for likelihood L and Gaussian dominating measure           • Set u(k+1) = u(k) otherwise.
+(prior in this case) µ0 . This framework extends in a      • k → k + 1.
+natural way to the case where the prior distribution         Now we set
+is not Gaussian, but is absolutely continuous with
+respect to an appropriate Gaussian distribution. In                 a(u, v) = min{1, exp(Φ(u) − Φ(v))}.
+either case we end up with
+                                                             The pCN method differs only slightly from the
+                 dµ                                        random walk method: the proposal is not a centred
+(1.1)                (u) ∝ exp(−Φ(u))
+                 dµ0                                       random walk, but rather of AR(1) type, and this
+for some real-valued potential Φ. We assume that µ0        results in a modified, slightly simpler, acceptance
+is a centred Gaussian measure N (0, C).                    probability. As is clear, the new method accepts the
+   The key algorithmic idea underlying all the algo-       proposed move with probability one if the potential
+rithms introduced in this paper is to consider (sto-       Φ = 0; this is because the proposal is reversible with
+chastic or random) differential equations which pre-       respect to the Gaussian reference measure µ0 .
+4                                    COTTER, ROBERTS, STUART AND WHITE
+
+
+
+
+Fig. 1.   Acceptance probabilities versus mesh-spacing, with (a) standard random walk and (b) modified random walk (pCN).
+
+
+
+   This small change leads to significant speed-ups           independent of the number of mesh points du used
+for problems which are discretized on a grid of di-           to represent the function, whilst for the old random
+mension du . It is then natural to compute on se-             walk method it grows with du . The new method thus
+quences of problems in which the dimension du in-             mixes more rapidly than the standard method and,
+creases, in order to accurately sample the limiting           furthermore, the disparity in mixing rates becomes
+infinite-dimensional problem. The new pCN algo-               greater as the mesh is refined.
+rithm is robust to increasing du , whilst the standard           In this paper we demonstrate how methods such
+random walk method is not. To illustrate this idea,           as pCN can be derived, providing a way of thinking
+we consider an example from the field of data as-             about algorithmic development for Bayesian statis-
+similation, introduced in detail in Section 2.2 below,        tics which is transferable to many different situa-
+and leading to the need to sample measure µ of the            tions. The key transferable idea is to use propos-
+form (1.1). In this problem du = ∆x−2 , where ∆x              als arising from carefully chosen discretizations of
+is the mesh-spacing used in each of the two spatial           stochastic dynamical systems which exactly preserve
+dimensions.                                                   the Gaussian reference measure. As demonstrated
+   Figure 1(a) and (b) shows the average acceptance           on the example, taking this approach leads to new
+probability curves, as a function of the parameter            algorithms which can be implemented via minor
+β appearing in the proposal, computed by the stan-            modification of existing algorithms, yet which show
+dard and the modified random walk (pCN) meth-                 enormous speed-up on a wide range of applied prob-
+ods. It is instructive to imagine running the algo-           lems.
+rithms when tuned to obtain an average acceptance             1.2 Overview of the Paper
+probability of, say, 0.25. Note that for the stan-
+dard method, Figure 1(a), the acceptance probabil-              Our setting is to consider measures on function
+ity curves shift to the left as the mesh is refined,          spaces which possess a density with respect to a
+meaning that smaller proposal variances are required          Gaussian random field measure, or some related non-
+to obtain the same acceptance probability as the              Gaussian measures. This setting arises in many ap-
+mesh is refined. However, for the new method shown            plications, including the Bayesian approach to in-
+in Figure 1(b), the acceptance probability curves             verse problems [49] and conditioned diffusion pro-
+have a limit as the mesh is refined and, hence, as the        cesses (SDEs) [20]. Our goals in the paper are then
+random field model is represented more accurately;            fourfold:
+thus, a fixed proposal variance can be used to ob-            • to show that a wide range of problems may be cast
+tain the same acceptance probability at all levels of           in a common framework requiring samples to be
+mesh refinement. The practical implication of this              drawn from a measure known via its density with
+difference in acceptance probability curves is that             respect to a Gaussian random field or, related,
+the number of steps required by the new method is               prior;
+                                            MCMC METHODS FOR FUNCTIONS                                                    5
+
+• to explain the principles underlying the deriva-             potential Φ : X → R. We assume that Φ can be eval-
+  tion of these new MCMC algorithms for functions,             uated to any desired accuracy, by means of a nu-
+  leading to desirable du -independent mixing prop-            merical method. Mesh-refinement refers to increas-
+  erties;                                                      ing the resolution of this numerical evaluation to
+• to illustrate the new methods in action on some              obtain a desired accuracy and is tied to the num-
+  nontrivial problems, all drawn from Bayesian non-            ber du of basis functions or points used in a finite-
+  parametric models where inference is made con-               dimensional representation of the target function u.
+  cerning a function;                                          For many problems of interest Φ satisfies certain
+• to develop some simple theoretical ideas which               common properties which are detailed in Assump-
+  give deeper understanding of the benefits of the             tions 6.1 below. These properties underlie much of
+  new methods.                                                 the algorithmic development in this paper.
+   Section 2 describes the common framework into                  A situation where (1.1) arises frequently is non-
+which many applications fit and shows a range of               parametric density estimation (see Section 2.1),
+examples which are used throughout the paper. Sec-             where µ0 is a random process prior for the unnor-
+tion 3 is concerned with the reference (prior) mea-            malized log density and µ the posterior. There are
+sure µ0 and the assumptions that we make about                 also many inverse problems in differential equations
+it; these assumptions form an important part of the            which have this form (see Sections 2.2, 2.3 and 2.4).
+model specification and are guided by both mod-                For these inverse problems we assume that the data
+elling and implementation issues. In Section 4 we              y ∈ Rdy is obtained by applying an operator2 G to
+detail the derivation of a range of MCMC meth-                 the unknown function u and adding a realisation of
+ods on function space, including generalizations of            a mean zero random variable with density ρ sup-
+the random walk, MALA, independence samplers,                  ported on Rdy , thereby determining P(y|u). That is,
+Metropolis-within-Gibbs’ samplers and the HMC                  (2.1)            y = G(u) + η,      η ∼ ρ.
+method. We use a variety of problems to demon-
+strate the new random walk method in action: Sec-              After specifying µ0 (du) = P(du), Bayes’ theorem
+tions 5.1, 5.2, 5.3 and 5.4 include examples aris-             gives µ(dy) = P(u|y) with Φ(u) = − ln ρ(y − G(u)).
+ing from density estimation, two inverse problems              We will work mainly with Gaussian random field
+arising in oceanography and groundwater flow, and              priors N (0, C), although we will also consider gen-
+the shape registration problem. Section 6 contains             eralisations of this setting found by random trunca-
+a brief analysis of these methods. We make some                tion of the Karhunen–Loéve expansion of a Gaussian
+concluding remarks in Section 7.                               random field. This leads to non-Gaussian priors, but
+   Throughout we denote by h·, ·i the standard Eu-             much of the methodology for the Gaussian case can
+clidean scalar product on Rm , which induces the               be usefully extended, as we will show.
+standard Euclidean norm |·|. We also define h·, ·iC :=
+hC −1/2 ·, C −1/2 ·i for any positive-definite symmetric       2.1 Density Estimation
+matrix C; this induces the norm | · |C := |C −1/2 · |.            Consider the problem of estimating the probabil-
+Given a positive-definite self-adjoint operator C on           ity density function ρ(x) of a random variable sup-
+a Hilbert space with inner-product h·, ·i, we will also        ported on [−ℓ, ℓ], given dy i.i.d. observations yi . To
+define the new inner-product h·, ·iC = hC −1/2 ·, C −1/2 ·i,   ensure positivity and normalisation, we may write
+with resulting norm denoted by k · kC or | · |C .
+                                                                                            exp(u(x))
+                                                               (2.2)           ρ(x) = R ℓ                   .
+               2. COMMON STRUCTURE                                                       −ℓ exp(u(s)) ds
+  We will now describe a wide-ranging set of ex-               If we place a Gaussian process prior µ0 on u and
+amples which fit a common mathematical frame-                  apply Bayes’ theorem, then we obtain formula (1.1)
+work giving rise to a probability measure µ(du) on                           Pdy
+                                                               with Φ(u) = − i=1   ln ρ(yi ) and ρ given by (2.2).
+a Hilbert space X,1 when given its density with
+respect to a random field measure µ0 , also on X.                2
+                                                                   This operator, mapping the unknown function to the mea-
+Thus, we have the measure µ as in (1.1) for some
+                                                               surement space, is sometimes termed the observation operator
+                                                               in the applied literature; however, we do not use that termi-
+  1
+      Extension to Banach space is also possible.              nology in the paper.
+6                                     COTTER, ROBERTS, STUART AND WHITE
+
+2.2 Data Assimilation in Fluid Mechanics                     tion u. The head p solves the PDE
+   In weather forecasting and oceanography it is fre-                  − ∇ · (exp(u)∇p) = g,       x ∈ D,
+quently of interest to determine the initial condi-          (2.7)
+                                                                                         p = h,    x ∈ ∂D.
+tion u for a PDE dynamical system modelling a
+fluid, given observations [3, 26]. To gain insight into      Here D is a domain containing the measurement
+such problems, we consider a model of incompress-            points xi and ∂D its boundary; in the simplest case
+ible fluid flow, namely, either the Stokes (γ = 0) or        g and h are known. The forward solution operator
+Navier–Stokes equation (γ = 1), on a two-dimen-              is G(u)j = p(xj ). The inverse problem is to find u,
+sional unit torus T2 . In the following v(·, t) denotes      given y of the form (2.1).
+the velocity field at time t, u the initial velocity field   2.4 Image Registration
+and p(·, t) the pressure field at time t and the fol-
+lowing is an implicit nonlinear equation for the pair           In many applications arising in medicine and se-
+                                                             curity it is of interest to calculate the distance be-
+(v, p):
+                                                             tween a curve Γobs , given only through a finite set of
+        ∂t v − ν△v + γv · ∇v + ∇p = ψ                        noisy observations, and a curve Γdb from a database
+                                                             of known outcomes. As we demonstrate below, this
+                                    ∀(x, t) ∈ T2 × (0, ∞),
+(2.3)                                                        may be recast as an inverse problem for two func-
+                                 ∇·v =0       ∀t ∈ (0, ∞),   tions, the first, η, representing reparameterisation of
+                                                             the database curve Γdb and the second, p, represent-
+                             v(x, 0) = u(x),      x ∈ T2 .   ing a momentum variable, normal to the curve Γdb ,
+The aim in many applications is to determine the             which initiates a dynamical evolution of the repa-
+initial state of the fluid velocity, the function u, from    rameterized curve in an attempt to match observa-
+some observations relating to the velocity field v at        tions of the curve Γobs . This approach to inversion
+later times.                                                 is described in [7] and developed in the Bayesian
+  A simple model of the situation arising in weather         context in [9]. Here we outline the methodology.
+forecasting is to determine v from Eulerian data of             Suppose for a moment that we know the entire
+the form y = {yj,k }N,M                                      observed curve Γobs and that it is noise free. We
+                       j,k=1 , where
+                                                             parameterize Γdb by qdb and Γobs by qobs , s ∈ [0, 1].
+(2.4)            yj,k ∼ N (v(xj , tk ), Γ).                  We wish to find a path q(s, t), t ∈ [0, 1], between Γdb
+                                                             and Γobs , satisfying
+Thus, the inverse problem is to find u from y of the
+form (2.1) with Gj,k (u) = v(xj , tk ).                      (2.8)     q(s, 0) = qdb (η(s)),   q(s, 1) = qobs (s),
+   In oceanography Lagrangian data is often encoun-          where η is an orientation-preserving reparameterisa-
+tered: data is gathered from the trajectories of par-        tion. Following the methodology of [17, 31, 52], we
+ticles zj (t) moving in the velocity field of interest,      constrain the motion of the curve q(s, t) by asking
+and thus satisfying the integral equation                    that the evolution between the two curves results
+                             Z t                             from the differential equation
+(2.5)        zj (t) = zj,0 +     v(zj (s), s) ds.                             ∂
+                             0                               (2.9)               q(s, t) = v(q(s, t), t).
+                                                                              ∂t
+Data is of the form
+                                                             Here v(x, t) is a time-parameterized family of vector
+(2.6)             yj,k ∼ N (zj (tk ), Γ).                    fields on R2 chosen as follows. We define a metric on
+                                                             the “length” of paths as
+Thus, the inverse problem is to find u from y of the                               Z 1
+form (2.1) with Gj,k (u) = zj (tk ).                                                    1
+                                                             (2.10)                       kvk2B dt,
+                                                                                    0   2
+2.3 Groundwater Flow
+                                                             where B is some appropriately chosen Hilbert space.
+  In the study of groundwater flow an important in-          The dynamics (2.9) are defined by choosing an ap-
+verse problem is to determine the permeability k of          propriate v which minimizes this metric, subject to
+the subsurface rock from measurements of the head            the end point constraints (2.8).
+(water table height) p [30]. To ensure the (physically          In [7] it is shown that this minimisation prob-
+required) positivity of k, we write k(x) = exp(u(x))         lem can be solved via a dynamical system obtained
+and recast the inverse problem as one for the func-          from the Euler–Lagrange equation. This dynamical
+                                         MCMC METHODS FOR FUNCTIONS                                             7
+
+system yields q(s, 1) = G(p, η, s), where p is an ini-    denoting a centred Gaussian with covariance opera-
+tial momentum variable normal to Γdb , and η is the       tor C. To be able to implement the algorithms in this
+reparameterisation. In the perfectly observed sce-        paper in an efficient way, it is necessary to make as-
+nario the optimal values of u = (p, η) solve the equa-    sumptions about this Gaussian reference measure.
+tion G(u, s) := G(p, η, s) = qobs (s).                    We assume that information about µ0 can be ob-
+   In the partially and noisily observed scenario we      tained in at least one of the following three ways:
+are given observations
+                                                          1. the eigenpairs (φi , λ2i ) of C are known so that ex-
+                  yj = qobs (sj ) + ηj                       act draws from µ0 can be made from truncation
+                     = G(u, sj ) + ηj                        of the Karhunen–Loéve expansion and that, fur-
+                                                             thermore, efficient methods exist for evaluation
+for j = 1, . . . , J ; the ηj represent noise. Thus, we
+                                                             of the resulting sum (such as the FFT);
+have data in the form (2.1) with Gj (u) = G(u, sj ).
+                                                          2. exact draws from µ0 can be made on a mesh, for
+The inverse problem is to find the distributions on
+p and η, given a prior distribution on them, a dis-          example, by building on exact sampling methods
+tribution on η and the data y.                               for Brownian motion or the stationary Ornstein–
+                                                             Uhlenbeck (OU) process or other simple Gaus-
+2.5 Conditioned Diffusions                                   sian process priors;
+  The preceding examples all concern Bayesian non-        3. the precision operator L = C −1 is known and ef-
+parametric formulation of inverse problems in which          ficient numerical methods exist for the inversion
+a Gaussian prior is adopted. However, the methodol-          of (I + ζL) for ζ > 0.
+ogy that we employ readily extends to any situation
+                                                             These assumptions are not mutually exclusive and
+in which the target distribution is absolutely con-
+                                                          for many problems two or more of these will be
+tinuous with respect to a reference Gaussian field
+                                                          possible. Both precision and Karhunen–Loéve repre-
+law, as arises for certain conditioned diffusion pro-
+                                                          sentations link naturally to efficient computational
+cesses [20]. The objective in these problems is to find
+u(t) solving the equation                                 tools that have been developed in numerical anal-
+                                                          ysis. Specifically, the precision operator L is often
+            du(t) = f (u(t)) dt + γ dB(t),                defined via differential operators and the operator
+where B is a Brownian motion and where u is con-          (I + ζL) can be approximated, and efficiently in-
+ditioned on, for example, (i) end-point constraints       verted, by finite element or finite difference methods;
+(bridge diffusions, arising in econometrics and chem-     similarly, the Karhunen–Loéve expansion links nat-
+ical reactions); (ii) observation of a single sample      urally to the use of spectral methods. The book [45]
+path y(t) given by                                        describes the literature concerning methods for sam-
+                                                          pling from Gaussian random fields, and links with
+            dy(t) = g(u(t)) dt + σ dW (t)
+                                                          efficient numerical methods for inversion of differ-
+for some Brownian motion W (continuous time sig-          ential operators. An early theoretical exploration of
+nal processing); or (iii) discrete observations of the    the links between numerical analysis and statistics
+path given by                                             is undertaken in [14]. The particular links that we
+                 yj = h(u(tj )) + ηj .                    develop in this paper are not yet fully exploited in
+                                                          applications and we highlight the possibility of do-
+For all three problems use of the Girsanov formula,       ing so.
+which allows expression of the density of the path-
+space measure arising with nonzero drift in terms of      3.1 The Karhunen–Loéve Expansion
+that arising with zero-drift, enables all three prob-
+                                                            The book [2] introduces the Karhunen–Loéve ex-
+lems to be written in the form (1.1).
+                                                          pansion and its properties. Let µ0 = N (0, C) denote
+  3. SPECIFICATION OF THE REFERENCE                       a Gaussian measure on a Hilbert space X. Recall
+               MEASURE                                    that the orthonormalized eigenvalue/eigenfunction
+                                                          pairs of C form an orthonormal basis for X and solve
+  The class of algorithms that we describe are pri-       the problem
+marily based on measures defined through density
+with respect to random field model µ0 = N (0, C),                       Cφi = λ2i φi ,   i = 1, 2, . . . .
+8                                        COTTER, ROBERTS, STUART AND WHITE
+
+Furthermore, we assume that the operator is trace-            by the formula
+class:                                                                                    ∞
+                   ∞
+                                                                                          X
+                   X                                          (3.5)          Edu u(x) =         αi ξi φi (x),
+(3.1)                λ2i < ∞.                                                             i=1
+                       i=1
+                                                              where αi = P(du ≥ i). As in the Gaussian case, it
+Draws from the centred Gaussian measure µ0 can
+                                                              can be useful, both conceptually and for purposes of
+then be made as follows. Let {ξi }∞   i=1 denote an inde-     implementation, to think of the unknown function u
+pendent sequence of normal random variables with
+distribution N (0, λ2i ) and consider the random func-        as being the infinite vector ({ξi }∞
+                                                                                                 i=1 , du ) rather than
+tion                                                          the function with these expansion coefficients.
+                            ∞                                    Making du a random variable has the effect of
+                                                              switching on (nonzero) and off (zero) coefficients in
+                           X
+(3.2)            u(x) =        ξi φi (x).
+                             i=1                              the expansion of the target function. This formula-
+                                                              tion switches the basis functions on and off in a fixed
+This series converges in L2 (Ω; X) under the trace-           order. Random truncation as expressed by equation
+class condition (3.1). It is sometimes useful, both
+                                                              (3.4) is not the only variable dimension formulation.
+conceptually and for purposes of implementation,
+                                                              In dimension greater than one we will employ the
+to think of the unknown function u as being the
+                                                              sieve prior which allows every basis function to have
+infinite sequence {ξi }∞
+                       i=1 , rather than the function         an individual on/off switch. This prior relaxes the
+with these expansion coefficients.
+                                                              constraint imposed on the order in which the basis
+  We let Pd denote projection onto the first d modes3
+                                                              functions are switched on and off and we write
+{φi }di=1 of the Karhunen–Loéve basis. Thus,
+                                                                                        ∞
+                                                                                        X
+                               du
+                               X                              (3.6)            u(x) =         χi ξi φi (x),
+(3.3)           P du u(x) =          ξi φi (x).                                         i=1
+                               i=1
+                                                              where {χi }∞i=1 ∈ {0, 1}. We define the distribution
+If the series (3.3) can be summed quickly on a grid,
+                                                              on χ = {χi }∞i=1 as follows. Let ν0 denote a reference
+then this provides an efficient method for comput-
+                                                              measure formed from considering an i.i.d. sequence
+ing exact samples from truncation of µ0 to a finite-
+                                                              of Bernoulli random variables with success probabil-
+dimensional space. When we refer to mesh-refine-
+                                                              ity one half. Then define the prior measure ν on χ
+ment then, in the context of the prior, this refers to
+                                                              to have density
+increasing the number of terms du used to represent
+the target function u.                                                                          ∞
+                                                                                                     !
+                                                                            dν                 X
+                                                                                (χ) ∝ exp −λ       χi ,
+3.2 Random Truncation and Sieve Priors                                      dν0
+                                                                                                    i=1
+  Non-Gaussian priors can be constructed from the
+                                                              where λ ∈ R+ . As for the random truncation method,
+Karhunen–Loéve expansion (3.3) by allowing du it-
+                                                              it is both conceptually and practically valuable to
+self to be a random variable supported on N; we let
+                                                              think of the unknown function as being the pair of
+p(i) = P(du = i). Much of the methodology in this
+                                                              random infinite vectors {ξi }∞              ∞
+                                                                                             i=1 and {χi }i=1 . Hier-
+paper can be extended to these priors. A draw from
+                                                              archical priors, based on Gaussians but with ran-
+such a prior measure can be written as
+                                                              dom switches in front of the coefficients, are termed
+                      ∞
+                      X                                       “sieve priors” in [54]. In that paper posterior consis-
+(3.4)        u(x) =         I(i ≤ du )ξi φi (x),
+                                                              tency questions for linear regression are also anal-
+                      i=1
+                                                              ysed in this setting.
+where I(i ∈ E) is the indicator function. We refer to
+this as random truncation prior. Functions drawn                 4. MCMC METHODS FOR FUNCTIONS
+from this prior are non-Gaussian and almost surely
+C ∞ . However, expectations with respect to du will              The transferable idea in this section is that de-
+be Gaussian and can be less regular: they are given           sign of MCMC methods which are defined on func-
+                                                              tion spaces leads, after discretization, to algorithms
+    3
+   Note that “mode” here, denoting an element of a basis in   which are robust under mesh refinement du → ∞.
+a Hilbert space, differs from the “mode” of a distribution.   We demonstrate this idea for a number of algorithms,
+                                      MCMC METHODS FOR FUNCTIONS                                               9
+
+generalizing random walk and Langevin-based Me-          algorithms derived below is to use discretizations
+tropolis–Hastings methods, the independence sam-         of stochastic partial differential equations (SPDEs)
+pler, the Gibbs sampler and the HMC method; we           which are invariant for either the reference or the
+anticipate that many other generalisations are pos-      target measure. These SPDEs have the form, for
+sible. In all cases the proposal exactly preserves the   L = C −1 the precision operator for µ0 , and DΦ the
+Gaussian reference measure µ0 when the potential         derivative of potential Φ,
+Φ is zero and the reader may take this key idea as a                                           √
+                                                                  du                                 db
+design principle for similar algorithms.                 (4.2)        = −K(Lu + γDΦ(u)) + 2K .
+   Section 4.1 gives the framework for MCMC meth-                 ds                                 ds
+ods on a general state space. In Section 4.2 we state    Here b is a Brownian motion in X with covariance
+and derive the new Crank–Nicolson proposals, aris-       operator the identity and K = C or I. Since K is
+ing from discretization of an OU process. In Sec-        a positive operator, we may define the square-root
+tion 4.3 we generalize these proposals to the Langevin   in the symmetric fashion, via diagonalization in the
+setting where steepest descent information is incor-     Karhunen–Loéve basis of C. We refer to it as an
+porated: MALA proposals. Section 4.4 is concerned        SPDE because in many applications L is a differen-
+with Independence Samplers which may be derived          tial operator. The SPDE has invariant measure µ0
+from particular parameter choices in the random          for γ = 0 (when it is an infinite-dimensional OU pro-
+walk algorithm. Section 4.5 introduces the idea of       cess) and µ for γ = 1 [12, 18, 22]. The target measure
+randomizing the choice of δ as part of the proposal      µ will behave like the reference measure µ0 on high
+which is effective for the random walk methods. In       frequency (rapidly oscillating) functions. Intuitively,
+Section 4.6 we introduce Gibbs samplers based on         this is because the data, which is finite, is not infor-
+the Karhunen–Loéve expansion (3.2). In Section 4.7      mative about the function on small scales; mathe-
+we work with non-Gaussian priors specified through       matically, this is manifest in the absolute continu-
+random truncation of the Karhunen–Loéve expan-          ity of µ with respect to µ0 given by formula (1.1).
+sion as in (3.4), showing how Gibbs samplers can         Thus, discretizations of equation (4.2) with either
+again be used in this situation. Section 4.8 briefly     γ = 0 or γ = 1 form sensible candidate proposal dis-
+describes the HMC method and its generalisation          tributions.
+to sampling functions.                                      The basic idea which underlies the algorithms de-
+4.1 Set-Up                                               scribed  here was introduced in the specific context
+                                                         of conditioned diffusions with γ = 1 in [50], and then
+   We are interested in defining MCMC methods for
+                                                         generalized to include the case γ = 0 in [4]; further-
+measures µ on a Hilbert space (X, h·, ·i), with in-
+                                                         more, the paper [4], although focussed on the ap-
+duced norm k · k, given by (1.1) where µ0 = N (0, C).
+The setting we adopt is that given in [51] where         plication  to conditioned diffusions, applies to gen-
+Metropolis–Hastings methods are developed in a gen- eral targets of the form (1.1). The papers [4, 50]
+eral state space. Let q(u, ·) denote the transition ker- both include numerical results illustrating applica-
+nel on X and η(du, dv) denote the measure on X ×X bility of the method to conditioned diffusion in the
+found by taking u ∼ µ and then v|u ∼ q(u, ·). We use case γ = 1, and the paper [10] shows application to
+η ⊥ (u, v) to denote the measure found by reversing data assimilation with γ = 0. Finally, we mention
+the roles of u and v in the preceding construction that in [33] the algorithm with γ = 0 is mentioned,
+of η. If η ⊥ (u, v) is equivalent (in the sense of mea- although the derivation does not use the SPDE mo-
+sures) to η(u, v), then the Radon–Nikodym deriva- tivation that we develop here, and the concept of
+tive dηdη (u, v) is well-defined and we may define the a nonparametric limit is not used to motivate the
+         ⊥
+
+
+acceptance probability                                   construction.
+                             
+                                dη ⊥
+                                                        4.2 Vanilla Local Proposals
+(4.1)         a(u, v) = min 1,       (u, v) .
+                                 dη                         The standard random walk proposal for v|u takes
+We accept the proposed move from u to v with the form
+this probability. The resulting Markov chain is µ- (4.3)                             √
+                                                                            v = u + 2δKξ0
+reversible.
+   A key idea underlying the new variants on ran- for any δ ∈ [0, ∞), ξ0 ∼ N (0, I) and K = I or K = C.
+dom walk and Langevin-based Metropolis–Hastings This can be seen as a discrete skeleton of (4.2) after
+10                                COTTER, ROBERTS, STUART AND WHITE
+
+ignoring the drift terms. Therefore, such a proposal      set of components in the prior model; mathemati-
+leads to an infinite-dimensional version of the well-     cally, the fact that the posterior has density with
+known random walk Metropolis algorithm.                   respect to the prior means that it “looks like” the
+  The random walk proposal in finite-dimensional          prior in the large i components of the Karhunen–
+problems always leads to a well-defined algorithm         Loéve expansion.4
+and rarely encounters any reducibility problems [46].        The CN algorithm violates this principle: the pro-
+Therefore, this method can certainly be applied for       posal variance operator is proportional to (2C +δI)−2 ·
+arbitrarily fine mesh size. However, taking this ap-      C 2 , suggesting that algorithm efficiency might be im-
+proach does not lead to a well-defined MCMC meth-         proved still further by obtaining a proposal variance
+od for functions. This is because η ⊥ is singular with    of C. In the familiar finite-dimensional case, this can
+respect to η so that all proposed moves are rejected      be achieved by a standard reparameterisation argu-
+with probability 1. (We prove this in Theorem 6.3         ment which has its origins in [23] if not before. This
+below.) Returning to the finite mesh case, algorithm      motivates our final local proposal in this subsection.
+mixing time therefore increases to ∞ as du → ∞.              The preconditioned CN proposal (pCN) for v|u is
+  To define methods with convergence properties ro-       obtained from (4.4) with γ = 0 and K = C giving the
+bust to increasing du , alternative approaches lead-      proposal
+ing to well-defined and irreducible algorithms on                                              √
+the Hilbert space need to be considered. We con-          (4.7)         (2 + δ)v = (2 − δ)u + 8δw,
+sider two possibilities here, both based on Crank–        where, again, w ∼ N (0, C). As discussed after (4.5),
+Nicolson approximations [38] of the linear part of        and in Section 3, there are many different ways in
+the drift. In particular, we consider discretization of   which the prior Gaussian may be specified. If the
+equation (4.2) with the form                              specification is via the precision L and if there are
+            v = u − 21 δKL(u + v)                         numerical methods for which (I + ζL) can be ef-
+(4.4)                           √                         ficiently inverted, then (4.5) is a natural proposal.
+                − δγKDΦ(u) + 2Kδξ0                        If, however, sampling from C is straightforward (via
+                                                          the Karhunen–Loéve expansion or directly), then it
+for a (spatial) white noise ξ0 .                          is natural to use the proposal (4.7), which requires
+  First consider the discretization (4.4) with γ = 0      only that it is possible to draw from µ0 efficiently.
+and K = I. Rearranging shows that the resulting           For δ ∈ [0, 2] the proposal (4.7) can be written as
+Crank–Nicolson proposal (CN) for v|u is found by
+solving                                                   (4.8)           v = (1 − β 2 )1/2 u + βw,
+                                      √
+(4.5)    (I + 21 δL)v = (I − 21 δL)u + 2δξ0 .             where w ∼ N (0, C), and β ∈ [0, 1]; in fact, β 2 = 8δ/
+It is this form that the proposal is best implemented     (2 + δ)2 . In this form we see very clearly a simple
+whenever the prior/reference measure µ0 is specified      generalisation of the finite-dimensional random walk
+via the precision operator L and when efficient al-       given by (4.3) with K = C.
+gorithms exist for inversion of the identity plus a         The numerical experiments described in Section 1.1
+multiple of L. However, for the purposes of analysis      show that the pCN proposal significantly improves
+it is also useful to write this equation in the form      upon the naive random walk method (4.3), and simi-
+                                      √                   lar positive results can be obtained for the CN meth-
+(4.6)     (2C + δI)v = (2C − δI)u + 8δCw,                 od. Furthermore, for both the proposals (4.5) and
+where w ∼ N (0, C), found by applying the operator        (4.7) we show in Theorem 6.2 that η ⊥ and η are
+2C to equation (4.5).                                     equivalent (as measures) by showing that they are
+  A well-established principle in finite-dimensional      both equivalent to the same Gaussian reference mea-
+sampling algorithms advises that proposal variance        sure η0 , whilst in Theorem 6.3 we show that the
+should be approximately a scalar multiple of that
+                                                            4
+of the target (see, e.g., [42]). The variance in the          An interesting research problem would be to combine the
+                                                          ideas in [16], which provide an adaptive preconditioning but
+prior, C, can provide a reasonable approximation,
+                                                          are only practical in a finite number of dimensions, with the
+at least as far as controlling the large du limit is      prior-based fixed preconditioning used here. Note that the
+concerned. This is because the data (or change of         method introduced in [16] reduces exactly to the precondi-
+measure) is typically only informative about a finite     tioning used here in the absence of data.
+                                       MCMC METHODS FOR FUNCTIONS                                                  11
+
+proposal (4.3) leads to mutually singular measures            The Crank–Nicolson Langevin proposal (CNL) is
+η ⊥ and η. This theory explains the numerical obser-        given by
+vations and motivates the importance of designing
+                                                                     (2C + δ)v = (2C − δ)u − 2δCDΦ(u)
+algorithms directly on function space.                      (4.12)                  √
+   The accept–reject formula for CN and pCN is very                               + 8δCw,
+simple. If, for some ρ : X × X → R, and some refer-
+ence measure η0 ,                                           where, as before, w ∼ µ0 = N (0, C). If we define
+             dη                                                                        1
+                 (u, v) = Z exp(−ρ(u, v)),                           ρ(u, v) = Φ(u) + hv − u, DΦ(u)i
+             dη0                                                                       2
+(4.9)                                                                             δ
+            dη ⊥                                                               + hC −1 (u + v), DΦ(u)i
+                 (u, v) = Z exp(−ρ(v, u)),                                        4
+            dη0                                                                   δ
+                                                                               + kDΦ(u)k2 ,
+it then follows that                                                              4
+          dη ⊥                                              then the acceptance probability is given by (4.1) and
+(4.10)         (u, v) = exp(ρ(u, v) − ρ(v, u)).             (4.10). Implementation of this proposal simply re-
+           dη
+                                                            quires inversion of (I + ζL), as for (4.5). The CNL
+For both CN proposals (4.5) and (4.7) we show in            method is the special case θ = 21 for the IA algorithm
+Theorem 6.2 below that, for appropriately defined           introduced in [4].
+η0 , we have ρ(u, v) = Φ(u) so that the acceptance            The preconditioned Crank–Nicolson Langevin pro-
+probability is given by                                     posal (pCNL) is given by
+                                                                                                         √
+(4.11)    a(u, v) = min{1, exp(Φ(u) − Φ(v))}.               (4.13) (2 + δ)v = (2 − δ)u − 2δCDΦ(u) + 8δw,
+In this sense the CN and pCN proposals may be               where w is again a draw from µ0 . Defining
+seen as the natural generalisations of random walks
+                                                                                       1
+to the setting where the target measure is defined                    ρ(u, v) = Φ(u) + hv − u, DΦ(u)i
+                                                                                       2
+via density with respect to a Gaussian, as in (1.1).
+This point of view may be understood by noting that                               δ
+                                                                                + hu + v, DΦ(u)i
+the accept/reject formula is defined entirely through                             4
+differences in this log density, as happens in finite di-                         δ
+                                                                                + kC 1/2 DΦ(u)k2 ,
+mensions for the standard random walk, if the den-                                4
+sity is specified with respect to the Lebesgue mea-         the acceptance probability is given by (4.1) and (4.10).
+sure. Similar random truncation priors are used in          Implementation of this proposal requires draws from
+non-parametric inference for drift functions in diffu-      the reference measure µ0 to be made, as for (4.7).
+sion processes in [53].                                     The pCNL method is the special case θ = 12 for the
+4.3 MALA Proposal Distributions                             PIA algorithm introduced in [4].
+
+   The CN proposals (4.5) and (4.7) contain no in-          4.4 Independence Sampler
+formation about the potential Φ given by (1.1); they          Making the choice δ = 2 in the pCN proposal (4.7)
+contain only information about the reference mea-           gives an independence sampler. The proposal is then
+sure µ0 . Indeed, they are derived by discretizing the      simply a draw from the prior: v = w. The acceptance
+SDE (4.2) in the case γ = 0, for which µ0 is an in-         probability remains (4.11). An interesting generali-
+variant measure. The idea behind the Metropolis-            sation of the independence sampler is to take δ = 2
+adjusted Langevin (MALA) proposals (see [39, 44]            in the MALA proposal (4.13), giving the proposal
+and the references therein) is to discretize an equa-
+                                                            (4.14)           v = −CDΦ(u) + w
+tion which is invariant for the measure µ. Thus, to
+construct such proposals in the function space set-         with resulting acceptance probability given by (4.1)
+ting, we discretize the SPDE (4.2) with γ = 1. Tak-         and (4.10) with
+ing K = I and K = C then gives the following two
+proposals.                                                     ρ(u, v) = Φ(u) + hv, DΦ(u)i + 12 kC 1/2 DΦ(u)k2 .
+12                                  COTTER, ROBERTS, STUART AND WHITE
+
+4.5 Random Proposal Variance                                mesh refinement when implemented in practice. We
+                                                            have found it useful to use the partitions Ij = {j} for
+  It is sometimes useful to randomise the proposal
+                                                            j = 1, . . . , J − 1 and IJ = {J, J + 1, . . .}. On the other
+variance δ in order to obtain better mixing. We
+                                                            hand, standard Gibbs and Metropolis-within-Gibbs
+discuss this idea in the context of the pCN pro-
+                                                            samplers are based on partitioning via Ij = {j}, and
+posal (4.7). To emphasize the dependence of the
+                                                            do not behave well under mesh-refinement, as we
+proposal kernel on δ, we denote it by q(u, dv; δ). We
+                                                            will demonstrate.
+show in Section 6.1 that the measure η0 (du, dv) =
+q(u, dv; δ)µ0 (du) is well-defined and symmetric in         4.7 Metropolis-Within-Gibbs: Random
+u, v for every δ ∈ [0, ∞). If we choose δ at random             Truncation and Sieve Priors
+from any probability distribution ν on [0, ∞), inde-
+                                                              We will also use Metropolis-within-Gibbs to con-
+pendently from w, then the resulting proposal has
+                                                            struct sampling algorithms which alternate between
+kernel
+                       Z ∞                                  updating the coefficients ξ = {ξi }∞i=1 in (3.4) or (3.6),
+            q(u, dv) =     q(u, dv; δ)ν(dδ).                and the integer du , for (3.4), or the infinite sequence
+                        0                                   χ = {χi }∞i=1 for (3.6). In words, we alternate between
+Furthermore, the measure q(u, dv)µ0 (du) may be             the coefficients in the expansion of a function and
+written as                                                  the parameters determining which parameters are
+           Z ∞                                              active.
+                q(u, dv; δ)µ0 (du)ν(dδ)                       If we employ the non-Gaussian prior with draws
+               0
+                                                            given by (3.4), then the negative log likelihood Φ
+and is hence also symmetric in u, v. Hence, both            can be viewed as a function of (ξ, du ) and it is nat-
+the CN and pCN proposals (4.5) and (4.7) may be             ural to consider Metropolis-within-Gibbs methods
+generalised to allow for δ chosen at random indepen-        which are based on the conditional distributions for
+dently of u and w, according to some measure ν on           ξ|du and du |ξ. Note that, under the prior, ξ and du
+[0, ∞). The acceptance probability remains (4.11),          are independent with ξ ∼ µ0,ξ := N (0, C) and du ∼
+as for fixed δ.                                             µ0,du , the latter being supported on N with p(i) =
+4.6 Metropolis-Within-Gibbs: Blocking in                    P(du = i). For fixed du we have
+    Karhunen–Loéve Coordinates                                           dµ
+                                                            (4.17)             (ξ|du ) ∝ exp(−Φ(ξ, du ))
+  Any function u ∈ X can be expanded in the                              dµ0,ξ
+Karhunen–Loéve basis and hence written as                  with Φ(u) rewritten as a function of ξ and du via the
+                       ∞
+                       X                                    expansion (3.4). This measure can be sampled by
+(4.15)         u(x) =     ξi φi (x).                        any of the preceding Metropolis–Hastings methods
+                            i=1                             designed in the case with Gaussian µ0 . For fixed ξ
+Thus, we may view the probability measure µ given           we have
+by (1.1) as a measure on the coefficients u = {ξi }∞i=1 .               dµ
+For any index set I ⊂ N we write ξ I = {ξi }i∈I and         (4.18)           (du |ξ) ∝ exp(−Φ(ξ, du )).
+ I = {ξ }             I       I
+                                                                      dµ0,du
+ξ−         ∈I . Both ξ and ξ− are independent and
+        i i/
+Gaussian under the prior µ0 with diagonal covari-           A natural biased random walk for du |ξ arises by
+ance operators C I C−I , respectively. If we let µI de-
+                                                  0
+                                                            proposing moves from a random walk on N which
+note the Gaussian N (0, C I ), then (1.1) gives             satisfies detailed balance with respect to the distri-
+                                                            bution p(i). The acceptance probability is then
+           dµ I I
+(4.16)          (ξ |ξ− ) ∝ exp(−Φ(ξ I , ξ−
+                                         I
+                                           )),
+           dµI0                                                  a(u, v) = min{1, exp(Φ(ξ, du ) − Φ(ξ, dv ))}.
+where we now view Φ as a function on the coeffi-            Variants on this are possible and, if p(i) is mono-
+cients in the expansion (4.15). This formula may be         tonic decreasing, a simple random walk proposal on
+used as the basis for Metropolis-within-Gibbs sam-          the integers, with local moves du → dv = du ± 1, is
+plers using blocking with respect to aSset of par-          straightforward to implement. Of course, different
+titions {Ij }j=1,...,J with the property Jj=1 Ij = N.       proposal stencils can give improved mixing proper-
+Because the formula is defined for functions this           ties, but we employ this particular random walk for
+will give rise to methods which are robust under            expository purposes.
+                                        MCMC METHODS FOR FUNCTIONS                                              13
+
+  If, instead of (3.4), we use the non-Gaussian sieve        this algorithm is the development of a new integra-
+prior defined by equation (3.6), the prior and pos-          tor for the Hamiltonian flow underlying the method;
+terior measures may be viewed as measures on u =             this integrator is exact in the Gaussian case Φ ≡ 0,
+({ξi }∞          ∞
+      i=1 , {χj }j=1 ). These variables may be modified      on function space, and for this reason behaves well
+as stated above via Metropolis-within-Gibbs for sam-         for nonparametric where du may be arbitrarily large
+pling the conditional distributions ξ|χ and χ|ξ. If,         infinite dimensions.
+for example, the proposal for χ|ξ is reversible with
+respect to the prior on ξ, then the acceptance prob-            5. COMPUTATIONAL ILLUSTRATIONS
+ability for this move is given by
+                                                               This section contains numerical experiments de-
+    a(u, v) = min{1, exp(Φ(ξu , χu ) − Φ(ξv , χv ))}.        signed to illustrate various properties of the sam-
+                                                             pling algorithms overviewed in this paper. We em-
+In Section 5.3 we implement a slightly different pro-
+                                                             ploy the examples introduced in Section 2.
+posal in which, with probability 21 , a nonactive mode
+is switched on with the remaining probability an ac-         5.1 Density Estimation
+tive mode is switched off. If we define Non = N
+                                              P
+                                                  i=1 χi ,     Section 1.1 shows an example which illustrates
+then the probability of moving from ξu to a state ξv         the advantage of using the function-space algorithms
+in which an extra mode is switched on is                     highlighted in this paper in comparison with stan-
+                       
+                                                             dard techniques; there we compared pCN with a
+   a(u, v) = min 1, exp Φ(ξu , χu ) − Φ(ξv , χv )
+                                                             standard random walk. The first goal of the ex-
+                                        N − Non
+                                                           periments in this subsection is to further illustrate
+                                     +               .       the advantage of the function-space algorithms over
+                                          Non
+                                                             standard algorithms. Specifically, we compare the
+Similarly, the probability of moving to a situation          Metropolis-within-Gibbs method from Section 4.6,
+in which a mode is switched off is                           based on the partition Ij = {j} and labelled MwG
+                                                           here, with the pCN sampler from Section 4.2. The
+   a(u, v) = min 1, exp Φ(ξu , χu ) − Φ(ξv , χv )            second goal is to study the effect of prior modelling
+                                                           on algorithmic performance; to do this, we study a
+                                        Non                  third algorithm, RTM-pCN, based on sampling the
+                                   +               .
+                                     N − Non                 randomly truncated Gaussian prior (3.4) using the
+4.8 Hybrid Monte Carlo Methods                               Gibbs method from Section 4.7, with the pCN sam-
+                                                             pler for the coefficient update.
+   The algorithms discussed above have been based
+on proposals which can be motivated through dis-                5.1.1 Target distribution We will use the true den-
+cretization of an SPDE which is invariant for either         sity
+the prior measure µ0 or for the posterior µ itself.                    ρ ∝ N (−3, 1)I(x ∈ (−ℓ, +ℓ))
+HMC methods are based on a different idea, which
+is to consider a Hamiltonian flow in a state space                          + N (+3, 1)I(x ∈ (−ℓ, +ℓ)),
+found from introducing extra “momentum” or “ve-
+                                                             where ℓ = 10. [Recall that I(·) denotes the indica-
+locity” variables to complement the variable u in
+                                                             tor function of a set.] This density corresponds ap-
+(1.1). If the momentum/velocity is chosen randomly
+                                                             proximately to a situation where there is a 50/50
+from an appropriate Gaussian distribution at reg-
+                                                             chance of being in one of the two Gaussians. This
+ular intervals, then the resulting Markov chain in
+                                                             one-dimensional multi-modal density is sufficient to
+u is invariant under µ. Discretizing the flow, and
+                                                             expose the advantages of the function spaces sam-
+adding an accept/reject step, results in a method
+                                                             plers pCN and RTM-pCN over MwG.
+which remains invariant for µ [15]. These methods
+can break random-walk type behaviour of methods                5.1.2 Prior We will make comparisons between
+based on local proposal [32, 34]. It is hence of in-         the three algorithms regarding their computational
+terest to generalise these methods to the function           performance, via various graphical and numerical
+sampling setting dictated by (1.1) and this is under-        measures. In all cases it is important that the reader
+taken in [5]. The key novel idea required to design          appreciates that the comparison between MwG and
+14                                 COTTER, ROBERTS, STUART AND WHITE
+
+
+
+
+Fig. 2. Trace and autocorrelation plots for sampling posterior measure with true density ρ using MwG, pCN and RTM-pCN
+methods.
+
+
+pCN corresponds to sampling from the same pos-                                       Table 1
+                                                                             Approximate integrated
+terior, since they use the same prior, and that all                     autocorrelation times for target ρ
+comparisons between RTM-pCN and other methods
+also quantify the effect of prior modelling as well as                 Algorithm                      IACT
+algorithm.
+  Two priors are used for this experiment: the Gaus-                   MwG                            894
+                                                                       pCN                             73.2
+sian prior given by (3.2) and the randomly trun-
+                                                                       RTM-pCN                        143
+cated Gaussian given by (3.4). We apply the MwG
+and pCN schemes in the former case, and the RTM-
+pCN scheme for the latter. The prior uses the same
+Gaussian covariance structure for the independent ξ,          5.1.4 Numerical results In order to compare the
+namely, ξi ∼ N (0, λ2i ), where λi ∝ i−2 . Note that       performance of pCN, MwG and RTM-pCN, we show,
+the eigenvalues are summable, as required for draws        in Figure 2 and Table 1, trace plots, correlation func-
+from the Gaussian measure to be square integrable          tions and integrated auto-correlation times (the lat-
+and to be continuous. The prior for the number of          ter are notoriously difficult to compute accurately
+active terms du is an exponential distribution with        [47] and displayed numbers to three significant fig-
+rate λ = 0.01.                                             ures should only be treated as indicative). The auto-
+                                                           correlation function decays for ergodic Markov chains,
+   5.1.3 Numerical implementation In order to facil-
+itate a fair comparison, we tuned the value of δ in the    and its integral determines the asymptotic variance
+pCN and RTM-pCN proposals to obtain an average             of sample path averages. The integrated autocor-
+acceptance probability of around 0.234, requiring, in      relation time is used, via this asymptotic variance,
+both cases, δ ≈ 0.27. (For RTM-pCN the average ac-         to determine the number of steps required to de-
+ceptance probability refers only to moves in {ξ}∞          termine an independent sample from the MCMC
+                                                    i=1
+and not in du .) We note that with the value δ = 2 we      method. The figures and integrated autocorrelation
+obtain the independence sampler for pCN; however,          times clearly show that the pCN and RTM-pCN
+this sampler only accepted 12 proposals out of 106         outperform MwG by an order of magnitude. This
+MCMC steps, indicating the importance of tuning δ          reflects the fact that pCN and RTM-pCN are func-
+correctly. For MwG there is no tunable parameter,          tion space samplers, designed to mix independently
+and we obtain an acceptance of around 0.99.                of the mesh-size. In contrast, the MwG method is
+                                        MCMC METHODS FOR FUNCTIONS                                               15
+
+                       Table 2                               space; we also work on the space of functions whose
+     Comparison of computational timings for target ρ
+                                                             spatial average is zero and then A is invertible. For
+                                          Time to draw an    the numerics that follow, we set ν = 0.05. It is im-
+Algorithm      Time for 106 steps (s)     indep sample (s)   portant to note that, in the periodic setting adopted
+                                                             here, A is diagonalized in the basis of divergence free
+MwG                     262                    0.234         Fourier series. Thus, fractional powers of A are eas-
+pCN                     451                    0.0331
+                                                             ily calculated. The prior measure is then chosen as
+RTM-pCN                 278                    0.0398
+                                                             (5.1)             µ0 = N (0, δA−α ),
+                                                             in both the Eulerian and Lagrangian data scenar-
+heavily mesh-dependent, since updates are made one           ios. We require α > 1 to ensure that the eigenvalues
+Fourier component at a time.                                 of the covariance are summable (a necessary and
+  Finally, we comment on the effect of the different         sufficient condition for draws from the prior, and
+priors. The asymptotic variance for the RTM-pCN is           hence the posterior, to be continuous functions, al-
+approximately double that of pCN. However, RTM-              most surely). In the numerics that follow, the pa-
+pCN can have a reduced runtime, per unit error,              rameters of the prior were chosen to be δ = 400 and
+when compared with pCN, as Table 2 shows. This               α = 2.
+improvement of RTM-pCN over pCN is primarily
+caused by the reduction in the number of random                 5.2.3 Numerical implementation The figures that
+number generations due to the adaptive size of the           follow in this section are taken from what are termed
+basis in which the unknown density is represented.           identical twin experiments in the data assimilation
+                                                             community: the same approximation of the model
+5.2 Data Assimilation in Fluid Mechanics                     described above to simulate the data is also used for
+   We now proceed to a more complex problem and              evaluation of Φ in the statistical algorithm in the
+describe numerical results which demonstrate that            calculation of the likelihood of u0 given the data,
+the function space samplers successfully sample non-         with the same assumed covariance structure of the
+trivial problems arising in applications. We study           observational noise as was used to simulate the data.
+both the Eulerian and Lagrangian data assimila-                 Since the domain is the two-dimensional torus, the
+tion problems from Section 2.2, for the Stokes flow          evolution of the velocity field can be solved exactly
+forward model γ = 0. It has been demonstrated in             for a truncated Fourier series, and in the numerics
+[8, 10] that the pCN can successfully sample from            that follow we truncate this to 100 unknowns, as we
+the posterior distribution for such problems. In this        have found the results to be robust to further re-
+subsection we will illustrate three features of such         finement. In the case of the Lagrangian data, we in-
+methods: convergence of the algorithm from differ-           tegrate the trajectories (2.5) using an Euler scheme
+ent starting states, convergence with different pro-         with time step ∆t = 0.01. In each case we will give
+posal step sizes, and behaviour with random distri-          the values of N (number of spatial observations, or
+                                                             particles) and M (number of temporal observations)
+butions for the proposal step size, as discussed in
+                                                             that were used. The observation stations (Eulerian
+Section 4.5.
+                                                             data) or initial positions of the particles (Lagrangian
+   5.2.1 Target distributions In this application we         data) are evenly spaced on a grid. The M observa-
+aim to characterize the posterior distribution on the        tion times are evenly spaced, with the final obser-
+initial condition of the two-dimensional velocity field      vation time given by TM = 1 for Lagrangian obser-
+u0 for Stokes flow [equation (2.3) with γ = 0], given        vations and TM = 0.1 for Eulerian. The true initial
+a set of either Eulerian (2.4) or Lagrangian (2.6)           condition u is chosen randomly from the prior dis-
+observations. In both cases, the posterior is of the         tribution.
+form (1.1) with Φ(u) = 12 kG(u) − yk2Γ , with G a non-
+                                                                5.2.4 Convergence from different initial states We
+linear mapping taking u to the observation space.
+                                                             consider a posterior distribution found from data
+We choose the observational noise covariance to be
+                                                             comprised of 900 Lagrangian tracers observed at 100
+Γ = σ 2 I with σ = 10−2 .
+                                                             evenly spaced times on [0, 1]. The data volume is
+   5.2.2 Prior We let A be the Stokes operator de-           high and a form of posterior consistency is observed
+fined by writing (2.3) as dv/dt + Av = 0, v(0) = u in        for low Fourier modes, meaning that the posterior is
+the case γ = 0 and ψ = 0. Thus, A is ν times the             approximately a Dirac mass at the truth. Observa-
+negative Laplacian, restricted to a divergence free          tions were made of each of these tracers up to a final
+16                                    COTTER, ROBERTS, STUART AND WHITE
+
+                                                                ability is estimated over short bursts and the step
+                                                                size β adapted accordingly. With β too small, the
+                                                                algorithm accepts proposed states often, but these
+                                                                changes in state are too small, so the algorithm does
+                                                                not explore the state space efficiently. In contrast,
+                                                                with β too big, larger jumps are proposed, but are
+                                                                often rejected since the proposal often has small
+                                                                probability density and so are often rejected. Fig-
+                                                                ure 4 shows examples of both of these, as well as a
+                                                                more efficient choice βopt .
+                                                                   5.2.6 Convergence with random β Here we illus-
+Fig. 3. Convergence of value of one Fourier mode of the
+                                                                trate the possibility of using a random proposal vari-
+initial condition u0 in the pCN Markov chains with different    ance β, as introduced in Section 4.5 [expressed in
+initial states, with Lagrangian data.                           terms of δ and (4.7) rather than β and (4.8)]. Such
+                                                                methods have the potential advantage of including
+                                                                the possibility of large and small steps in the pro-
+                                                                posal. In this example we use Eulerian data once
+                                                                again, this time with only 9 observation stations,
+                                                                with only one observation time at T = 0.1. Two in-
+                                                                stances of the sampler were run with the same data,
+                                                                one with a static value of β = βopt and one with
+                                                                β ∼ U ([0.1 × βopt , 1.9 × βopt ]). The marginal distri-
+                                                                butions for both Markov chains are shown in Fig-
+                                                                ure 5(a), and are very close indeed, verifying that
+                                                                randomness in the proposal variance scale gives rise
+                                                                to (empirically) ergodic Markov chains. Figure 5(b)
+                                                                shows the distribution of the β for which the pro-
+Fig. 4. Convergence of one of the Fourier modes of the ini-     posed state was accepted. As expected, the initial
+tial condition in the pCN Markov chains with different pro-     uniform distribution is skewed, as proposals with
+posal variances, with Eulerian data.                            smaller jumps are more likely to be accepted.
+                                                                   The convergence of the method with these two
+time T = 1. Figure 3 shows traces of the value of one           choices for β were roughly comparable in this sim-
+particular Fourier mode5 of the true initial condi-             ple experiment. However, it is of course conceivable
+tions. Different starting values are used for pCN and           that when attempting to explore multimodal poste-
+all converge to the same distribution. The proposal             rior distributions it may be advantageous to have a
+variance β was chosen in order to give an average               mix of both large proposal steps, which may allow
+acceptance probability of approximately 25%.                    large leaps between different areas of high probabil-
+                                                                ity density, and smaller proposal steps in order to
+   5.2.5 Convergence with different β Here we study             explore a more localised region.
+the effect of varying the proposal variance. Eulerian
+                                                                5.3 Subsurface Geophysics
+data is used with 900 observations in space and 100
+observation times on [0, 1]. Figure 4 shows the dif-              The purpose of this section is twofold: we demon-
+ferent rates of convergence of the algorithm with               strate another nontrivial application where function
+different values of β, in the same Fourier mode co-             space sampling is potentially useful and we demon-
+efficient as used in Figure 3. The value labelled βopt          strate the use of sieve priors in this context. Key
+here is chosen to give an acceptance rate of approx-            to understanding what follows in this problem is to
+imately 50%. This value of β is obtained by using               appreciate that, for the data volume we employ, the
+an adaptive burn-in, in which the acceptance prob-              posterior distribution can be very diffuse and expen-
+                                                                sive to explore unless severe prior modelling is im-
+  5
+    The real part of the coefficient of the Fourier mode with   posed, meaning that the prior is heavily weighted to
+wave number 0 in the x-direction and wave number 1 in the       solutions with only a small number of active Fourier
+y-direction.                                                    modes, at low wave numbers. This is because the
+                                              MCMC METHODS FOR FUNCTIONS                                                   17
+
+
+
+
+Fig. 5. Eulerian data assimilation example. (a) Empirical marginal distributions estimated using the pCN with and without
+random β. (b) Plots of the proposal distribution for β and the distribution of values for which the pCN proposal was accepted.
+
+
+
+homogenizing property of the elliptic PDE means
+that a whole range of different length-scale solu-
+tions can explain the same data. To combat this,
+we choose very restrictive priors, either through the
+form of Gaussian covariance or through the sieve
+mechanism, which favour a small number of active
+Fourier modes.
+  5.3.1 Target distributions We consider equation
+(2.7) in the case D = [0, 1]2 . Recall that the objective       Fig. 6. True permeability function used to create target dis-
+in this problem is to recover the permeability κ =              tributions in subsurface geophysics application.
+exp(u). The sampling algorithms discussed here are
+applied to the log permeability u. The “true” per-
+meability for which we test the algorithms is shown
+in Figure 6 and is given by
+                                      1
+(5.2)           κ(x) = exp(u1 (x)) = 10 .
+The pressure measurement data is yj = p(xj ) + σηj
+with the ηj i.i.d. standard unit Gaussians, with the
+measurement location shown in Figure 7.
+  5.3.2 Prior The priors will either be Gaussian or              Fig. 7.   Measurement locations for subsurface experiment.
+a sieve prior based on a Gaussian. In both cases the
+Gaussian structure is defined via a Karhunen–Loéve
+                                                                   For the Gaussian prior we employ MwG and pCN
+expansion of the form
+                                                                schemes, and we employ the pCN-based Gibbs sam-
+          u(x) = ζ0,0 ϕ(0,0)                                    pler from Section 4.7 for the sieve prior; we refer
+(5.3)                                                           to this latter algorithm as Sieve-pCN. As in Sec-
+                            X             ζp,q ϕ(p,q)           tion 5.1, it is important that the reader appreciates
+                   +                                  ,
+                                         (p2 + q 2 )α           that the comparison between MwG and pCN corre-
+                       (p,q)∈Z2 {0,0}
+                                                                sponds to sampling from the same posterior, since
+where ϕ(p,q) are two-dimensional Fourier basis func-            they use the same prior, but that all comparisons
+tions and the ζp,q are independent random variables             between Sieve-pCN and other methods also quantify
+with distribution ζp,q ∼ N (0, 1) and a ∈ R. To ensure          the effect of prior modelling as well as algorithm.
+that the eigenvalues of the prior covariance operator
+are summable (a necessary and sufficient condition                 5.3.3 Numerical implementation The forward mod-
+for draws from it to be continuous functions, almost            el is evaluated by solving equation (2.7) on the two-
+surely), we require that α > 1. For target defined via          dimensional domain D = [0, 1]2 using a finite differ-
+κ we take α = 1.001.                                            ence method with mesh of size J × J . This results in
+18                                COTTER, ROBERTS, STUART AND WHITE
+
+a J 2 × J 2 banded matrix with bandwidth J which
+may be solved, using a banded matrix solver, in
+O(J 4 ) floating point operations (see page 171 [25]).
+As drawing a sample is a O(J 4 ) operation, the grid
+sizes used within these experiments was kept delib-
+erately low: for target defined via κ we take J = 64.
+This allowed a sample to be drawn in less than 100
+ms and therefore 106 samples to be drawn in around
+a day. We used 1 measurement point, as shown in
+Figure 7.
+   5.3.4 Numerical results Since α = 1.001, the ei-
+genvalues of the prior covariance are only just summa-
+ble, meaning that many Fourier modes will be ac-
+tive in the prior. Figure 8 shows trace plots obtained
+through application of the MwG and pCN methods
+to the Gaussian prior and a pCN-based Gibbs sam-
+pler for the sieve prior, denoted Sieve-pCN. The pro-
+posal variance for pCN and Sieve-pCN was selected
+to ensure an average acceptance of around 0.234.
+Four different seeds are used. It is clear from these
+plots that only the MCMC chain generated by the
+sieve prior/algorithm combination converges in the
+available computational time. The other algorithms
+fail to converge under these test conditions. This
+demonstrates the importance of prior modelling as-
+sumptions for these under-determined inverse prob-
+lems with multiple solutions.
+5.4 Image Registration
+   In this subsection we consider the image registra-
+tion problem from Section 2.4. Our primary pur-
+pose is to illustrate the idea that, in the function      Fig. 8. Trace plots for the subsurface geophysics application,
+space setting, it is possible to extend the prior mod-    using 1 measurement. The MwG, pCN and Sieve-pCN algo-
+                                                          rithms are compared. Different colours correspond to identical
+elling to include an unknown observational precision
+                                                          MCMC simulations with different random number generator
+and to use conjugate Gamma priors for this param-         seeds.
+eter.
+  5.4.1 Target distribution We study the setup from         5.4.2 Prior The priors on the initial momentum
+Section 2.4, with data generated from a noisily ob-       and reparameterisation are taken as
+served truth u = (p, η) which corresponds to a smooth                      µp (p) = N (0, δ1 H−α1 ),
+closed curve. We make J noisy observations of the         (5.4)
+curve where, as will be seen below, we consider the                        µν (ν) = N (0, δ2 H−α2 ),
+cases J = 10, 20, 50, 100, 200, 500 and 1000. The noise   where α1 = 0.55, α2 = 1.55, δ1 = 30 and δ2 = 5·10−2 .
+used to generate the data is an uncorrelated mean         Here H = (I − ∆) denotes the Helmholtz operator
+                                                 2
+zero Gaussian at each location with variance σtrue   =    in one dimension and, hence, the chosen values of αi
+0.01. We will study the case where the noise vari-        ensure that the eigenvalues of the prior covariance
+ance σ 2 is itself considered unknown, introducing        operators are summable. As a consequence, draws
+a prior on τ = σ −2 . We then use MCMC to study           from the prior are continuous, almost surely. The
+the posterior distribution on (u, τ ), and hence on       prior for τ is defined as
+(u, σ 2 ).                                                (5.5)            µτ = Gamma(ασ , βσ ),
+                                       MCMC METHODS FOR FUNCTIONS                                                           19
+
+
+
+
+Fig. 9. Convergence of the lowest wave number Fourier modes in (a) the initial momentum P0 , and (b) the reparameteri-
+sation function ν, as the number of observations is increased, using the pCN.
+
+
+noting that this leads to a conjugate posterior on
+this variable, since the observational noise is Gaus-
+sian. In the numerics that follow, we set ασ = βσ =
+0.0001.
+  5.4.3 Numerical implementation In each experi-
+ment the data is produced using the same template
+shape Γdb , with parameterization given by
+          qdb (s) = (cos(s) + π, sin(s) + π),
+(5.6)
+                                                s ∈ [0, 2π).
+In the following numerics, the observed shape is cho-
+sen by first sampling an instance of p and ν from
+their respective prior distributions and using the nu-
+merical approximation of the forward model to give
+                                                               Fig. 10. Convergence of the posterior distribution on the
+us the parameterization of the target shape. The               value of the noise variance σ 2 I, as the number of observations
+N observational points {si }N  i=1 are then picked by          is increased, sampled using the pCN.
+evenly spacing them out over the interval [0, 1), so
+that si = (i − 1)/N .
+                                                               functions u and the precision parameter τ can both
+   5.4.4 Finding observational noise hyperparameter            be recovered: a form of posterior consistency.
+We implement an MCMC method to sample from                       This is demonstrated in Figure 9, for the posterior
+the joint distribution of (u, τ ), where (recall) τ =          distribution on a low wave number Fourier coeffi-
+σ −2 is the inverse observational precision. When sam-         cient in the expansion of the initial momentum p and
+pling u we employ the pCN method. In this context              the reparameterisation η. Figure 10 shows the pos-
+it is possible to either: (i) implement a Metropolis-          terior distribution on the value of the observational
+within-Gibbs sampler, alternating between use of               variance σ 2 ; recall that the true value is 0.01. The
+pCN to sample u|τ and using explicit sampling from             posterior distribution becomes increasingly peaked
+the Gamma distribution for τ |u; or (ii) marginalize           close to this value as N increases.
+out τ and sample directly from the marginal distri-
+                                                               5.5 Conditioned Diffusions
+bution for u, generating samples from τ separately;
+we adopt the second approach.                                    Numerical experiments which employ function
+   We show that, by taking data sets with an increas-          space samplers to study problems arising in con-
+ing number of observations N , the true values of the          ditioned diffusions have been published in a num-
+20                                COTTER, ROBERTS, STUART AND WHITE
+
+ber of articles. The paper [4] introduced the idea of     to satisfy these assumptions in [13], again for ap-
+function space samplers in this context and demon-        proximate choice of X. It is shown in [9] that As-
+strated the advantage of the CNL method (4.12)            sumptions 6.1 are satisfied for the image registration
+over the standard Langevin algorithm for bridge dif-      problem of Section 2.4, again for appropriate choice
+fusions; in the notation of that paper, the IA method     of X. A wide range of conditioned diffusions satisfy
+with θ = 21 is our CNL method. Figures analogous          Assumptions 6.1; see [20]. The density estimation
+to Figure 1(a) and (b) are shown. The article [19]        problem from Section 2.1 satisfies the second item
+demonstrates the effectiveness of the CNL method,         from Assumptions 6.1, but not the first.
+for smoothing problems arising in signal processing,      6.1 Why the Crank–Nicolson Choice?
+and figures analogous to Figure 1(a) and (b) are
+again shown. The paper [5] contains numerical ex-           In order to explain this choice, we consider a one-
+periments showing comparison of the function-space        parameter (θ) family of discretizations of equation
+HMC method from Section 4.8 with the CNL variant          (4.2), which reduces to the discretization (4.4) when
+of the MALA method from Section 4.3, for a bridge         θ = 21 . This family is
+diffusion problem; the function-space HMC method                  v = u − δK((1 − θ)Lu + θLv) − δγKDΦ(u)
+is superior in that context, demonstrating the power      (6.1)          √
+of methods which break random-walk type behaviour                     + 2δKξ0 ,
+of local proposals.                                       where√ξ0 ∼ N (0, I) is a white noise on X. Note that
+                                                          w := Cξ0 has covariance operator C and is hence a
+          6. THEORETICAL ANALYSIS                         draw from µ0 . Recall that if u is the current state of
+   The numerical experiments in this paper demon-         the Markov chain, then v is the proposal. For sim-
+strate that the function-space algorithms of Crank–       plicity we consider only Crank–Nicolson proposals
+Nicolson type behave well on a range of nontriv-          and not the MALA variants, so that γ = 0. However,
+ial examples. In this section we describe some the-       the analysis generalises to the Langevin proposals in
+oretical analysis which adds weight to the choice of      a straightforward fashion.
+Crank–Nicolson discretizations which underlie these          Rearranging (6.1), we see that the proposal v sat-
+algorithms. We also show that the acceptance prob-        isfies
+ability resulting from these proposals behaves as in              v = (I − δθKL)−1
+finite dimensions: in particular, that it is continuous   (6.2)                                √
+as the scale factor δ for the proposal variance tends                 · ((I + δ(1 − θ)KL)u +       2δKξ0 ).
+to zero. And finally we summarize briefly the the-        If K = I, then the operator applied to u is bounded
+ory available in the literature which relates to the      on X for any θ ∈ (0, 1]. If K = C, it is bounded for
+function-space viewpoint that we highlight in this        θ ∈ [0, 1]. The white noise term is almost surely in X
+paper. We assume throughout that Φ satisfies the          for K = I, θ ∈ (0, 1] and K = C, θ ∈ [0, 1]. The Crank–
+following assumptions:                                    Nicolson proposal (4.5) is found by letting K = I and
+   Assumptions 6.1.      The function Φ : X → R sat-      θ = 21 . The preconditioned Crank–Nicolson proposal
+isfies the following:                                     (4.7) is found by setting K = C and θ = 12 . The fol-
+                                                          lowing theorem explains the choice θ = 12 .
+1. there exists p > 0, K > 0 such that, for all u ∈ X
+                                                             Theorem 6.2. Let µ0 (X) = 1, let Φ satisfy As-
+              0 ≤ Φ(u; y) ≤ K(1 + kukp );
+                                                          sumption 6.1(2) and assume that µ and µ0 are equiv-
+2. for every r > 0 there is K(r) > 0 such that, for       alent as measures with the Radon–Nikodym deriva-
+   all u, v ∈ X with max{kuk, kvk} < r,                   tive (1.1). Consider the proposal v|u ∼ q(u, ·) de-
+             |Φ(u) − Φ(v)| ≤ K(r)ku − vk.                 fined by (6.2) and the resulting measure η(du, dv) =
+                                                          q(u, dv)µ(du) on X × X. For both K = I and K = C
+  These assumptions arise naturally in many Bayes-        the measure η ⊥ = q(v, du)µ(dv) is equivalent to η if
+ian inverse problems where the data is finite di-         and only if θ = 21 . Furthermore, if θ = 12 , then
+mensional [49]. Both the data assimilation inverse
+problems from Section 2.2 are shown to satisfy As-                  dη ⊥
+                                                                         (u, v) = exp(Φ(u) − Φ(v)).
+sumptions 6.1, for appropriate choice of X in [11]                   dη
+(Navier–Stokes) and [49] (Stokes). The groundwa-           By use of the analysis of Metropolis–Hastings
+ter flow inverse problem from Section 2.3 is shown        methods on general state spaces in [51], this theorem
+                                        MCMC METHODS FOR FUNCTIONS                                            21
+
+shows that the Crank–Nicolson proposal (6.2) leads        dimension, and optimal acceptance probability, can
+to a well-defined MCMC algorithm in the function-         be extended to the target measures of the form (1.1)
+space setting, if and only if θ = 21 . Note, relatedly,   which are central to this paper; see [29, 36]. These
+that the choice θ = 12 has the desirable property that    results show that the standard MCMC method must
+u ∼ N (0, C) implies that v ∼ N (0, C): thus, the prior   be scaled with proposal variance (or time-step in the
+measure is preserved under the proposal. This mim-        case of HMC) which is inversely proportional to a
+ics the behaviour of the SDE (4.2) for which the          power of du , the discretization dimension, and that
+prior is an invariant measure. We have thus justi-        the number of steps required grows under mesh re-
+fied the proposals (4.5) and (4.7) on function space.     finement. The papers [5, 37] demonstrate that judi-
+To complete our analysis, it remains to rule out the      cious modifications of these standard algorithms, as
+standard random walk proposal (4.3).                      described in this paper, lead to scaling limits without
+  Theorem 6.3. Consider the proposal v|u ∼                the need for scalings of proposal variance or time-
+q(u, ·) defined by (4.3) and the resulting measure        step which depend on dimension. These results in-
+η(du, dv) = q(u, dv)µ(du) on X × X. For both K = I        dicate that the number of steps required is stable
+and K = C the measure η ⊥ = q(v, du)µ(dv) is not          under mesh refinement, for these new methods, as
+absolutely continuous with respect to η. Thus, the        demonstrated numerically in this paper. The second
+MCMC method is not defined on function space.             approach, namely, the use of spectral gaps, offers
+                                                          the opportunity to further substantiate these ideas:
+6.2 The Acceptance Probability
+                                                          in [21] it is shown that the pCN method has a di-
+  We now study the properties of the two Crank–           mension independent spectral gap, whilst a standard
+Nicolson methods with proposals (4.5) and (4.7) in        random walk which closely resembles it has spec-
+the limit δ → 0, showing that finite-dimensional in-      tral gap which shrinks with dimension. This method
+tuition carries over to this function space setting.      of analysis, via spectral gaps, will be useful for the
+We define                                                 analysis of many other MCMC algorithms arising in
+               R(u, v) = Φ(u) − Φ(v)                      high dimensions.
+and note from (4.11) that, for both of the Crank–
+                                                                          7. CONCLUSIONS
+Nicolson proposals,
+           a(u, v) = min{1, exp(R(u, v))}.                  We have demonstrated the following points:
+   Theorem 6.4. Let µ0 be a Gaussian measure on           • A wide range of applications lead naturally to
+a Hilbert space (X, k · k) with µ0 (X) = 1 and let µ        problems defined via density with respect to a
+be an equivalent measure on X given by the Radon–           Gaussian random field reference measure, or vari-
+Nikodym derivative (1.1), satisfying Assump-                ants on this structure.
+tions 6.1(1) and 6.1(2). Then both the pCN and CN         • Designing MCMC methods on function space, and
+algorithms with fixed δ are defined on X and, fur-          then discretizing the nonparametric problem, pro-
+thermore, the acceptance probability satisfies              duces better insight into algorithm design than
+                  lim Eη a(u, v) = 1.                       discretizing the nonparametric problem and then
+                  δ→0                                       applying standard MCMC methods.
+6.3 Scaling Limits and Spectral Gaps                      • The transferable idea underlying all the meth-
+  There are two basic theories which have been de-          ods is that, in the purely Gaussian case when
+veloped to explain the advantage of using the al-           only the reference measure is sampled, the re-
+gorithms introduced here which are based on the             sulting MCMC method should accept with prob-
+function-space viewpoints. The first is to prove scal-      ability one; such methods may be identified by
+ing limits of the algorithms, and the second is to es-      time-discretization of certain stochastic dynami-
+tablish spectral gaps. The use of scaling limits was        cal systems which preserve the Gaussian reference
+pioneered for local-proposal Metropolis algorithms          measure.
+in the papers [40–42], and recently extended to the       • Using this methodology, we have highlighted new
+hybrid Monte Carlo method [6]. All of this work con-        random walk, Langevin and Hybrid Monte Carlo
+cerned i.i.d. target distributions, but recently it has     Metropolis-type methods, appropriate for prob-
+been shown that the basic conclusions of the theory,        lems where the posterior distribution has density
+relating to optimal scaling of proposal variance with       with respect to a Gaussian prior, all of which can
+22                                   COTTER, ROBERTS, STUART AND WHITE
+
+  be implemented by means of small modifications          [6] Beskos, A., Pillai, N. S., Roberts, G. O., Sanz-
+  of existing codes.                                              Serna, J. M. and Stuart, A. M. (2013). Optimal
+• We have applied these MCMC methods to a range                   tuning of hybrid Monte Carlo. Bernoulli. To appear.
+                                                                  Available at http://arxiv.org/abs/1001.4460.
+  of problems, demonstrating their efficacy in com-
+                                                          [7] Cotter, C. J. (2008). The variational particle-mesh
+  parison with standard methods, and shown their                  method for matching curves. J. Phys. A 41 344003,
+  flexibility with respect to the incorporation of stan-          18. MR2456340
+  dard ideas from MCMC technology such as Gibbs           [8] Cotter, S. L. (2010). Applications of MCMC methods
+  sampling and estimation of noise precision through              on function spaces. Ph.D. thesis, Univ. Warwick.
+  conjugate Gamma priors.                                 [9] Cotter, C. J., Cotter, S. L. and Vialard, F. X.
+• We have pointed to the emerging body of theo-                   (2013). Bayesian data assimilation in shape regis-
+                                                                  tration. Inverse Problems 29 045011.
+  retical literature which substantiates the desirable
+                                                         [10] Cotter, S. L., Dashti, M. and Stuart, A. M. (2012).
+  properties of the algorithms we have highlighted                Variational data assimilation using targetted ran-
+  here.                                                           dom walks. Internat. J. Numer. Methods Fluids 68
+                                                                        403–421. MR2880204
+   The ubiquity of Gaussian priors means that the
+                                                               [11] Cotter, S. L., Dashti, M., Robinson, J. C. and Stu-
+technology that is described in this article is of im-                  art, A. M. (2009). Bayesian inverse problems for
+mediate applicability to a wide range of applica-                       functions and applications to fluid mechanics. In-
+tions. The generality of the philosophy that under-                     verse Problems 25 115008, 43. MR2558668
+lies our approach also suggests the possibility of nu-         [12] Da Prato, G. and Zabczyk, J. (1992). Stochastic
+merous further developments. In particular, many                        Equations in Infinite Dimensions. Encyclopedia of
+existing algorithms can be modified to the function                     Mathematics and Its Applications 44. Cambridge
+                                                                        Univ. Press, Cambridge. MR1207136
+space setting that is shown to be so desirable here,           [13] Dashti, M., Harris, S. and Stuart, A. (2012). Besov
+when Gaussian priors underlie the desired target;                       priors for Bayesian inverse problems. Inverse Probl.
+and many similar ideas can be expected to emerge                        Imaging 6 183–200. MR2942737
+for the study of problems with non-Gaussian priors,            [14] Diaconis, P. (1988). Bayesian numerical analysis. In
+such as arise in wavelet based nonparametric esti-                      Statistical Decision Theory and Related Topics,
+mation.                                                                 IV, Vol. 1 (West Lafayette, Ind., 1986) 163–175.
+                                                                        Springer, New York. MR0927099
+             ACKNOWLEDGEMENTS                                  [15] Duane, S., Kennedy, A. D., Pendleton, B. and
+                                                                        Roweth, D. (1987). Hybrid Monte Carlo. Phys.
+  S. L. Cotter is supported by EPSRC, ERC (FP7/                         Lett. B 195 216–222.
+2007-2013 and Grant 239870) and St. Cross College.             [16] Girolami, M. and Calderhead, B. (2011). Riemann
+G. O. Roberts is supported by EPSRC (especially                         manifold Langevin and Hamiltonian Monte Carlo
+                                                                        methods (with discussion). J. R. Stat. Soc. Ser. B
+the CRiSM grant). A. M. Stuart is grateful to EP-                       Stat. Methodol. 73 123–214. MR2814492
+SRC, ERC and ONR for the financial support of                  [17] Glaunes, J., Trouvé, A. and Younes, L. (2004). Dif-
+research which underpins this article. D. White is                      feomorphic matching of distributions: A new ap-
+supported by ERC.                                                       proach for unlabelled point-sets and sub-manifolds
+                                                                        matching. In Computer Vision and Pattern Recog-
+                                                                        nition, 2004. CVPR 2004. Proceedings of the 2004
+                    REFERENCES                                          IEEE Computer Society Conference on 2 712–718.
+ [1] Adams, R. P., Murray, I. and Mackay, D. J. C.                      IEEE.
+         (2009). The Gaussian process density sampler. In      [18] Hairer, M., Stuart, A. M. and Voss, J. (2007). Anal-
+         Advances in Neural Information Processing Systems              ysis of SPDEs arising in path sampling. II. The
+         21.                                                            nonlinear case. Ann. Appl. Probab. 17 1657–1706.
+ [2] Adler, R. J. (2010). The Geometry of Random Fields.                MR2358638
+         SIAM, Philadeliphia, PA.                              [19] Hairer, M., Stuart, A. and Voß, J. (2009). Sam-
+ [3] Bennett, A. F. (2002). Inverse Modeling of the Ocean               pling conditioned diffusions. In Trends in Stochas-
+         and Atmosphere. Cambridge Univ. Press, Cam-                    tic Analysis. London Mathematical Society Lecture
+         bridge. MR1920432                                              Note Series 353 159–185. Cambridge Univ. Press,
+ [4] Beskos, A., Roberts, G., Stuart, A. and Voss, J.                   Cambridge. MR2562154
+         (2008). MCMC methods for diffusion bridges.           [20] Hairer, M., Stuart, A. and Voss, J. (2011). Signal
+         Stoch. Dyn. 8 319–350. MR2444507                               processing problems on function space: Bayesian
+ [5] Beskos, A., Pinski, F. J., Sanz-Serna, J. M. and                   formulation, stochastic PDEs and effective MCMC
+         Stuart, A. M. (2011). Hybrid Monte Carlo on                    methods. In The Oxford Handbook of Nonlinear Fil-
+         Hilbert spaces. Stochastic Process. Appl. 121 2201–            tering (D. Crisan and B. Rozovsky, eds.) 833–
+         2230. MR2822774                                                873. Oxford Univ. Press, Oxford. MR2884617
+                                            MCMC METHODS FOR FUNCTIONS                                                        23
+
+[21] Hairer, M., Stuart, A. M. and Vollmer, S. (2013).             [38] Richtmyer, D. and Morton, K. W. (1967). Difference
+          Spectral gaps for a Metropolis–Hastings algo-                     Methods for Initial Value Problems. Wiley, New
+          rithm in infinite dimensions. Available at http://                York.
+          arxiv.org/abs/1112.1392.                                 [39] Robert, C. P. and Casella, G. (1999). Monte
+[22] Hairer, M., Stuart, A. M., Voss, J. and Wiberg, P.                     Carlo Statistical Methods. Springer, New York.
+          (2005). Analysis of SPDEs arising in path sampling.               MR1707311
+          I. The Gaussian case. Commun. Math. Sci. 3 587–          [40] Roberts, G. O., Gelman, A. and Gilks, W. R. (1997).
+          603. MR2188686                                                    Weak convergence and optimal scaling of random
+[23] Hills, S. E. and Smith, A. F. M. (1992). Parameteriza-                 walk Metropolis algorithms. Ann. Appl. Probab. 7
+          tion issues in Bayesian inference. In Bayesian Statis-            110–120. MR1428751
+          tics, 4 (Peñı́Scola, 1991) 227–246. Oxford Univ.        [41] Roberts, G. O. and Rosenthal, J. S. (1998). Optimal
+          Press, New York. MR1380279                                        scaling of discrete approximations to Langevin dif-
+[24] Hjort, N. L., Holmes, C., Müller, P. and                              fusions. J. R. Stat. Soc. Ser. B Stat. Methodol. 60
+          Walker, S. G., eds. (2010). Bayesian Nonparamet-                  255–268. MR1625691
+          rics. Cambridge Series in Statistical and Probabilis-    [42] Roberts, G. O. and Rosenthal, J. S. (2001). Optimal
+          tic Mathematics 28. Cambridge Univ. Press, Cam-                   scaling for various Metropolis–Hastings algorithms.
+          bridge. MR2722987                                                 Statist. Sci. 16 351–367. MR1888450
+[25] Iserles, A. (2004). A First Course in the Numeri-             [43] Roberts, G. O. and Stramer, O. (2001). On inference
+          cal Analysis of Differential Equations. Cambridge                 for partially observed nonlinear diffusion models us-
+          Univ. Press, Cambridge.                                           ing the Metropolis–Hastings algorithm. Biometrika
+[26] Kalnay, E. (2003). Atmospheric Modeling, Data Assim-                   88 603–621. MR1859397
+          ilation and Predictability. Cambridge Univ. Press,       [44] Roberts, G. O. and Tweedie, R. L. (1996). Expo-
+          Cambridge.                                                        nential convergence of Langevin distributions and
+[27] Lemm, J. C. (2003). Bayesian Field Theory. Johns Hop-                  their discrete approximations. Bernoulli 2 341–363.
+          kins Univ. Press, Baltimore, MD. MR1987925                        MR1440273
+[28] Liu, J. S. (2001). Monte Carlo Strategies in Scientific       [45] Rue, H. and Held, L. (2005). Gaussian Markov Ran-
+          Computing. Springer, New York. MR1842342                          dom Fields: Theory and Applications. Monographs
+[29] Mattingly, J. C., Pillai, N. S. and Stuart, A. M.                      on Statistics and Applied Probability 104. Chapman
+          (2012). Diffusion limits of the random walk                       & Hall/CRC, Boca Raton, FL. MR2130347
+          Metropolis algorithm in high dimensions. Ann.            [46] Smith, A. F. M. and Roberts, G. O. (1993). Bayesian
+          Appl. Probab. 22 881–930. MR2977981                               computation via the Gibbs sampler and related
+[30] McLaughlin, D. and Townley, L. R. (1996). A re-                        Markov chain Monte Carlo methods. J. R. Stat.
+          assessment of the groundwater inverse problem.                    Soc. Ser. B Stat. Methodol. 55 3–23. MR1210421
+          Water Res. Res. 32 1131–1161.                            [47] Sokal, A. D. (1989). Monte Carlo methods in statis-
+[31] Miller, M. T. and Younes, L. (2001). Group actions,                    tical mechanics: Foundations and new algorithms,
+          homeomorphisms, and matching: A general frame-                    Univ. Lausanne, Bâtiment des sciences de physique
+          work. Int. J. Comput. Vis. 41 61–84.                              Troisième Cycle de la physique en Suisse romande.
+[32] Neal, R. M. (1996). Bayesian Learning for Neural Net-         [48] Stein, M. L. (1999). Interpolation of Spatial Data:
+          works. Springer, New York.                                        Some Theory for Kriging. Springer, New York.
+[33] Neal, R. M. (1998). Regression and classifica-                         MR1697409
+          tion using Gaussian process priors. Available at         [49] Stuart, A. M. (2010). Inverse problems: A Bayesian
+          http://www.cs.toronto.edu/~radford/valencia.                      perspective. Acta Numer. 19 451–559. MR2652785
+          abstract.html.                                           [50] Stuart, A. M., Voss, J. and Wiberg, P. (2004). Fast
+[34] Neal, R. M. (2011). MCMC using Hamiltonian dynam-                      communication conditional path sampling of SDEs
+          ics. In Handbook of Markov Chain Monte Carlo 113–                 and the Langevin MCMC method. Commun. Math.
+          162. CRC Press, Boca Raton, FL. MR2858447                         Sci. 2 685–697. MR2119934
+[35] O’Hagan, A., Kennedy, M. C. and Oakley, J. E.                 [51] Tierney, L. (1998). A note on Metropolis–Hastings ker-
+          (1999). Uncertainty analysis and other inference                  nels for general state spaces. Ann. Appl. Probab. 8
+          tools for complex computer codes. In Bayesian                     1–9. MR1620401
+          Statistics, 6 (Alcoceber, 1998) 503–524. Oxford          [52] Vaillant, M. and Glaunes, J. (2005). Surface match-
+          Univ. Press, New York. MR1724872                                  ing via currents. In Information Processing in Med-
+[36] Pillai, N. S., Stuart, A. M. and Thiéry, A. H.                        ical Imaging 381–392. Springer, Berlin.
+          (2012). Optimal scaling and diffusion limits for the     [53] van der Meulen, F., Schauer, M. and van Zan-
+          Langevin algorithm in high dimensions. Ann. Appl.                 ten, H. (2013). Reversible jump MCMC for non-
+          Probab. 22 2320–2356. MR3024970                                   parametric drift estimation for diffusion processes.
+[37] Pillai, N. S., Stuart, A. M. and Thiery, A. H.                         Comput. Statist. Data Anal. To appear.
+          (2012). On the random walk Metropolis algorithm          [54] Zhao, L. H. (2000). Bayesian aspects of some non-
+          for Gaussian random field priors and gradient flow.               parametric problems. Ann. Statist. 28 532–552.
+          Available at http://arxiv.org/abs/1108.1494.                      MR1790008
+

@@ -1,0 +1,1344 @@
+                                          The Annals of Statistics
+                                          2009, Vol. 37, No. 2, 697–725
+                                          DOI: 10.1214/07-AOS574
+                                           c Institute of Mathematical Statistics, 2009
+
+
+                                           THE PSEUDO-MARGINAL APPROACH FOR EFFICIENT MONTE
+                                                         CARLO COMPUTATIONS
+
+
+
+
+arXiv:0903.5480v1 [math.ST] 31 Mar 2009
+                                                      By Christophe Andrieu1 and Gareth O. Roberts
+                                                              University of Bristol and University of Warwick
+                                                            We introduce a powerful and flexible MCMC algorithm for stochas-
+                                                       tic simulation. The method builds on a pseudo-marginal method orig-
+                                                       inally introduced in [Genetics 164 (2003) 1139–1160], showing how
+                                                       algorithms which are approximations to an idealized marginal algo-
+                                                       rithm, can share the same marginal stationary distribution as the
+                                                       idealized method. Theoretical results are given describing the con-
+                                                       vergence properties of the proposed method, and simple numerical
+                                                       examples are given to illustrate the promising empirical characteris-
+                                                       tics of the technique. Interesting comparisons with a more obvious,
+                                                       but inexact, Monte Carlo approximation to the marginal algorithm,
+                                                       are also given.
+
+
+                                             1. Introduction. We are interested in the problem of simulation from a
+                                          probability distribution π(dθ, dz) which, for now, we shall assume admits a
+                                          density π(θ, z) with respect to some σ-finite measure (which we shall just
+                                          write as dθ × dz). The variables θ and z are elements of essentially arbi-
+                                          trary spaces, Θ and Z, respectively. We partition the state space in this way
+                                          because, either:
+                                          1. interest lies mainly in the marginal law π(dθ) of the variable θ ∈ Θ [which
+                                             we shall assume, for now, admits density π(θ) with respect to dθ]; or
+                                          2. exploration of π(θ) by MCMC methods is more convenient by appropriate
+                                             auxiliary simulation.
+                                             In a Bayesian framework, for example, θ could represent a parameter
+                                          of interest and z a set of missing data or latent variables; this includes,
+                                          among others, hidden Markov models and their continuous generalizations,
+                                          but also mixture models, and as we shall see in the application section,
+
+                                             Received March 2007; revised November 2007.
+                                             1
+                                              Supported by an EPSRC Advance Research Fellowship.
+                                             AMS 2000 subject classifications. Primary 60J22, 60K35; secondary 60K35.
+                                             Key words and phrases. Markov chain Monte Carlo, auxiliary variable, marginal, con-
+                                          vergence.
+
+                                           This is an electronic reprint of the original article published by the
+                                           Institute of Mathematical Statistics in The Annals of Statistics,
+                                           2009, Vol. 37, No. 2, 697–725. This reprint differs from the original in pagination
+                                           and typographic detail.
+                                                                                     1
+2                         C. ANDRIEU AND G. O. ROBERTS
+
+model selection problems in general [8]. Often the variable z is introduced
+for convenience, in particular in cases where the marginal density π(θ) is
+of sole interest. Indeed π(θ), or expectations with respect to it, might be
+analytically intractable or too complex to evaluate, whereas the introduction
+of z might lead to an analytical expression, or ease the implementation of
+numerical methods.
+   A relatively generic way of numerically approximating such expectations
+consists of simulating an ergodic Markov chain {(θi , zi )} which admits π(θ, z)
+as invariant probability density: such techniques are known under the acronym
+MCMC (Markov chain Monte Carlo). A typical sampling scheme will alter-
+nate sampling from the conditionals π(θ|z) and π(z|θ), or more generally
+ergodic Markov transition probabilities with these conditionals as invariant
+distributions. Although such so-called data augmentation schemes can very
+often ease programming and lead to elegant algorithms, it is well established
+that in numerous situations they can result in strongly positively correlated
+samples {(θi , zi )} (see, e.g., [5, 9]), which is an undesirable property when
+efficiency is sought. On the other hand, if π(θ) was known analytically or
+cheap to compute, it would often be possible to generate “more efficient”
+samples {θi } from a Markov chain with a transition probability P , typically
+a Metropolis–Hastings (MH) transition with invariant density π(θ) and pro-
+posal density q(θ, ϑ). This celebrated MCMC update consists, given that
+the Markov chain is currently at θ, of proposing θ ∗ ∼ q(θ, ·) and set the next
+value of the chain ϑ = θ ∗ with probability α(θ, θ ∗ ) which depends on the
+values of the densities π(θ) and π(θ ∗ ); otherwise we set ϑ = θ. More details
+are given below in the form of pseudo-code (note that, in our context, we
+shall term such an algorithm a marginal algorithm).
+   These general remarks have lead to the development of MCMC algorithms
+that try to combine the benefits of both approaches: possible statistical and
+computational efficiency of sampling directly from π(θ), and implementa-
+tional ease of augmented, or auxiliary, schemes. A natural approach consists
+of approximating the intractable density values π(θ) and π(ϑ) required for
+the computation of the acceptance probability of the MH update with im-
+portance sampling estimates [8], that is for some integer N ≥ 1 and some
+importance probability density qθ (z) (satisfying the usual support assump-
+tion) one can consider the estimators
+                             N
+                          1 X  π(θ, z(k))                i.i.d.
+            π̃ N (θ) :=                     with z(k)|θ ∼ qθ (·)
+                          N k=1 qθ (z(k))
+
+and
+                             N
+                          1 X  π(ϑ, z(k))                i.i.d.
+(1.1)       π̃ N (ϑ) :=                     with z(k)|ϑ ∼ qϑ (·),
+                          N k=1 qϑ (z(k))
+                       THE PSEUDO-MARGINAL APPROACH                                            3
+
+                                       Table 1
+               Comparison of the marginal, MCWM and GIMH algorithms
+
+Step                         Marginal              MCWM                      GIMH
+
+0. Given:                  θ and π(θ)          θ and π(θ)              θ, Z and π̃ N (θ)
+1. Sample:                 θ∗ ∼ q(θ, ·)        θ∗ ∼ q(θ, ·)
+                                                                      θ∗ ∼ q(θ, ·)
+                                                 Z ∼ qθN (·),
+                                                    ∗     N            Z ∗ ∼ qθN∗ (·)
+                                                ∼ qθ∗ (·)
+                                                 Z
+                                                 π̃ N (θ),
+2. Compute:                π(θ∗ )                                      π̃ N (θ∗ )
+                                                 π̃ N (θ∗ )
+                            π(θ ∗ )q(θ ∗ ,θ)    π̃ N (θ ∗ )q(θ ∗ ,θ)    π̃ N (θ ∗ )q(θ ∗ ,θ)
+3. Compute: r =                                  π̃ N (θ)q(θ,θ ∗ )
+                            π(θ)q(θ,θ ∗ )                              n π̃N (θ)q(θ,θ
+                                                                                ∗
+                                                                                      ∗)
+                                                                         ϑ=θ ,
+4. With prob. 1 ∧ r:       ϑ = θ∗              ϑ = θ∗                               ∗
+                                                                       nZ = Z
+                                                                         ϑ = θ,
+  otherwise:               ϑ=θ                 ϑ=θ
+                                                                         Z=Z
+
+
+and simply plug these estimates in the expression for the marginal accep-
+tance ratio (2.6). Note that here and hereafter we frequently omit the de-
+pendency on Z := (z(1), z(2), . . . , z(N )) and Z := (z(1), z(2), . . . , z(N )) for
+notational simplicity. We will denote qθN (Z) and qϑN (Z) the densities of Z
+and Z.
+   There are, however, several possible implementations of this idea, and we
+now review two of them. Before embarking on a more formal presentation
+in Section 2, it can be helpful to give a comparative pseudo-code description
+of MCWM and GIMH (the acronyms are explained later in the text) and
+the marginal algorithm (see Table 1).
+   The first approach considered here, which corresponds to the middle col-
+umn, is to attempt to approximate P , independently at each iteration using
+the importance ratio averages given in equation (1.1). More precisely both
+Z and Z ∗ are “refreshed” at each iteration independently of previously sam-
+pled auxiliary variables given θ and θ ∗ . This algorithm is referred to as the
+Monte Carlo within Metropolis (MCWM ) in [1] following the terminology
+of [7]. Due to the fact that the Z’s are independent at each iteration, one
+can easily see that {θi } is still a Markov chain with transition probability
+denoted P̃NMCWM hereafter.
+   However MCWM and the marginal algorithm P are not equivalent. In par-
+ticular, π(θ) is typically not the invariant distribution density of P̃NMCWM and
+therefore will not produce samples from π(θ) even in steady state. However,
+intuitively, provided that P̃NMCWM is ergodic, the samples generated by this
+procedure will asymptotically be distributed according to an approximation
+of π(θ), which should be all the more precise that N is large. Furthermore,
+we would like to know whether for sufficiently large N , the transition prob-
+ability P̃NMCWM does indeed inherit the convergence properties of P , as this
+was our initial motivation.
+4                              C. ANDRIEU AND G. O. ROBERTS
+
+   An interesting variation of MCWM could consist of using a single Z,
+sampled from some probability density qθ,θN (Z), to compute both π̃ N (θ) and
+                                            ∗
+  N   ∗
+π̃ (θ ). We do not pursue this here, but rather focus on the following.
+   In [1], Beaumont proposes a very interesting variation on the idea above,
+called grouped independence MH (GIMH ), which corresponds to the right-
+most column above. The MH transition probability of GIMH, as presented
+by Beaumont is similar in spirit to MCWM, but differs in that no fresh Z is
+sampled at every iteration. Rather, GIMH can be interpreted as a form of
+MCWM where Z is “recycled” from the previous iteration; as a result Z is
+in general not distributed according to qθN , as is the case when the MCWM
+algorithm is used. Note that in addition {θi } is not a Markov chain any-
+more, but that {θi , Zi } defines a Markov chain; we hereafter denote P̃NGIMH
+the transition probability of this Markov chain.
+   The remarkable property noticed by Beaumont is that the acceptance
+ratio of GIMH can be rewritten as
+       π̃ N (θ ∗ )q(θ ∗ , θ)
+        π̃ N (θ)q(θ, θ ∗ )
+                        PN     ∗ ∗      QN               ∗        ∗       N
+                 [1/N   k=1 π(θ , z (k)) l=1;l6=k qθ ∗ (z (l))]q(θ , θ)qθ (Z)
+             =         PN               QN                                      ,
+                   [1/N k=1 π(θ, z(k)) l=1;l6=k qθ (z(l))]q(θ, θ ∗ )qθN∗ (Z ∗ )
+
+which suggests that P̃NGIMH is, to complete Beaumont’s argument, a MH
+algorithm with proposal density q(θ, ϑ)qϑN (Z) and target density given be-
+tween the brackets above, denoted π̃ N (θ, Z) hereafter. Hence, as soon as
+GIMH defines an irreducible and aperiodic Markov chain it will produce
+samples {θi } distributed in the limit as i → ∞ according to the marginal
+π(θ). Given this interpretation, it is important to point out that updates of
+the type P̃NGIMH are not the only available to sample from π̃ N (θ, Z), a point
+apparently missed in the literature. For example, it is possible to update “Z
+given θ,” which is crucial to address some of the weaknesses of this approach,
+see Section 5. This distinction between target distribution and update also
+motivates the pseudo-marginal terminology adopted here.
+   The dual interpretation of GIMH as an approximation of a MH with tar-
+get density π(θ) or an MH with target distribution density π̃ N (θ, Z) there-
+fore opens the possibility for the design of algorithms that inherit the poten-
+tial efficiency of P while still being able to produce samples from π(θ), and
+not an approximation. However one can reiterate the questions asked earlier
+about the convergence properties of P̃NMCWM and their relation to the ideal
+transition probability P .
+   Before giving some answers to these questions, we first show how the
+approach can be easily generalized in order to allow for more sophisticated
+transitions, leading to potential “local adaptation” schemes for example and
+                        THE PSEUDO-MARGINAL APPROACH                                       5
+
+also suggest new applications, such as model selection and applications to
+reversible jump MCMC algorithms [3]. Sections 3–5 are dedicated to the
+theoretical properties of generalizations of GIMH. Our main results are:
+Theorem 1, where we show that if the marginal chain is irreducible and ape-
+riodic then generalizations of GIMH also converge; Theorem 6 shows that
+under very mild and intuitive conditions, mainly (A2) and (A3), general-
+izations of GIMH have finite horizon convergence properties very similar to
+those of the marginal algorithm, provided that N is large enough; in Theo-
+rem 8, under more stringent assumption, we investigate the geometric and
+uniform convergence of generalizations of GIMH. Section 6 is dedicated to
+some theoretical properties of generalizations of MCWM which turn out to
+be much simpler to establish than for generalizations of GIMH. In particular
+we show in Theorem 9 that if the marginal algorithm is uniformly ergodic,
+then generalizations of GIMH can inherit this property with arbitrary pre-
+cision. We conclude with Section 7 where we show how the ideas developed
+in this paper can be used in order to design efficient reversible jump MCMC
+algorithms to perform model selection using very simple mechanisms.
+
+    2. Set up and notation. Hereafter we will need the following notation.
+For some integer N ≥ 1 let Z := (z(1), z(2), . . . , z(N )) ∈ ZN denote a generic
+vector of ZN with coordinates z(k), k = 1, . . . , N . For any Z ∈ ZN and k =
+1, . . . , N we will denote Z −k := (z(1), . . . , z(k − 1), z(k + 1), . . . , z(N )) ∈ ZN −1
+with obvious conventions. For any Z ∈ ZN and Z = (z(k1 ), . . . , z(kl )) (for
+l ∈ {1, . . . , N − 1} and k1 , . . . , kl ∈ {1, . . . , N }) a subvector of Z, we define Z \
+{Z} := (z(1), . . . , z(k1 − 1), z(k1 + 1), . . . , z(k2 − 1), z(k2 + 1), . . .) and Z l :=
+(z(1), . . . , z(l)) ∈ Zl , with the notational convention Z 0 = ∅.
+
+   2.1. The pseudo-marginal. Let (Θ, B(Θ)) and (Z, B(Z)) be two measur-
+able spaces. Let π(dθ, dz) be a probability distribution on the space (Θ ×
+Z, B(Θ)×B(Z)), let π(dθ) be its marginal distribution and let us denote
+for any θ ∈ Θ, πθ (dz) the associated conditional (on θ) distribution. Let
+{QN θ (dZ), θ ∈ Θ and N ∈ N} be a family of probability distributions, the
+                                                              N ) ∈ [0, 1]N , N ∈ N :
+“proposals,” defined on (ZN , B(ZN )), {(w1N , w2N , . . . , wN
+PN       N                                         N
+   k=1 wk = 1} be a family of weights and let {Zk , k = 1, . . . , N and N ∈ N}
+be a family of subvectors of arbitrary sizes of vectors of the type Z −k as
+defined above. Before defining the pseudo-marginal and its associated joint
+model, we require the following assumption. Denoting for any A ∈ B(Z),
+QN             N
+  θ (zk ∈ A|Zk ) the conditional distribution or zk given Zk ,
+                                                                  N
+
+
+(A1)     We assume that for our choice of {QN             N           N
+                                                  θ }, {wk } and {Zk }, for all
+                                                            N    N
+         N ≥ 1, any θ ∈ Θ and k = 1, . . . , N , πθ (·) ≪ Qθ (·|Zk ).
+6                      C. ANDRIEU AND G. O. ROBERTS
+
+(A1) allows one to define for any N ∈ N the following linear combination of
+Radon–Nikodym derivatives for (θ, Z) ∈ Θ × ZN (the importance weights)
+                                   N
+                                                 πθ (dz(k))
+                      γ N (θ) :=         wkN
+                                   X
+(2.1)                                                          ,
+                                   k=1
+                                               Qθ (dz(k)|ZkN )
+                                                N
+
+
+the dependence on Z being implicit. Whenever γ N (θ) > 0, we define λN (θ) :=
+| log γ N (θ)| and by convention we let λN (θ) := +∞ when γ N (θ) = 0. In turn
+we can define the following probability distribution on (Θ × Z, B(Θ)×B(Z)),
+
+(2.2)                π̃ N (dθ, dZ) := π(dθ)QN      N
+                                            θ (dZ)γ (θ),
+
+which, as we shall see, is a generalization of the underlying target distribution
+identified in equation (1.2). Hereafter for any θ ∈ Θ we will denote
+
+(2.3)                     π̃θN (dZ) := QN      N
+                                        θ (dZ)γ (θ),
+
+the conditional probability distribution of Z given θ in equation (2.2) and
+we introduce for any Z ∈ Z,
+
+                            π̃ N (dθ) := π(dθ)γ N (θ)
+
+the “pseudo-marginal.” Note that whenever π(dθ) has a density π(θ) and
+provided that Z|θ ∼ QN                                                N
+                        θ , then the associated probability density π̃ (θ) :=
+      N
+π(θ)γ (θ) is an unbiased importance sampling estimator of π(θ) a funda-
+mental property which ensures that π(dθ) is the marginal of π̃ N (dθ, dZ).
+It can indeed be easily checked that for any θ ∈ Θ, QN       N
+                                                         θ (γ (θ)) = 1. Note
+that in practice the variability of π(θ)γ (θ) [and hence QN
+                                          N
+                                                              θ (dZ)] for any
+θ ∈ Θ is expected to have an important influence on the performance of the
+algorithm an illustration is given in Theorem 8. We will frequently use the
+following identities:
+
+(2.4)           π̃ N (dθ, dZ) = π̃ N (dθ)QN               N
+                                          θ (dZ) = π(dθ)π̃θ (dZ).
+
+We conclude this section with various examples of choices of {wiN } and
+{ZiN } introduced in the general framework presented earlier.
+
+  Example 1 (Classical importance sampling). The case where wiN = 1/N
+and QN
+     θ (dZ) is factorizable and exchangeable, that is,
+
+                                           N
+                           QN
+                                           Y
+                            θ (dZ) =             Qθ (dz(i)),
+                                           i=1
+
+leads to Beaumont’s GIMH algorithm.
+                      THE PSEUDO-MARGINAL APPROACH                              7
+
+   Example 2 (Sequential sampling). A choice of great practical interest,
+as illustrated later on in Section 7, consists of the case where ZiN = Z i−1 ,
+which allows for sequential sampling of {z(i)}, hence offering the possibility
+to adapt the sampling strategy in light of already sampled z(i)’s. This se-
+quential framework encompasses the case where {z(i)} is a realization from
+a Gibbs sampler with target distribution πθ (dz) for some θ ∈ Θ. In such
+situations nondecreasing sequences {wkN } might be preferable in order to
+discount the “burn-in” period.
+
+   Example 3 (Gibbs sampler type). In some situations we might have
+good reasons to believe that the analytically intractable marginal distribu-
+tions of QN
+          θ (dZ) for θ ∈ Θ are good approximations of πθ (dz). In this case
+one can suggest the application of the algorithm with ZiN = Z −i , which can
+be interpreted as a random scan Gibbs sampler to sample from QN      θ (dZ),
+and hence its marginals.
+
+   2.2. Pseudo-marginal based algorithms. We now introduce a formal de-
+scription of the transition probabilities of the marginal algorithm and the
+two variants of the pseudo-marginal approach, which can be seen as gener-
+alization of MCWM and GIMH. The transition probability of the marginal
+algorithm, a standard MH algorithm, targets π(dθ) and uses Q(θ, dϑ) as
+proposal distribution is defined for any θ, ϑ ∈ Θ as
+                                                     Z                    
+(2.5)   P (θ, dϑ) := α(θ, ϑ) Q(θ, dϑ) + δθ (dϑ) 1 −         α(θ, ϑ)Q(θ, dϑ) ,
+                                                        Θ
+
+where α(θ, ϑ) := 1 ∧ r(θ, ϑ) with (a)
+                                       π(dϑ)Q(ϑ, dθ)
+(2.6)                 0 < r(θ, ϑ) :=                 < +∞,
+                                       π(dθ)Q(θ, dϑ)
+on a symmetric set R ⊂ Θ × Θ (see [11], Proposition 1 and Theorem 2),
+(b) r(θ, ϑ) := 0, π(dθ)Q(θ, dϑ)-almost everywhere on the complement Rc of
+R and (c) r(θ, ϑ) := 1 on measurable subsets of Rc of π(dθ)Q(θ, dϑ)-zero
+probability.
+   The transition probability of the generalization of MCWM is not a stan-
+dard MH algorithm. It consists of proposing ϑ ∼ Q(θ, ·), Z ∼ QN  θ and Z ∼
+  N                                        N
+Qϑ , compute an acceptance probability α̃ (θ, ϑ) defined below, and accept
+or reject the proposal according to α̃N (θ, ϑ). More formally the transition
+probability is defined for any θ, ϑ ∈ Θ as
+        P̃Nnoisy (θ, dϑ) := QN    N    N
+                             θ ⊗ Qϑ (α̃ (θ, ϑ))Q(θ, dϑ)
+(2.7)                                   Z                                  
+                         + δθ (dϑ) 1 −        QN    N    N
+                                               θ ⊗ Qϑ (α̃ (θ, ϑ))Q(θ, dϑ) ,
+                                          Θ
+8                           C. ANDRIEU AND G. O. ROBERTS
+
+where ⊗ indicates the product for measures and α̃N (θ, ϑ) := 1 ∧ r̃ N (θ, ϑ),
+with (a)
+                                              π̃ N (dϑ)Q(ϑ, dθ)
+(2.8)                        r̃ N (θ, ϑ) :=                     ,
+                                              π̃ N (dθ)Q(θ, dϑ)
+on an appropriate set R̃ ⊂ (Θ × ZN )2 , (b) r̃ N (θ, ϑ) := 0, π̃ N (dθ)Q(θ, dϑ)-
+almost everywhere on the complement of R̃ and (c) 1 otherwise. Note that
+r̃ N (θ, ϑ) can be computed even in situations where the normalizing constant
+of π̃ N (dθ, dZ) is unknown but that, on the other hand, the normalizing
+constant of QN   θ (dZ) might be required.
+    The transition probability of the GIMH variant of the pseudo-marginal
+approach is of the MH type and is defined on the extended space Θ × ZN .
+It targets π̃ N (dθ, dZ) and uses the proposal distribution Q(θ, dϑ)QN ϑ (dZ)
+
+          P̃Nexact (θ, Z; dϑ, dZ)
+(2.9)        = α̃N (θ, ϑ) Q(θ, dϑ)QN
+                                   ϑ (dZ)
+                                        Z                                     
+                                                      N
+                + δθ,Z (dϑ, dZ) 1 −                  α̃   (θ, ϑ)Q(θ, dϑ)QN
+                                                                         θ (dZ) ,
+                                              Θ×ZN
+
+with α̃N (θ, ϑ) as above equation (2.8). This expression for the acceptance
+probability of the exact pseudo-marginal algorithm relies on an identity,
+which we will frequently use later on, between the marginal acceptance ratio
+(2.6) and its exact pseudo-marginal counterpart,
+                            π̃ N (dϑ, dZ)Q(ϑ, dθ)QN
+                                                  θ (dZ)   γ N (ϑ)
+(2.10)     r̃ N (θ, ϑ) :=                                =         r(θ, ϑ)
+                            π̃ N (dθ, dZ)Q(θ, dϑ)QN
+                                                  ϑ (dZ)   γ N (θ)
+
+for any (θ, Z, ϑ, Z) ∈ R̃ := {(θ, Z, ϑ, Z) : (θ, ϑ) ∈ R, Z ∈ Zθ , Z ∈Zϑ } with
+Zθ := {Z ∈ Z : γ N (θ) > 0}. For any N ∈ N and (θ, Z) ∈ Θ × ZN we will
+denote α(θ, Z) [resp. ρ(θ, Z)]
+                                          Z
+(2.11)   α(θ, Z) := 1 − ρ(θ, Z) :=                   α̃N (θ, ϑ)Q(θ, dϑ)QN
+                                                                        ϑ (dZ),
+                                              Θ×ZN
+
+the probability of leaving (resp. staying in) state (θ, Z). Note that we do
+not here make the dependence of this quantity on N explicit for notational
+simplicity. Similarly we will denote α(θ) [resp. ρ(θ)] the probability of leaving
+(resp. staying in) state θ for transition P .
+   In the next two sections we study the Markov chain {θi , Zi } started
+at (θ0 , Z0 ) ∈ Θ × ZN and with transition probability P̃Nexact (which will
+be denoted P̃N for simplicity, when no ambiguity is possible) as given in
+equation (2.9) that is a MH with target distribution π̃ N (dθ, dZ) and pro-
+posal distribution Q(θ, dϑ)QN  ϑ (dZ) and acceptance ratio given by equation
+                     THE PSEUDO-MARGINAL APPROACH                               9
+
+(2.10). In order to analyze the performance of the Markov chain gener-
+ated by P̃N we will embed the exact marginal Markov chain with transition
+P as in equation (2.5) defined on (ΘN , B(ΘN )) into a Markov chain de-
+fined on ((Θ × ZN )N , (B(Θ)×B(Z))N ) as follows. We define a Markov chain
+which is generated by a MH transition probability P̄N , with invariant dis-
+tribution π̃ N (dθ, dZ) and proposal distribution Q(θ, dϑ)π̃ϑN (dZ) [instead of
+Q(θ, dϑ)QNϑ (dZ) for P̃N ], leading to the transition probability,
+
+         P̄N (θ, Z; dϑ, dZ) := α(θ, ϑ)Q(θ, dϑ)π̃ϑN (dZ)
+(2.12)                                               Z                    
+                               + δθ,Z (dϑ, dZ) 1 −          α(θ, ϑ)Q(θ, dϑ) ,
+                                                        Θ
+
+with α(θ, ϑ) := 1 ∧ r(θ, ϑ), where r(θ, ϑ) is as in equation (2.6). Our analysis
+will rely upon a comparison of P̃N and P̄N , which live on a common space.
+   Finally, we will hereafter use the following standard notation for prob-
+abilities and Markov chain transition probabilities. For   R a space (E, E) we
+define for f : E → R: for µ a measure on (E, E) µ(f ) := E f (x)µ(dx); kµk :=
+1
+2 sup|f |≤1 |µ(f )|; for any A ∈ E µ(A) = µ(I{x ∈ A}), where I{· ∈ A} = I{A}
+denotes the indicator  R function of set A; for a transition probability Π : E ×
+E → [0, 1] Πf (x) := E Π(x, dy)f (y) and Π f (x) := Π(x, Πi−1 f ) for i ≥ 1 with
+                                             i
+
+Π0 f (x) := f (x).
+
+   3. A simple convergence result for exact algorithms. The theory of
+ψ-irreducible Markov chains has proved to be a very powerful tool in or-
+der to analyze classical MCMC algorithms, and in particular the MH algo-
+rithm. More precisely, since MCMC deal with the situation where πP = π,
+then if in addition P is ψ-irreducible and aperiodic, it can be shown that
+kP k (θ0 , ·) − π(·)k → 0 as k → ∞ π-a.s. [4]. This motivates the following the-
+orem.
+
+   Theorem 1. Assume (A1) and that P defines a ψ-irreducible and ape-
+riodic Markov chain such that πP = π. Then for any N ∈ N such that for
+any (θ, Z) ∈ Θ × ZN , ρ(θ, Z) > 0 [with ρ(θ, Z) as in equation (2.11)], P̃N is
+also ψ-irreducible and aperiodic, and hence π̃ N -a.s. [in (θ0 , Z0 ) ∈ Θ × ZN ],
+                        lim kP̃Nk (θ0 , Z0 ; ·) − π̃ N (·)k = 0.
+                      k→+∞
+
+   Proof. We here drop N for simplicity. First notice that by construction
+if P is ψ-irreducible and aperiodic, then so is P̄ [defined in equation (2.12)]
+and consequently P̄ defines an ergodic Markov chain with invariant distri-
+bution π̃ N . We will show that under the assumptions the accessible sets of P̄
+are included in those of P̃ , which will allow us to conclude. More precisely
+we show by induction that for any k ∈ N, (θ, Z) ∈ Θ × ZN and A × B ∈
+10                        C. ANDRIEU AND G. O. ROBERTS
+
+B(Θ) × B(ZN ) such that P̄ k (θ, Z; A × B) > 0, then P̃ k (θ, Z; A × B) > 0. For
+any θ ∈ Θ recall that Zθ := {Z : γ N (θ) > 0} and for notational simplicity we
+will use the convention 1∧γ N (ϑ)/γ N (θ) = 1 whenever γ N (θ) = 0 below. First
+notice that from (2.10), for any (θ, Z) ∈ Θ × ZN and A × B ∈ B(Θ) × B(ZN ),
+                                       γ N (ϑ)
+                      Z                                      
+ P̃ (θ, Z; A × B) ≥       QN
+                           ϑ         1∧ N      I(Z ∈ B ∩ Zϑ ) α(θ, ϑ)Q(θ, dϑ)
+                      A                γ (θ)
+                      + I{(θ, Z) ∈ A × B}ρ(θ, Z)
+(3.1)
+                                        1        γ N (ϑ)
+                      Z                                             
+                  ≥       π̃ϑN               1 ∧         I(Z ∈ B ∩ Zϑ ) α(θ, ϑ)Q(θ, dϑ)
+                      A              γ N (ϑ)     γ N (θ)
+                      + I{(θ, Z) ∈ A × B}ρ(θ, Z).
+Consequently, since for any θ ∈ Θ and B ∈ B(ZN ) we have π̃θN (B) = π̃θN (B ∩
+Zθ ), we deduce that the implication is true for k = 1. Assume the induction
+assumption true up to some k = n ≥ 1. Now for some (θ, Z) ∈ Θ × ZN let
+A × B ∈ B(Θ) × B(ZN ) be such that P̄ n+1 (θ, Z; A × B) > 0 and assume that
+                  Z
+                            P̃ n (θ, Z; dϑ, dZ)P̃ (ϑ, Z; A × B) = 0 ,
+                   Θ×ZN
+
+which implies that P̃ (ϑ, Z; A × B) = 0, P̃ n (θ, Z; ·)-a.s. and hence that P̄ (ϑ, Z;
+A × B) = 0, P̃ n (θ, Z; ·)-a.s. from the induction assumption for k = 1. From
+this and the induction assumption for k = n, we deduce that P̄ (ϑ, Z; A ×
+B) = 0, P̄ n (θ, Z; ·)-a.s. (by contradiction), which contradicts the fact that
+P̄ n+1 (θ, Z; A × B) > 0. 
+
+  4. Performance of the pseudo-marginal approach. For the purpose of
+our analysis we introduce the following subsets of Θ. For any ǫ > 0, N ∈ N
+and denoting for any random variable X with probability distribution µ,
+µ(X > ǫ) := µ({X : X > ǫ}),
+(4.1)              T (ǫ, N ) := {θ ∈ Θ : QN   N
+                                          θ (λ (θ) > ǫ) ≤ ǫ},
+
+(4.2)              S(ǫ, N ) := {θ ∈ Θ : Q(θ, T (ǫ, N )) ≥ 1 − ǫ},
+(4.3)             R(ǫ, N ) := S(ǫ, N ) ∩ T (ǫ, N ),
+with λN (θ) as defined below equation (2.1). For a set A ⊂ Θ we will denote
+Ā its complement in Θ.
+   The main result of this section is Theorem 6 and relies, in addition to
+(A1), on the following mild assumptions.
+(A2) For any θ0 ∈ Θ, limk→∞ kP k (θ0 , ·) − π(·)k = 0.
+(A3) For any θ ∈ Θ and any ǫ > 0,
+                      THE PSEUDO-MARGINAL APPROACH                           11
+
+                            lim QN   N
+                                 θ (λ (θ) > ǫ) = 0.
+                           N →∞
+
+   Assumption (A3) is fundamental to our analysis, and implies the following
+two lemmata. First, it is a sufficient condition to control the total variation
+distance between π̃θN and QN θ .
+
+
+   Lemma 2.       Assume (A1) and (A3). Then for any θ ∈ Θ, N ∈ N and
+ǫ ∈ (0, 1],
+
+         kπ̃θN (·) − QN                     N   N              
+                      θ (·)k ≤ (3 + e)ǫ + 2Qθ (λ (θ) > ǫ)I{θ ∈ T (ǫ, N )}.
+
+
+  Proof. For any θ ∈ Θ, from equation (2.3)
+              kπ̃θN (·) − QN         N    N           N
+                           θ (·)k = Qθ (|γ (θ) − 1|I{λ (θ) > ǫ})
+(4.4)
+                                  + QN    N           N
+                                     θ (|γ (θ) − 1|I{λ (θ) ≤ ǫ}).
+
+On the one hand
+(4.5)           QN    N           N
+                 θ (|γ (θ) − 1|I{λ (θ) ≤ ǫ}) ≤ exp(ǫ) − 1 ≤ eǫ,
+
+and on the other hand
+           QN    N           N             N N        N
+            θ (|γ (θ) − 1|I{λ (θ) > ǫ}) ≤ Qθ (γ (θ)I{λ (θ) > ǫ})
+(4.6)
+                                              + QN   N
+                                                 θ (λ (θ) > ǫ).
+
+Notice that
+            N                   N   N            N N        N
+(1 − ǫ)QN
+        θ (λ (θ) ≤ ǫ) ≤ exp(−ǫ)Qθ (λ (θ) ≤ ǫ) ≤ Qθ (γ (θ)I{λ (θ) ≤ ǫ}).
+
+This, together with the fact that for any θ ∈ Θ, QN   N         N
+                                                  θ (γ (θ)) = π̃θ (1) = 1,
+leads to
+                                        N N        N
+          QN   N      N
+           θ (γ (θ)I{λ (θ) > ǫ}) = 1 − Qθ (γ (θ)I{λ (θ) ≤ ǫ})
+
+(4.7)                               ≤ 1 − (1 − ǫ)(1 − QN   N
+                                                       θ (λ (θ) > ǫ))
+
+                                    ≤ ǫ + QN   N
+                                           θ (λ (θ) > ǫ).
+
+Now combining equations (4.4)–(4.7), we have for any θ ∈ Θ,
+        kπ̃θN (·) − QN                     N   N
+                     θ (·)k ≤ (1 + e)ǫ + 2Qθ (λ (θ) > ǫ)
+(4.8)
+                         ≤ (3 + e)ǫ + 2QN   N
+                                        θ (λ (θ) > ǫ)I{θ ∈ T̄ (ǫ, N )}.      
+
+   Assumption (A3) also implies the following important intermediate re-
+sults.
+12                   C. ANDRIEU AND G. O. ROBERTS
+
+   Lemma 3. Let ǫ > 0 and S(ǫ, N ), T (ǫ, N ) and R(ǫ, N ) be as in (4.1)–
+(4.3). Assume (A1) and (A3). Then for any probability measure µ on (Θ, B(Θ)),
+(4.9)                         lim µ(T (ǫ, N )) = 1,
+                            N →∞
+
+(4.10)                        lim µ(S(ǫ, N )) = 1,
+                            N →∞
+
+(4.11)                        lim µ(R(ǫ, N )) = 1.
+                           N →∞
+
+  Proof. For any ǫ > 0 and θ ∈ Θ, limN →∞ I{θ ∈ T (ǫ, N )} = 1 from (A3).
+Equation (4.9) follows from the dominated convergence theorem. To prove
+equation (4.10), note that equation (4.9) implies that for any θ ∈ Θ,
+                        lim Q(θ, I{ϑ ∈ T (ǫ, N )}) = 1.
+                       N →∞
+
+Consequently for any θ ∈ Θ, limN →∞ I{θ ∈ S(ǫ, N )} = 1 and for any prob-
+ability measure µ, we have limN →∞ µ(I{θ ∈ S(ǫ, N )}) = µ(1) = 1. Equation
+(4.11) is immediate. 
+
+  As we shall see, our results heavily rely on an estimate of the distance
+between P̄N and P̃N under (A3).
+
+   Lemma 4. Assume (A1) and (A3). Let ǫ ∈ (0, 1] and (θ, Z) ∈ S(ǫ, N ) ×
+ZN with Z such that λN (θ) ≤ ǫ [S(ǫ, N ) being defined in (4.2)]. Then for
+P̄N as defined in equation (2.12) and for any ψ : Θ × ZN → [−1, 1],
+                      |P̄N ψ(θ, Z) − P̃N ψ(θ, Z)| ≤ 24ǫ.
+
+  Proof. For simplicity we here drop N in the notation for the transition
+probabilities. Let (θ, Z) ∈ Θ × ZN and ψ : Θ × ZN → [−1, 1]. We have, by
+definition of P̄ ,
+                      P̄ ψ(θ, Z) − P̃ ψ(θ, Z) = S1 + S2 ,
+with
+                        S1 := P̄ ψ(θ, Z) − P̂ ψ(θ, Z),
+                        S2 := P̂ ψ(θ, Z) − P̃ ψ(θ, Z),
+where P̂ is the MH transition probability with invariant distribution π(dθ)QN
+                                                                            θ (dZ)
+and proposal distribution Q(θ, dϑ)QNϑ  (dZ), that is
+         P̂ (θ, Z; dϑ, dZ) := α(θ, ϑ)Q(θ, dϑ)QN
+                                              ϑ (dZ)
+(4.12)                                           Z                  
+                            + δθ,Z (dϑ, dZ) 1 −       α(θ, ϑ)Q(θ, dϑ) .
+                                                  Θ
+                              THE PSEUDO-MARGINAL APPROACH                                 13
+
+From this and the definition of P̄ in equation (2.12), the first term writes
+                               |S1 | ≤ |Q(θ, (π̃ϑN − QN
+                                                      ϑ )α(θ, ϑ)ψ)|
+(4.13)
+                                   ≤ 2Q(θ, kπ̃ϑN (·) − QN
+                                                        ϑ (·)k).
+From this, Lemma 2 and since θ ∈ S(ǫ, N )
+                 |S1 | ≤ 2[(3 + e)ǫ + 2Q(θ, QN   N
+                                             ϑ (λ (ϑ) > ǫ)I{ϑ ∈ T̄ (ǫ, N )})]
+(4.14)
+                     ≤ 2(5 + e)ǫ.
+The second term writes
+                                     γ N (ϑ)
+             Z                                                    
+  S2 =      ψ(ϑ, Z) 1 ∧ r(θ, ϑ) − 1 ∧ N      r(θ, ϑ) Q(θ, dϑ)QN
+                                                              ϑ (dZ)
+       Θ×ZN                          γ (θ)
+                                                        γ N (ϑ)
+                          Z                                           
+             − ψ(θ, Z)              1 ∧ r(θ, ϑ) − 1 ∧           r(θ, ϑ) Q(θ, dϑ)QN
+                                                                                 ϑ (dZ),
+                            Θ×ZN                        γ N (θ)
+and we therefore focus on the quantity
+                                         γ N (ϑ)
+         Z
+S0 :=                1 ∧ r(θ, ϑ) − 1 ∧           r(θ, ϑ) Q(θ, dϑ)QN
+                                                                  ϑ (dZ)
+         Θ×ZN                            γ N (θ)
+                                         γ N (ϑ)
+         Z
+   =                 1 ∧ r(θ, ϑ) − 1 ∧           r(θ, ϑ) I{λN (ϑ) > ǫ}Q(θ, dϑ)QN
+                                                                               ϑ (dZ)
+         Θ×ZN                            γ N (θ)
+                                            γ N (ϑ)
+             Z
+         +              1 ∧ r(θ, ϑ) − 1 ∧           r(θ, ϑ) I{λN (ϑ) ≤ ǫ}Q(θ, dϑ)QN
+                                                                                  ϑ (dZ).
+                 Θ×ZN                       γ N (θ)
+Noting that for any (x, y) ∈ R2 ,
+   |1 ∧ exp(x) − 1 ∧ exp(y)| = 1 ∧ | exp(0 ∧ x) − exp(0 ∧ y)| ≤ 1 ∧ |x − y|,
+we deduce that for θ ∈ S(ǫ, N ),
+         S0 ≤ Q(θ, QN     N
+                    ϑ (I{λ (ϑ) > ǫ}))
+                   + Q(θ, QN             N            N        N
+                           ϑ (1 ∧ | log(γ (θ)) − log(γ (ϑ))|I{λ (ϑ) ≤ ǫ})),
+and consequently since γ N (θ) depends on θ and Z only,
+                     |S2 | ≤ 2(1 ∧ λN (θ)) + 2Q(θ, QN     N
+                                                    ϑ (I{λ (ϑ) > ǫ}))
+(4.15)
+                               + 2Q(θ, QN       N      N
+                                        ϑ (1 ∧ λ (ϑ)I{λ (ϑ) ≤ ǫ})).
+Consequently since θ ∈ S(ǫ, N ),
+         |S2 | ≤ 2(1 ∧ λN (θ)) + 2Q(θ, QN     N
+                                        ϑ (I{λ (ϑ) > ǫ}I{ϑ ∈ T̄ (ǫ, N )}))
+                     + 2Q(θ, QN       N      N
+                              ϑ (1 ∧ λ (ϑ)I{λ (ϑ) ≤ ǫ})I{ϑ ∈ T̄ (ǫ, N )})
+(4.16)               + 2Q(θ, QN     N
+                              ϑ (I{λ (ϑ) > ǫ}I{ϑ ∈ T (ǫ, N )}))
+                     + 2Q(θ, QN       N      N
+                              ϑ (1 ∧ λ (ϑ)I{λ (ϑ) ≤ ǫ})I{ϑ ∈ T (ǫ, N )})
+                  ≤ 2(ǫ + ǫ + ǫ + ǫ) = 8ǫ.
+14                       C. ANDRIEU AND G. O. ROBERTS
+
+One concludes by combining (4.14) and (4.16). 
+
+     We now combine Lemmata 3 and 4 to prove the following proposition.
+
+  Proposition 5. For any ǫ ∈ (0, 1] and any probability measure µ on
+(Θ, B(Θ)), there exists N (ǫ, µ) such that for any N ≥ N (ǫ, µ) and any ψ : Θ ×
+ZN → [−1, 1],
+                         |µ(π̃θN ((P̄N − P̃N )ψ(θ, Z)))| ≤ ǫ.
+
+   Proof. Let ε ∈ (0, 1], µ be a probability distribution on (Θ, B(Θ)) and
+ϕ : Θ → [−1, 1]. We have, with R(ε, N ) defined in equation (4.3),
+                  |µ(ϕ)| ≤ |µ(ϕI{θ ∈ R(ε, N )})| + µ(R̄(ε, N )).
+By Lemma 3 there exists N0 (ε, µ) ∈ N (independent of ϕ) such that for
+N ≥ N0 (ε, µ),
+(4.17)                           |µ(R̄(ε, N ))| < ε.
+For any ψ : Θ × ZN → [−1, 1], we have
+(4.18)            µ(I(θ ∈ R(ε, N ))π̃θN ((P̃ − P̄ )ψ)) = T1 + T2 ,
+with
+              T1 = µ(I(θ ∈ R(ε, N ))π̃θN (I(λN (θ) ≤ ε)(P̃ − P̄ )ψ)),
+              T2 = µ(I(θ ∈ R(ε, N ))π̃θN (I(λN (θ) > ε)(P̃ − P̄ )ψ)).
+We apply Lemma 4 to T1 and conclude that
+(4.19)                               |T1 | ≤ 24ε.
+We now turn to T2 . First recall from equation (2.3) that for any θ ∈ Θ,
+                  π̃θN (λN (θ) ≤ ε) = QN   N      N
+                                       θ (γ (θ)I{λ (θ) ≤ ε}),
+
+and, since QN     N
+              θ (λ (θ) > ε) ≤ ε for θ ∈ T (ε, N ), we conclude that for any
+θ ∈ T (ε, N )
+            (1 − ε)2 ≤ (1 − ε)QN   N
+                               θ (λ (θ) ≤ ε)
+
+                     ≤ QN            N              N N
+                        θ (exp(−ε)I{λ (θ) ≤ ε}) ≤ π̃θ (λ (θ) ≤ ε).
+
+Hence, from the definition of R(ε, N ),
+             |T2 | = |µ(I{θ ∈ R(ε, N )}π̃θN (I{λN (θ) > ε}(P̃ − P̄ )ψ))|
+(4.20)           ≤ 2|µ(I{θ ∈ R(ε, N )})|(1 − (1 − ε)2 )
+                 ≤ 4ε.
+                       THE PSEUDO-MARGINAL APPROACH                                               15
+
+Now we choose ε = ǫ/30 and conclude with N (ǫ, µ) = N0 (ε, µ) and by com-
+bining (4.17) (for 2ϕ), (4.19) and (4.20). 
+
+   Our main result is as follows and provides us with a bound ℓ on the loss
+of efficiency of the approximating chain compared to the ideal chain, which
+can be made arbitrarily small for large N ’s. Define for any θ ∈ Θ and any
+ε ∈ (0, 1], k(ε,                k
+              R θ) := inf{k : kP (θ, ·) − π(·)k ≤ ε} and recall that for any θ ∈ Θ,
+ρ(θ) := 1 − Θ α(θ, ϑ)Q(θ, dϑ) is the probability of not leaving θ for P .
+
+  Theorem 6. Assume (A1), (A2) and (A3). Let ǫ, ℓ > 0 and θ0 ∈ Θ.
+Then there exists N (ǫ, ℓ, θ0 ) ∈ N such that for any N ≥ N (ǫ, ℓ, θ0 ) and Z0 ∈
+Θ × ZN such that λN (θ0 ) < ℓǫ/(24k(ǫ, θ0 )) we have for any k ≥ k(ǫ, θ0 ),
+                   kP̃Nk (θ0 , Z0 ; ·) − π̃ N (·)k ≤ (1 + ℓ)ǫ + ρk (θ0 ).
+
+  Corollary 7. Under the assumptions of Theorem 6, for any ǫ, ℓ > 0
+and θ0 ∈ Θ, there exists N (ǫ, ℓ, θ0 ) ∈ N such that for any N ≥ N (ǫ, ℓ, θ0 ) and
+Z0 ∈ Θ × ZN such that λN (θ0 ) < ℓǫ/(24k(ǫ, θ0 )) we have for any k ≥ k(ǫ, θ0 )
+and any ϕ : Θ → [−1, 1],
+                   1    k                                     k
+                   2 |P̃N (θ0 , Z0 ; ϕ) − π(ϕ)| ≤ (1 + ℓ)ǫ + ρ (θ0 ).
+
+   Proof. Dropping N for notational simplicity, we have that for any k ≥
+1, (θ0 , Z0 ) ∈ Θ × ZN and any ψ : Θ × ZN → [−1, 1],
+(4.21)            P̃ k ψ(θ0 , Z0 ) − π̃(ψ) = S0 (k) + S1 (k) + S2 (k),
+with [π̃θN (ψ) := π̃θN (ψ(θ, ·)) hereafter for notational simplicity]
+                     S0 (k) = P̄ k ψ(θ0 , Z0 ) − P k (π̃θN (ψ))(θ0 ),
+                     S1 (k) = P k (π̃θN (ψ))(θ0 ) − π(π̃θN (ψ)),
+                     S2 (k) = P̃ k ψ(θ0 , Z0 ) − P̄ k ψ(θ0 , Z0 ),
+where the magnitude of S1 (k) can be controlled thanks to the properties
+of the transition probability P , S0 (k) and S2 (k) correspond to the bias
+introduced by the approximation to the “ideal” chain. As we shall see, for a
+fixed k this bias can be made arbitrarily small for N sufficiently large. Let
+ǫ > 0 and (θ0 , Z0 ) ∈ Θ × ZN such that λN (θ0 ) < ǫ. By a coupling argument
+or induction |S0 (k)| ≤ 2 ρ(θ0 )k . Since π̃θN (ψ) : Θ → [−1, 1], by (A2) we have
+(4.22)               k(ǫ, θ0 ) < +∞ and                |S1 (k(ǫ, θ0 ))| ≤ 2ǫ.
+From now on we set k0 := k(ǫ, θ0 ) and use the following telescoping sum
+decomposition:
+                             0 −1
+                            kX
+         S2 := S2 (k0 ) =           P̄ l P̃ k0 −l ψ(θ0 , Z0 ) − P̄ l+1 P̃ k0 −(l+1) ψ(θ0 , Z0 )
+                            l=0
+16                            C. ANDRIEU AND G. O. ROBERTS
+
+                 0 −1
+                kX
+            =           P̄ l (P̃ − P̄ )P̃ k0 −(l+1) ψ(θ0 , Z0 ).
+                 l=0
+
+Let ε ∈ (0, 1]. Noticing for any l > 1 we have for any ψ̄ : Θ × ZN → [−1, 1]
+P̄ l ψ̄(θ0 , Z0 ) = ρ(θ0 )l ψ̄(θ0 , Z0 )
+                        l
+                              P̄ j−1 {Q(θj−1 , α(θj−1 , θj )ρ(θj )l−j π̃θNj (ψ̄(θj , ·)))}(θ0 , Z0 )
+                        X
+                    +
+                        j=1
+
+we apply Lemma 4 k0 times and Proposition 5 (k0 − 1) times (the result
+trivially applies to any finite measure) to show that there exists N (ε, θ0 )
+such that for any N ≥ N (ε, θ0 ) and some C < ℓ/(24k0 )
+(4.23)                            |S2 | ≤ 24Ck0 ǫ + (k0 − 1)ε.
+We conclude by taking ε = 2ǫ(ℓ − 24k0 C)/(k0 − 1) in equation (4.23) and
+combining with equation (4.22) in equation (4.21). 
+
+   5. Uniform and geometric ergodicity of exact algorithms. In this section
+we illustrate the critical importance of the choice of a good importance
+sampling distribution QN   θ to ensure that P̃N is uniformly ergodic. More
+precisely we show that, for a given N ∈ N, if the importance weights γ N (θ)
+involved in the definition of the pseudo-marginal π̃ N (dθ) are unbounded for
+“too many” θ’s, then P̃N cannot be geometrically ergodic. As we shall see
+“too many” will be quantified in terms of the measure of the set U N :=
+{θ : ∀M > 0, QN     N
+                θ (γ (θ) > M ) > 0} under π. In addition, for a fixed N ∈ N,
+using the fact that it is most often possible to prove the uniform ergodicity of
+the MH update P defined in (2.5) by establishing a minorization condition
+for the sub-stochastic kernel K(θ, dϑ) := α(θ, ϑ)Q(θ, dϑ) [that is there exists
+n0 ≥ 1, a constant ǫ > 0 and a probability measure ν on (Θ, B(Θ)) such that
+for any (θ, A) ∈ Θ × B(Θ), K n0 (θ, A) ≥ ǫν(A)], we show that this property is
+systematically inherited by P̃N whenever γ∗N := supθ,Z∈Θ×ZN γ N (θ) < +∞.
+
+     Theorem 8.          Assume (A1) and let N ∈ N. Then:
+1. if π(U N ) > 0, then P̃N cannot be geometrically ergodic;
+2. if we assume that there exist n0 ≥ 1, a constant ǫ > 0 and a measure ν on
+   (Θ, B(Θ)) such that for any θ, A ∈ Θ × B(Θ), K n0 (θ, A) ≥ ǫν(A) (which
+   implies that P is uniformly ergodic) then if in addition γ∗N < +∞ then
+   P̃N is uniformly ergodic.
+
+   Remark 1. Concerning the second point of the theorem, it should be
+noted that it is not possible in general to achieve the rate of convergence
+of the marginal chain P , even when {γ∗N } is bounded. Indeed, consider the
+                     THE PSEUDO-MARGINAL APPROACH                             17
+
+independent MH algorithm, in the discrete case for simplicity and densities
+with respect to the counting measure. It is possible to characterize exactly
+the second-largest eigenvalue of the transition probability. For P it takes the
+form 1 − (supθ∈Θ π(θ)   −1
+                  q(θ) ) , while for Beaumont’s form of the pseudo-marginal
+algorithm it will take the form 1 − (sup(θ,z)∈Θ×Z π(θ,z)  −1
+                                                  q(θ,z) ) . In the particular
+case where π(θ, z) = π(θ)π(z) and q(θ, z) = q(θ)q(z) this latter expression
+becomes 1 − (supθ∈Θ π(θ)     −1       π(z) −1
+                       q(θ) ) (supz∈Z q(z) )  which in general will be larger
+than 1 − (supθ∈Θ π(θ)  −1
+                 q(θ) ) . As we shall see this is not the case for the MCWM
+algorithm under appropriate assumptions (see Theorem 9).
+
+ Proof of Theorem 8. We drop N in P̃N and prove the first statement.
+We want to show that under the stated assumptions, for any ǫ > 0
+            π̃ N (I{α(θ, Z) ≤ ǫ}) = π{QN   N
+                                       θ (γ (θ)I{α(θ, Z) ≤ ǫ})} > 0,
+
+where α(θ, Z) is defined in equation (2.11). From [10], Theorem 5.1, this
+indeed implies that P̃ cannot be geometric. For any (θ, Z) ∈ Θ × ZN with
+γ N (θ) > 0, by Fubini’s theorem, Jensen’s inequality and since for any ϑ ∈ Θ,
+QN     N
+  ϑ (γ (ϑ)) = 1, we have
+
+                                            γ N (ϑ)
+                          Z                                 
+            αN (θ, Z) =                1∧           r(θ, ϑ) Q(θ, dϑ)QN
+                                                                     ϑ (dZ)
+                           Θ×ZN             γ N (θ)
+                                       r(θ, ϑ)
+                          Z                    
+                     ≤          1∧             Q(θ, dϑ).
+                           Θ           γ N (θ)
+For any (θ, ϑ) ∈ U N × Θ, since r(θ, ϑ) < +∞ [see equation (2.6)] and
+                                    {Z : γ N (θ) > M } 6= ∅
+for any M > 0, we have
+                                                         r(θ, ϑ)
+                          lim            sup        1∧           = 0.
+                       M →∞ {Z : γ N (θ)>M }             γ N (θ)
+Consequently, by the dominated convergence theorem,
+                              lim         sup        α(θ, Z) = 0,
+                          M →∞ {Z : γ N (θ)>M }
+
+hence for any ǫ > 0 there exists M < +∞ such that
+                     QN        N
+                      θ ({Z : γ (θ) > M, α(θ, Z) ≤ ǫ}) > 0
+
+and hence
+    QN   N                        N     N
+     θ (γ (θ)I{α(θ, Z) ≤ ǫ}) ≥ M Qθ (I{γ (θ) > M, α(θ, Z) ≤ ǫ}) > 0.
+18                           C. ANDRIEU AND G. O. ROBERTS
+
+We deduce that
+                            π{QN   N
+                               θ (γ (θ)I{α(θ, Z) ≤ ǫ})} > 0.
+
+  We now turn to the proof of the second claim. We first show by in-
+duction that for any k ≥ 1 and A × B ∈ B(Θ) × B(ZN ), P̃ k (θ, Z; A × B) ≥
+ −k
+γ∗ A K k (θ, dϑ)π̃ϑN (B). For k = 1,
+    R
+                                   Z
+         P̃ (θ, Z; A × B) ≥                  α̃N (θ, ϑ)Q(θ, dϑ)Qϑ (dZ)
+                                      A×B
+
+                                                 γ N (ϑ)
+                                   Z                          
+                               ≥               1∧ N      α(θ, ϑ)Q(θ, dϑ)QN
+                                                                         ϑ (dZ)
+                                      A×B        γ (θ)
+(5.1)                                    Z
+                               ≥ γ∗−1                QN   N
+                                                      ϑ (γ (ϑ))α(θ, ϑ)Q(θ, dϑ)
+                                          A×B
+                                         Z
+                               = γ∗−1          K(θ; dϑ)π̃ϑN (B).
+                                          A
+Assume the inequality is true for some k ≥ 1. Then from the induction
+assumption and equation (5.1),
+                                  Z
+     P̃ k+1 (θ, Z; A × B) =                  P̃ k (θ, Z; dϑ, dZ)P̃ (ϑ, Z; A × B)
+                                   Θ×ZN
+                                  Z                                       Z
+                              ≥        γ∗−k K k (θ, dϑ)π̃ϑN (ZN )γ∗−1           K(θ; dϑ)π̃ϑN (B)
+                                   Θ                                        A
+                                               Z
+                                      −(k+1)
+                              ≥ γ∗                   K k+1 (θ, dϑ)π̃ϑN (B).
+                                                 A
+Hence the result. From this result for k = n0 and the minorization assump-
+tion on K we deduce that for any (θ, Z, A × B) ∈ Θ × ZN × (B(Θ) × B(ZN ))
+                                                         Z
+                 P̃   n0
+                           (θ, Z; A × B) ≥ γ∗−n0               K n0 (θ, dϑ)π̃ϑN (B)
+                                                           A
+
+                                               ≥ ǫγ∗−n0 ν(IA {ϑ}π̃ϑN (B)),
+and hence the second claim. 
+
+   6. Epilogue: MCWM. As pointed out earlier, the analysis of generaliza-
+tions of MCWM, defined in equation (2.7), is simpler than that of GIMH
+generalizations and relies on more classical arguments. This is due mainly
+to the fact that in this case Z ∼ QN               N
+                                      θ and Z ∼ Qϑ . However the existence of
+                                noisy
+an invariant distribution for P̃N      is not obvious in general (it is not a MH
+                                      exact
+update). This is in contrast with P̃N , for which the invariant distribution
+as well as its marginal distribution are known to be π̃ N (dθ, dZ) and π(dθ),
+respectively. We give here a result which characterizes the invariant π̌ N (dθ)
+                      THE PSEUDO-MARGINAL APPROACH                                          19
+
+when it exists, and the rate of convergence of P̃Nnoisy (denoted P̃N in this
+section for simplicity), when P is uniformly ergodic, and a simple uniform
+weak law of large numbers holds for λN (θ).
+(A4) There exist C ∈ (0, +∞) and ρ ∈ (0, 1) such that for any θ0 ∈ Θ and k ∈ N
+
+                             kP k (θ0 , ·) − π(·)k ≤ Cρk .
+
+(A5) We assume that for any ǫ > 0,
+
+                            lim sup QN   N
+                                     θ (λ (θ) > ǫ) = 0.
+                           N →∞ θ∈Θ
+
+
+   Theorem 9. Assume (A1), (A4), (A5) and that for any N ≥ 1 there
+exists a probability distribution π̌ N on (Θ, B(Θ)) such that π̌ N P̃N = π̌ N , with
+P̃N = P̃Nnoisy defined in equation (2.7). Then for any ǫ ∈ (0, ρ−1 − 1) there
+exists N (ǫ, ρ) ∈ N, ρ̃ ∈ (ρ, ρ(1 + ǫ)] ⊂ (ρ, 1) and C̃ ∈ (0, +∞) such that for all
+N ≥ N (ǫ, ρ), θ0 ∈ Θ and k ≥ 1,
+(6.1)                     kP̃Nk (θ0 , ·) − π̌ N (·)k ≤ C̃ ρ̃k ,
+                                                              ǫ
+(6.2)                                   kπ − π̌ N k ≤ C         .
+                                                          1−ρ
+
+  Proof. In some instances we here drop N for notational simplicity.
+First notice that for any θ ∈ Θ and n ∈ N,
+                                        n−1
+         kP̃ n (θ, ·) − P n (θ, ·)k ≤         kP̃ n−i−1 (θ, (P − P̃ )(P i − π)(·))k
+                                        X
+
+                                        i=0
+                                                                        n−1
+                                                                              ρi
+                                                                        X
+(6.3)                             ≤ C sup kP (θ, ·) − P̃ (θ, ·)k
+                                         θ∈Θ                            i=0
+                                     C
+                                  ≤       sup kP (θ, ·) − P̃ (θ, ·)k.
+                                    1 − ρ θ∈Θ
+We bound the last term on the right-hand side. We have
+    P (θ, dϑ) − P̃ (θ, dϑ) = QN    N
+                              θ ⊗ Qϑ (α(θ, ϑ) − α̃(θ, Z; ϑ, Z))Q(θ, dϑ)
+                                               Z
+                               + δθ (dϑ)               QN    N
+                                                        θ ⊗ Qϑ (α̃(θ, Z; ϑ, Z) − α(θ, ϑ))
+                                                   Θ
+                                                       × Q(θ, dϑ).
+Let ε ∈ (0, 1] and notice that since
+             {Z, Z ∈ ZN } ⊂ {Z, Z : λN (θ) > ε} ∪ {Z, Z : λN (ϑ) > ε}
+                                ∪ {Z, Z : λN (θ) ≤ ε, λN (ϑ) ≤ ε},
+20                           C. ANDRIEU AND G. O. ROBERTS
+
+we have
+
+     |QN    N                                N   N            N   N
+       θ ⊗ Qϑ (α(θ, ϑ) − α̃(θ, Z; ϑ, Z))| ≤ Qθ (λ (θ) > ε) + Qϑ (λ (ϑ) > ε)
+
+                                                   + QN       N      N
+                                                      θ (1 ∧ λ (θ)I(λ (θ) ≤ ε))
+
+                                                   + QN       N      N
+                                                      ϑ (1 ∧ λ (ϑ)I(λ (ϑ) ≤ ε)).
+
+Following the proof of Lemma 4, and from (A5), we conclude that there
+exists N (ε) such that for N ≥ N (ε) and any θ, ϑ ∈ Θ,
+                              N
+                       |QN
+                         θ ⊗ Qϑ (α(θ, ϑ) − α̃(θ, Z; ϑ, Z))| ≤ 4ε.
+
+Consequently for any ε ∈ (0, 1] there exists N (ε) ∈ N such that for any N ≥
+N (ε) and θ ∈ Θ,
+
+                                  kP (θ, ·) − P̃ (θ, ·)k ≤ 4ε.
+
+As a result and from (A4) for any (θ, ϑ) ∈ Θ and n ∈ N,
+
+      kP̃ n (θ, ·) − P̃ n (ϑ, ·)k ≤ kP̃ n (θ, ·) − P n (θ, ·)k + kP n (ϑ, ·) − P̃ n (ϑ, ·)k
+                                    + kP n (ϑ, ·) − P n (θ, ·)k
+                                            8Cε
+                                 ≤ Cρn +        .
+                                            1−ρ
+Define
+                        s 
+                                       √
+                                       8ερ−n
+                                       n
+                                              
+                                                1 8ερ−n
+                                                        
+                 ρ̃ := ρ n C 1 +    ≤ρ C 1+              .
+                                       1−ρ      n 1−ρ
+                                                   √      √
+Choose ǫ ∈ (0, ρ−1 − 1) and let n ∈ N be such that n C ≤ 1 + ǫ and ε
+(depending on n and ρ) be such that
+
+                                       1 8ερ−n √
+                                  1+             ≤ 1 + ǫ.
+                                       n (1 − ρ)
+This implies that ρ̃ ≤ ρ(1 + ǫ) < 1 for N ≥ N (ε), and hence that equation
+(6.1) follows. To prove equation (6.2) we notice that from equation (6.3), for
+any n ≥ 1 and N ≥ N (ǫ/4)
+                      n−1                                                  n−1
+                                                                                         Cǫ
+ kπP n − π P̃ n k ≤          kπ(P̃ n−i−1 (P − P̃ )(P i − π)(·))k ≤ Cǫ            ρi ≤
+                      X                                                    X
+                                                                                            ,
+                       i=0                                                 i=0
+                                                                                        1−ρ
+
+and since kπ − π̌ N k = limn→∞ kπP n − π̃ N P̃ n k. We conclude the proof by
+taking N (ǫ, ρ) = N (ε) ∨ N (ǫ/4). 
+                     THE PSEUDO-MARGINAL APPROACH                            21
+
+   7. Examples: Reversible jumps. In this section we illustrate the poten-
+tial of the pseudo-likelihood approach to Monte Carlo computations devel-
+oped in this paper in the context of reversible jump MCMC [3] algorithms
+(RJMCMC hereafter), which are well known for their difficult implementa-
+tion. We start with a toy example, for which the true marginals are known
+exactly, hence providing a simple ground truth, and illustrate the interest
+of the approach in a scenario, which in our opinion reflects the difficulties
+encountered in practice when implementing RJMCMC in more realistic and
+difficult scenarios. We then move on to a more substantial example related
+to variable selection for generalized linear models. We first show how an ap-
+parently reasonable RJMCMC applied to a seemingly simple nested models
+selection problem can easily fail to produce reliable results and demonstrate
+how our methodology can easily circumvent this problem and render the
+algorithm much more reliable.
+
+   7.1. Toy example. We consider here a toy transdimensional target dis-
+tribution defined on {1} × R ∪ {2} × R2 ,
+         π(θ, z) = I(θ = 1) 14 N (z; 0, 1)
+                                              x   0       1 −0.9
+                                                              
+                    + I(θ = 2) 34 N z =         ;   ,Σ =               .
+                                              y   0      −0.9 1
+In a Bayesian setup this would correspond to an inference problem for which
+two models M1 and M2 are considered to explain the data, the models being
+indexed by θ. Obviously here π(θ = 1) = 1/4 and π(θ = 2) = 3/4. However
+in order to illustrate our methodology we develop here a reversible jump
+algorithm [3] to sample from this distribution, and compare our results with
+the exact distribution. A simple marginal ideal chain can be defined through
+the transition
+                       π(ϑ)                              π(ϑ′ ) ′
+                                                                        
+(7.1) P (θ, ϑ) = 1 ∧        I(ϑ 6= θ) + I(ϑ = θ) 1 − 1 ∧       I(ϑ 6= θ) ,
+                       π(θ)                              π(θ)
+that is in other words when in model M1 (resp. M2 ) we propose a jump to
+model M2 (resp. M1 ) with probability 1. This chain is obviously uniformly
+ergodic, which is often the case for finite discrete chains in practice. Now
+assume that we are given the algebraic expression for π(θ, z) up to a factor
+of 1/4 and that, possibly with age, we fail to recognize 3 times a bivari-
+ate normal distribution for model M2 . For simplicity, we will assume that
+we successfully recognize a univariate normal distribution for model M1 . A
+standard approach in such situations consists of resorting to a RJMCMC
+algorithm that uses the (available to a constant) density π(θ, z) for model
+M2 and requires one to propose a bidimensional vector z ∼ Q(·) when at-
+tempting a move from model M1 to M2 . Naturally the effectiveness of the
+22                      C. ANDRIEU AND G. O. ROBERTS
+
+algorithm will, as we shall see, highly depend on this proposal distribution
+whose choice might be far from obvious in more complex scenarios. In order
+to improve this basic RJMCMC algorithm, we investigate here a very sim-
+ple strategy which relies on the pseudo-likelihood framework described ear-
+lier more sophisticated and efficient approaches are possible and currently
+being explored in other work. For any η > 0, let Nη (z; µ, Σd ) denote the
+truncated normal distribution such that Nη (z; µ, Σd ) ∝ N (z; µ, Σd ) when-
+ever (z − µ)T Σ−1 (z − µ) ≤ η 2 and Nη (z; µ, Σd ) = 0 otherwise. For θ = 2 we
+                            QN                        σ2                     2
+define QNθ (Z) = Q(z(1)) i=2 Nη (z(i); z(i − 1) + 2 ∇z log πθ (z(i − 1)), σ I2 )
+           2
+for some σ ≪ 1, that is we use a form of discretization of the Langevin diffu-
+sion with drift 12 ∇z log πθ (z), and run a Markov chain with transition density
+                        2
+Π(z, z) = Nη (z; z + σ2 ∇z log πθ (z), σ 2 ) whose equilibrium distribution is an
+approximation of πθ (z). The algorithm proceeds as the marginal algorithm
+described earlier in equation (7.1), except that for θ = 2, π(θ) is replaced
+with the estimator
+                "
+               1 π(θ, z(1))
+    π̃ N (θ) =
+               N Q(z(1))
+(7.2)
+                      N
+                                                                               #
+                      X                       π(θ, z(i))
+                    +                                                            ,
+                      i=2
+                          Nη (z(i); z(i − 1) + σ 2 /2∇z log πθ (z(i − 1)), σ 2 )
+
+where z(1), z(2), . . . , z(N ) are sampled according to QN
+                                                          θ above. Note that the
+case N = 1 corresponds to the “standard” RJMCMC algorithm described
+above. For the purpose of illustration we took Q(z) = N (z; [3, 3]T , I2 ), which
+while being an obviously bad choice ensures irreducibility, and hence (in
+theory) convergence for the standard RJMCMC algorithm. We ran our al-
+gorithm for N = 1, 5 and 10 for 450,000, 90,000 and 45,000 iterations, re-
+spectively, resulting in comparable computational efforts. The respective
+empirical expected acceptance probabilities were 0.0121, 0.5206 and 0.5056
+(note that the theoretical expected acceptance probability in the stationary
+regime for the marginal algorithm is 1/4 + 3/4 × 1/3 = 1/2). In   Pk
+                                                                    Figure 1 we
+present the “instantaneous” model probability estimators 1/k i=1 I(θi = 1)
+and 1/k ki=1 I(θi = 2) as a function of the iterations k. Note the deceptive
+         P
+
+behavior observed for N = 1 which suggests that convergence has occurred.
+
+   7.2. Application to variable selection in GLMs. In this section we present
+an application of the pseudo-marginal principle to model selection in gen-
+eralized linear models, and focus here more particularly on the logit link.
+More precisely we assume that we observe M ≥ 1 realizations (yi , xi ) for
+i ∈ {1, . . . , M } of a random variable pair (Y, X) taking values in {0, 1} × Rk
+for some k ≥ 1 and that the dependence between Y and X is characterized
+                       THE PSEUDO-MARGINAL APPROACH                                     23
+
+
+
+
+Fig. 1. Instantaneous estimation of the model probabilities as a function of the iterations
+for N = 1, 5, 10 from top to bottom.
+
+by the conditional distribution P(Y = 1|X, z), assumed to satisfy
+                                      P(Y = 1|X, z)
+                                                       
+                          log                               = Xz,
+                                    1 − P(Y = 1|X, z)
+for a column vector z ∈ Rk . Not all components X(l), l = 1, . . . , k, of X (the
+“covariates”) might be relevant to sparsely explain the data and as a result
+we might seek to compare models for which some of the components of z are
+set to zero this is what we refer to as the model selection problem. In order to
+carry out inference in a Bayesian setup it is convenient to introduce indicator
+24                             C. ANDRIEU AND G. O. ROBERTS
+
+variables θ(l) ∈ {0, 1} for l = 1, . . . , k such that covariate X(l) is excluded
+whenever θ(l) = 0. This allows us to index the 2k − 1 models (we exclude
+the model with no dependence) with the vector θ := (θ(1), θ(2), . . . , θ(k)).
+Let C be the M × k matrix whose ith row is xi , we then denote Cθ the
+submatrix of C that contains the columns C for which θ(l) = 1Pand likewise
+for zθ the subvector of z. It will be convenient to denote θ̄ = kl=1 θ(l) the
+number of active covariates in model θ. We ascribe prior distributions to
+k and zθ : Pr(θ̄ = k) ∝ λk /k! for some fixed λ > 0 and following [6] we
+set zθ ∼ N (0, [CθT Cθ /4M ]−1 ) a priori. Denoting pi (zθ ) := P(yi = 1|xi , zθ ) the
+joint posterior distribution is
+                   N
+                         pi (zθ )θ(i) (1 − pi (zθ ))1−θ(i) N (zθ ; 0, [CθT Cθ /4M ]−1 )λθ̄ /θ̄!.
+                   Y
+     π(θ, zθ ) ∝
+                   i=1
+
+Variable selection in a Bayesian context typically relies on the marginal
+posterior model probabilities π(θ), which are in the present situation in-
+tractable. One can for example resort to MCMC and this is the route fol-
+lowed up here.
+   The basis of our algorithm is a reversible jump MCMC algorithm for the
+marginal model which consists of a birth/death update. We first describe
+a marginal algorithm with transition P (θ, dϑ) which of course cannot be
+implemented. The pseudo-marginal algorithm will be a simple variation of
+this algorithm. Given a model θ, P (θ, dϑ) can be described algorithmically
+as follows. With probability 1/2, either:
+• set θ + = θ and if θ̄ < k,
+  1. choose uniformly among the k − θ̄ nonactive components’ indexes, say
+     j, and set θ + (j) = 1,
+  2. set ϑ = θ + with probability
+                                               π(θ + ) 1/(θ̄ + 1)
+(7.3)                                     1∧                      ,
+                                                π(θ) 1/(k − θ̄)
+        otherwise ϑ = θ,
+or
+• set θ − = θ and if θ̄ > 0,
+  1. choose uniformly among the θ̄ active components’ indexes, say j, and
+     set θ − (j) = 0,
+  2. set ϑ = θ − with probability
+                                            π(θ − ) 1/(k − θ̄ + 1)
+(7.4)                                  1∧                          ,
+                                             π(θ)        1/θ̄
+        otherwise ϑ = θ.
+                     THE PSEUDO-MARGINAL APPROACH                               25
+
+   This algorithm cannot be implemented, but it is nevertheless possible to
+implement a reversible jump algorithm on the joint distribution π(θ, zθ ). A
+solution suggested in [2, 6], which we will refer to as the standard RJ algo-
+rithm here, can be understood as being a simple variation on the algorithm
+above, where in the birth move the additional sampling of a new coefficient
+from a distribution Q is required, resulting in the acceptance ratio
+                           π(θ + , zθ++ ) 1    1/(θ̄ + 1)
+                      1∧                  +
+                                                          .
+                            π(θ, zθ ) Q(z (j)) 1/(k − θ̄)
+  In [6] it is suggested to use as a proposal distribution for z + (j) the marginal
+of the normal distribution with mean the maximum likelihood estimator
+  ML of the saturated model and covariance the corresponding Hessian. Our
+z1111
+pseudo-likelihood algorithm is very similar to the algorithm developed for
+the toy example in the previous section, that is it relies on a discretized
+Langevin diffusion, and consists formally of simply replacing π(θ + ) and
+π(θ − ) in the pseudo-code above with an estimator of the form equation
+(7.2) for θ ∈ {θ + , θ − }. The following setup was considered. We generated
+artificial data from the logit model as follows. We chose M = 50, k = 4, a set
+of coefficients z ∗ = [1 0.5 −2 0.01]T and generated covariates as follows: with
+Zi ∼ N (0, IM ) we set Ci = Zi for i = 1, 3, 4 and C2 = 0.9 × Z1 + 0.1 × Z2 .
+This resulted into two correlated covariates, number 1 and 2. The maximum
+likelihood estimate for z ∗ was found to be z1111  ML = [5.22445 − 3.71672 −
+                      T
+2.4011 − 0.587472] , suggesting (a) the presence of a main mode for the sat-
+urated model around this value, significantly different from the truth and
+(b) a mismatch between the modes and marginal modes of π(1111, z1111 )
+                                   ML = [1.73253 −2.30933 −0.648927]T ) and
+with those of π(1011, z1011 ) (z1011
+                    ML
+π(0111, z0111 ) (z0111 = [1.5968 −1.98855 −0.0922961]T ) which might result in
+poor mixing of the standard “birth–death” RJMCMC algorithm described
+above, a behavior likely to be reinforced here by the choice of the proposal
+distribution. This is confirmed by our simulation. In Figure 2 we present the
+estimated model probabilities (indexed by the decimal representation of θ)
+for N = 1, 5, 50, 100, 200. Note that for the case N = 1 the birth/death move
+was complemented by 10 iterations of a within model one variable at a time
+random walk MH for each sweep. We observe the large discrepancy between
+the results for N = 1, 5 and the results for N = 50, 100, 200 the latter being
+in agreement. Note that this is despite the apparent convergence of estima-
+tors of the posterior inclusion probabilities P(θ(j) = 1) for j = 1, . . . , k for
+the case N = 1 (Figure 3) and that the results obtained after 20,000, 10,000
+and 5,000 for N = 50,100 and 200 are much more reliable than for N = 1
+after 1,000,000 iterations. The respective expected acceptance probabilities
+are given in the table below. Note that using the estimated model probabili-
+ties obtained for N = 200 one finds an acceptance rate of 0.29592. Finally, in
+26                      C. ANDRIEU AND G. O. ROBERTS
+
+
+
+
+     Fig. 2.   Model probabilities for N = 1, 5, 50, 100, 200 (from top to bottom).
+                       THE PSEUDO-MARGINAL APPROACH                                     27
+
+
+
+
+Fig. 3. Instantaneous estimation of the model probabilities as a function of the iterations
+for N = 1, 5, 50, 100, 200.
+28                       C. ANDRIEU AND G. O. ROBERTS
+
+
+
+
+Fig. 4. Snapshots of the transitions for zθ between models for N = 100, together with
+their associated importance weights (the horizontal lines correspond to the true values of
+z ∗ ).
+                       THE PSEUDO-MARGINAL APPROACH                                      29
+
+Figure 4 we present the trace of the z’s drawn with our discretized Langevin
+while attempting to jump between models, which together with the evolu-
+tion of the values of the importance weights illustrates why our approach
+might be of interest.
+
+N /nb iter.×1000         1/1000         5/400         50/40         100/50        200/50
+accept prob.             0.064293       0.16569       0.25885       0.28433       0.29371
+
+   8. Conclusion. The pseudo-marginal approach to stochastic simulation
+is a highly versatile methodology which has diverse potential applications
+in a variety of areas. The focus of this paper has been on some of the the-
+oretical underpinnings of the method. Our main results describe ergodicity
+and uniform ergodicity of GIHM and its exact generalizations suggested in
+this paper, and we also give a comparison with an inexact variants, akin to
+MCWM. Empirical evidence in [1] and in the present paper in the context
+of reversible jumps for model selection in generalized linear models suggests
+that the methodology has considerable promise. Currently ongoing work
+confirms this.
+
+                                    REFERENCES
+ [1] Beaumont, M. A. (2003). Estimation of population growth or decline in genetically
+          monitored populations. Genetics 164 1139–1160.
+ [2] Dellaportas, P. and Forster, J. J. (1999). Markov chain Monte Carlo model
+          determination for hierarchical and graphical log-linear models. Biometrika 86
+          615–633. MR1723782
+ [3] Green, P. J. (1995). Reversible jump MCMC computation and Bayesian model
+          determination. Biometrika 82 711–732. MR1380810
+ [4] Meyn, S. P. and Tweedie, R. L. (1993). Markov Chains and Stochastic Stability.
+          Springer, New York. MR1287609
+ [5] Liu, J. S., Wong, W. H. and Kong, A. (1994). Covariance structure of the Gibbs
+          sampler with applications to the comparisons of estimators and augmentation
+          schemes. Biometrika 81 27–40. MR1279653
+ [6] Ntzoufras, I., Dellaportas, P. and Forster, J. (2003). Bayesian variable and
+          link determination for generalized linear models. J. Statist. Plann. Inference 111
+          165–180. MR1955879
+ [7] O’Neill, P. D., Balding, D. J., Becker, N. G., Eerola, M. and Mollison, D.
+          (2000). Analyzes of infectious disease data from houseing the expected value of
+          ratios, hold outbreaks by Markov chain Monte Carlo methods. Appl. Statist. 49
+          517–542. MR1824557
+ [8] Robert, C. P. and Casella, G. (2004). Monte Carlo Statistical Methods, 2nd ed.
+          Springer, New York. MR2080278
+ [9] Roberts, G. O. and Sahu, S. K. (1997). Updating schemes, correlation structure,
+          blocking and parameterisation for the Gibbs sampler. J. Roy. Static. Soc. Ser.
+          B 59 291–397. MR1440584
+[10] Roberts, G. O. and Tweedie, R. (1996). Geometric convergence and central limit
+          theorems for multidimensional Hastings and Metropolis algorithms. Biometrika
+          83 95–110. MR1399158
+30                         C. ANDRIEU AND G. O. ROBERTS
+
+[11] Tierney, L. (1998). A note on Metropolis–Hastings kernels for general state-spaces.
+         Ann. Appl. Probab. 8 1–9. MR1620401
+
+School of Mathematics                            Department of Statistics
+University of Bristol                            University of Warwick
+Bristol, BS8 1TW                                 Coventry, CV4 7AL
+United Kingdom                                   United Kingdom
+E-mail: c.andrieu@bristol.ac.uk                  E-mail: Gareth.O.Roberts@warwick.ac.uk
+

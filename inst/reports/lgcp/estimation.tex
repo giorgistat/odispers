@@ -1,0 +1,117 @@
+\section{Estimation and approximations}
+
+Estimation uses Markov chain Monte Carlo (MCMC) to explore the joint posterior of the breeding sites, the river field and the regression parameters. The observations constrain the sites through the exposure they generate, while the sites constrain the field through their Poisson intensities. We describe the marked Gaussian-kernel model with occurrence and \texttt{block\_slice} field updates used in the reported analyses.
+
+\subsection{Posterior target and order of updates}
+
+Write $g$ for the vector of field values at graph vertices and $W$ for the interpolation matrix, so that the cell field introduced above is $u_j=(Wg)_j$. Its prior is $g\sim N(0,Q^{-1})$, with the precision $Q$ fixed by the chosen field, range and scale. Let $\beta=(\beta_0,\beta_v)^\top$, $\gamma=(\gamma_0,\gamma_c,\gamma_E)^\top$, and $t=\log b$. We retain counts $N_j$ and $H_j$ only in the set $\mathcal J$ of cells within the cutoff of at least one supplied village. The remaining counts integrate out conditional on the field; the field itself remains defined on the full graph.
+
+Let $\mathcal I$ denote the training villages and write $E=E(N,H,d,e^t)$. With $p_i=p_i(E_i,\beta)$ and $q_i=q_i(E_i,\gamma)$ as defined in Section~\ref{sec:model}, the augmented village likelihood is
+\begin{equation}\label{eq:augmented-village}
+ L_{\mathrm v}(E,\beta,\gamma;A)
+ =\prod_{i\in\mathcal I}
+ q_i^{A_i}(1-q_i)^{1-A_i}
+ \operatorname{Bin}(y_i;n_i,A_i p_i),
+\end{equation}
+where $\operatorname{Bin}(k;n,p)$ denotes a binomial probability mass. If $\psi=(g,\theta,\beta,\gamma,N,H,A,d,t)$ and $\pi_0$ is the joint prior density of its continuous components, the posterior target is
+\begin{equation}\label{eq:lgcp-posterior}
+ \pi(\psi\mid y)\ \propto\
+ L_{\mathrm v}(E,\beta,\gamma;A)\,
+ \prod_{j\in\mathcal J}
+ \left\{\operatorname{Pois}(N_j;\mu_j)
+        \operatorname{Bin}(H_j;N_j,1/2)\right\}
+ \pi_0(g,\theta,\beta,\gamma,d,t).
+\end{equation}
+Here $\operatorname{Pois}(k;\mu)$ denotes a Poisson mass and $\pi_0$ combines the Gaussian priors with the uniform priors for $d$ and $t$. The density in Equation~\eqref{eq:lgcp-posterior} is expressed in log width $t$; a density expressed in width $b$ would instead contain the prior factor $1/b$ on its support.
+
+One sweep updates $A$, then $\gamma$, then the counts and their locations, followed by $d$, $t$ when scheduled, $\theta$, $g$, and finally $\beta$. All other components are held at their current values within an update. Initialization places at least one site in reach of every positive village, reusing a site when it already reaches several positive villages. This supplies a configuration with positive survey likelihood rather than starting from an impossible empty landscape.
+
+\subsection{Village activity and the point pattern}
+
+The activity update is an exact Bernoulli draw. A positive observation requires $A_i=1$. For a training village with $y_i=0$, Bayes' rule gives
+\[
+ \Pr(A_i=1\mid y_i=0,E_i,\beta,\gamma)
+ =\frac{q_i(1-p_i)^{n_i}}
+ {1-q_i+q_i(1-p_i)^{n_i}}.
+\]
+Thus a zero can be explained either by an inactive village or by no positives among the people examined in an active village. Given $A$ and $E$, updating $\gamma$ is a logistic regression with responses $A_i$ and predictors $(1,c_i,E_i)$. The corrected Gaussian and slice updates for its coefficients are described below.
+
+The count sweep visits cells in a random order. For a selected cell, it proposes
+\[
+ N_j'\sim\operatorname{Poisson}(\mu_j),\qquad
+ H_j'\mid N_j'\sim\operatorname{Binomial}(N_j',1/2).
+\]
+The reported runs refresh one cell at a time; the implementation also permits joint refreshes of several cells. These proposals are drawn from the conditional count and mark priors appearing in Equation~\eqref{eq:lgcp-posterior}. Their forward and reverse proposal factors therefore cancel the corresponding prior ratio in the Metropolis--Hastings rule \citep[Section~2.2]{hastings1970}. The acceptance probability reduces to
+\begin{equation}\label{eq:count-acceptance}
+ \alpha=\min\left\{1,
+ \frac{L_{\mathrm v}(E',\beta,\gamma;A)}
+      {L_{\mathrm v}(E,\beta,\gamma;A)}\right\},
+\end{equation}
+where $E'$ is the exposure from the proposed pattern. Both the infection likelihood and the occurrence likelihood enter this ratio because $q_i$ depends on exposure. Removing the last source that reaches a positive village makes its likelihood zero and rejects the proposal. Only villages reached by changed cells need to be reevaluated.
+
+Relocation proposals complement count refreshes. They select an existing labelled site and propose a new cell within its current spatial tile, with probability proportional to $\mu_j$ over that tile, retaining its weak or strong type. Conditional on the tile's site count and types, these are the prior location probabilities, so the acceptance rule again has the likelihood-ratio form in Equation~\eqref{eq:count-acceptance}. The tiles shift between sweeps. This permits a source to move while preserving total marked mass, without requiring a separate deletion followed by a birth.
+
+\subsection{Mark spread and dispersal width}
+
+Given $N$ and $H$, exposure is affine in the spread:
+\[
+ E_i(d)=(1-d)\sum_j K_b(\|x_i-s_j\|)(N_j-H_j)
+       +(1+d)\sum_j K_b(\|x_i-s_j\|)H_j.
+\]
+The uniform prior on $d\in[0,1]$ leaves a one-dimensional likelihood target. We use the slice construction of \citet[Section~4]{neal2003}: draw $U\sim\operatorname{Uniform}(0,1)$ and set the log threshold to $\log L_{\mathrm v}(E(d),\beta,\gamma;A)+\log U$. Candidates are drawn from an interval initially equal to $[0,1]$; a rejected candidate shortens the interval on its side of the current $d$, until the candidate likelihood exceeds the threshold.
+
+The width update proposes $t'=t+\varepsilon$, with $\varepsilon\sim N(0,s_t^2)$, and rejects values outside $[\log 1,\log 240]$. The proposal is symmetric and the prior is uniform in $t$, so an in-bounds proposal again uses the village likelihood ratio, now recomputing the normalized kernel and exposure at $b'=e^{t'}$. There is no additional Jacobian in this coordinate. The cutoff remains fixed, so changing width does not add or remove cells from $\mathcal J$. A proposal is attempted every fourth sweep; $s_t$ is adjusted during burn-in toward an acceptance fraction of 0.35 and then held fixed.
+
+\subsection{Conditional Poisson field and regression updates}
+
+The field update exploits the augmentation by site counts. Once the point pattern and village parameters are fixed, the village likelihood contains neither $g$ nor $\theta$. Write $Z$ for the matrix with rows $z_j^\top$ for $j\in\mathcal J$, and set
+\[
+ \eta_j=\log(\ell_j\rho_0)+z_j^\top\theta+(Wg)_j,
+ \qquad \mu_j=e^{\eta_j}.
+\]
+With regression prior standard deviation $\tau=1.5$, the conditional log posterior of $(g,\theta)$, up to a constant, is
+\begin{equation}\label{eq:poisson-field-target}
+ \sum_{j\in\mathcal J}\{N_j\eta_j-e^{\eta_j}\}
+ -\tfrac12g^\top Qg-\frac{\theta^\top\theta}{2\tau^2}.
+\end{equation}
+The surveys inform the field through the currently imputed counts. A second binomial factor must not be introduced into this conditional update.
+
+First, $\theta$ is updated with $g$ fixed. The score and negative Hessian of its conditional log posterior are
+\[
+ s_\theta=Z^\top(N-\mu)-\theta/\tau^2,
+ \qquad
+ H_\theta=Z^\top\operatorname{diag}(\mu)Z+\tau^{-2}I.
+\]
+The proposal is Gaussian with mean $\theta+H_\theta^{-1}s_\theta$ and covariance $H_\theta^{-1}$. To state the correction for this and the village regressions, let $a$ denote the coefficient block being updated, $f(a)$ its conditional posterior density, and $r(a'\mid a)$ the Gaussian proposal formed at $a$. We accept with probability
+\begin{equation}\label{eq:regression-acceptance}
+ \min\left\{1,
+ \frac{f(a')\,r(a\mid a')}{f(a)\,r(a'\mid a)}\right\}.
+\end{equation}
+The reverse density is formed using the score and Hessian at $a'$, including its Gaussian normalizing constant. This implements the asymmetric-proposal correction of \citet[Section~2.2]{hastings1970}; the Newton step specifies a proposal mean, not a deterministic replacement of the coefficients by an optimizer.
+
+Next, the field is updated conditionally on the new $\theta$. For a vertex block $B$, let $C$ denote its complement. Completing the square in the Gaussian prior gives
+\[
+ g_B\mid g_C\sim N(m_B,Q_{BB}^{-1}),\qquad
+ m_B=-Q_{BB}^{-1}Q_{BC}g_C.
+\]
+We apply elliptical slice sampling \citep[Section~2 and Figure~2]{murray2010} to the centered block $g_B-m_B$, with an independent $\nu_B\sim N(0,Q_{BB}^{-1})$. Candidate fields lie on the ellipse
+\[
+ g_B'=m_B+(g_B-m_B)\cos\omega+\nu_B\sin\omega.
+\]
+A random log-likelihood threshold is formed from the current Poisson likelihood. The initial angle is uniform on $[0,2\pi]$ and defines a bracket $[\omega-2\pi,\omega]$. Rejected angles shrink this bracket while retaining zero, until the candidate exceeds the threshold. The Gaussian prior is handled by the ellipse; only the first sum in Equation~\eqref{eq:poisson-field-target} enters the slice test.
+
+For the two field types used here, the implementation partitions vertices into two colours. Different connected blocks of one colour have no precision links and no cell projects onto two such blocks. Their conditional targets therefore separate given the other colour, $N$ and $\theta$, allowing an angle for each block. Both colours are updated, and the band boundaries alternate between two partitions. Since $Q$ is fixed, the sparse conditional Cholesky factors can be computed once and reused.
+
+This is a blocked slice-within-Gibbs scheme: the vertices in a connected block move jointly while the remaining field is fixed. One elliptical slice transition preserves the block's conditional posterior; it does not draw independently from that non-Gaussian conditional distribution. The bands span 12 graph-edge steps, with a six-step shift between partitions. Among blocks touching the survey footprint, the median size is nine vertices in both partitions, and the largest blocks have 66 and 90 vertices, respectively. These local updates make it necessary to check broad spatial field summaries as well as individual coordinates; Section~\ref{sec:field-mixing} reports that check.
+
+Finally, $\beta$ is updated by logistic regression on the active training villages, using $\log E_i$ as a known offset. The occurrence regression for $\gamma$ uses the activity labels instead. Both use the corrected local Gaussian proposal above on three sweeps out of four and a Gaussian-prior elliptical slice update on the fourth sweep in these runs. Inactive villages have no infection-likelihood contribution, but their occurrence labels still contribute to the $\gamma$ regression.
+
+\subsection{Alternative field proposals, summaries and convergence}
+
+Two alternative field updates are available. The global \texttt{slice} option updates the joint vector $(\theta,g)$ on an ellipse defined by its Gaussian prior. The \texttt{laplace} option finds the mode and negative Hessian of Equation~\eqref{eq:poisson-field-target}, draws from the resulting Gaussian approximation, and applies the independence Metropolis--Hastings correction. This Gaussian serves as a proposal; approximation error is accounted for in the acceptance ratio. The reported runs use the conditional block method described above.
+
+After burn-in, the retained states provide posterior summaries of coefficients, site counts, occupation probabilities and village prevalence. For example, with $S$ retained states, the prevalence estimate is $S^{-1}\sum_{s=1}^S A_i^{(s)}p_i^{(s)}$, preserving the dependence between activity and infection risk. A held-out village contributes neither factor in Equation~\eqref{eq:augmented-village}; its predictive activity is generated from $q_i$ at the sampled exposure, without conditioning on its omitted outcome.
+
+Full-data analyses used four 8,000-sweep chains per configuration, discarding 2,000 sweeps from each; initial widths were 10, 20, 40 and 80~km. Each spatial holdout refit used four 12,000-sweep chains, discarding 6,000. We assess agreement and simulation efficiency using rank-normalized $\widehat R$ and bulk ESS \citep{vehtari2021}. The reported screening thresholds, $\widehat R>1.05$ or ESS below 100, reproduce the archived analysis; they are not a claim that all unflagged estimates are accurate. In particular, \citet[Section~2]{vehtari2021} recommend the stricter $\widehat R<1.01$ and checking Monte Carlo errors for the quantities of interest.
+
+The cell-midpoint representation and field interpolation define a spatial approximation, while finite MCMC length introduces simulation error within that model. All inference is conditional on the specified source rate, field scale, river range and cutoff. Valid update formulas and favorable acceptance rates do not establish adequate exploration of the joint posterior; the observed chain disagreement remains a limitation of the reported estimates.

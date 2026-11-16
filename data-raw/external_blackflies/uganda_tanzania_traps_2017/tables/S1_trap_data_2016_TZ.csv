@@ -1,0 +1,47 @@
+YEAR,COLL_DATE,COUNTRY,DISTRICT,LOCATION,TRAP_TYPE,TRAP_SITE,TOTAL_COUNT,PRESERVED,DAMNOSUM,OTHER,RAIN_HOURS
+2016,2016-06-10 00:00:00,Tanzania,Mahenge,Chikuti,EWT Black,3,16,16,13,3,0
+2016,2016-06-11 00:00:00,Tanzania,Mahenge,Chikuti,EWT Black,1,49,49,44,5,0
+2016,2016-06-13 00:00:00,Tanzania,Mahenge,Chikuti,EWT Black,2,26,26,25,1,0
+2016,2016-06-14 00:00:00,Tanzania,Mahenge,Chikuti,EWT Black,1,24,24,22,2,0
+2016,2016-06-15 00:00:00,Tanzania,Mahenge,Chikuti,EWT Black,2,20,20,20,0,0
+2016,2016-06-16 00:00:00,Tanzania,Mahenge,Chikuti,EWT Black,3,7,7,6,1,0
+2016,2016-06-17 00:00:00,Tanzania,Mahenge,Chikuti,EWT Black,3,5,5,1,4,0
+2016,2016-06-18 00:00:00,Tanzania,Mahenge,Chikuti,EWT Black,2,43,43,39,4,0
+2016,2016-06-20 00:00:00,Tanzania,Mahenge,Chikuti,EWT Black,1,36,36,32,4,0
+2016,2016-06-21 00:00:00,Tanzania,Mahenge,Chikuti,EWT Black,3,7,7,7,0,0
+2016,2016-06-22 00:00:00,Tanzania,Mahenge,Chikuti,EWT Black,2,95,95,81,14,0
+2016,2016-06-23 00:00:00,Tanzania,Mahenge,Chikuti,EWT Black,1,58,58,45,13,0
+2016,2016-06-24 00:00:00,Tanzania,Mahenge,Chikuti,EWT Black,1,17,17,13,4,0
+2016,2016-06-25 00:00:00,Tanzania,Mahenge,Chikuti,EWT Black,2,8,8,8,0,0
+2016,2016-06-27 00:00:00,Tanzania,Mahenge,Chikuti,EWT Black,3,6,6,4,2,0
+2016,2016-06-10 00:00:00,Tanzania,Mahenge,Chikuti,EWT Blue,2,67,67,62,5,0
+2016,2016-06-11 00:00:00,Tanzania,Mahenge,Chikuti,EWT Blue,3,44,44,22,22,0
+2016,2016-06-13 00:00:00,Tanzania,Mahenge,Chikuti,EWT Blue,1,85,85,75,10,0
+2016,2016-06-14 00:00:00,Tanzania,Mahenge,Chikuti,EWT Blue,2,63,63,62,1,0
+2016,2016-06-15 00:00:00,Tanzania,Mahenge,Chikuti,EWT Blue,3,18,18,16,2,0
+2016,2016-06-16 00:00:00,Tanzania,Mahenge,Chikuti,EWT Blue,1,2,2,2,0,0
+2016,2016-06-17 00:00:00,Tanzania,Mahenge,Chikuti,EWT Blue,1,17,17,14,3,0
+2016,2016-06-18 00:00:00,Tanzania,Mahenge,Chikuti,EWT Blue,3,4,4,3,1,0
+2016,2016-06-20 00:00:00,Tanzania,Mahenge,Chikuti,EWT Blue,2,46,46,42,4,0
+2016,2016-06-21 00:00:00,Tanzania,Mahenge,Chikuti,EWT Blue,2,20,20,16,4,0
+2016,2016-06-22 00:00:00,Tanzania,Mahenge,Chikuti,EWT Blue,1,243,18,16,2,0
+2016,2016-06-23 00:00:00,Tanzania,Mahenge,Chikuti,EWT Blue,3,19,19,11,8,0
+2016,2016-06-24 00:00:00,Tanzania,Mahenge,Chikuti,EWT Blue,3,5,5,4,1,0
+2016,2016-06-25 00:00:00,Tanzania,Mahenge,Chikuti,EWT Blue,1,13,13,12,1,0
+2016,2016-06-27 00:00:00,Tanzania,Mahenge,Chikuti,EWT Blue,2,12,12,12,0,0
+2016,2016-06-10 00:00:00,Tanzania,Mahenge,Chikuti,HLC,1,70,70,70,0,0
+2016,2016-06-11 00:00:00,Tanzania,Mahenge,Chikuti,HLC,2,89,89,89,0,0
+2016,2016-06-13 00:00:00,Tanzania,Mahenge,Chikuti,HLC,3,183,183,183,0,0
+2016,2016-06-14 00:00:00,Tanzania,Mahenge,Chikuti,HLC,3,115,115,115,0,0
+2016,2016-06-15 00:00:00,Tanzania,Mahenge,Chikuti,HLC,1,112,112,112,0,0
+2016,2016-06-16 00:00:00,Tanzania,Mahenge,Chikuti,HLC,2,120,120,120,0,0
+2016,2016-06-17 00:00:00,Tanzania,Mahenge,Chikuti,HLC,2,203,203,203,0,0
+2016,2016-06-18 00:00:00,Tanzania,Mahenge,Chikuti,HLC,1,217,217,217,0,0
+2016,2016-06-20 00:00:00,Tanzania,Mahenge,Chikuti,HLC,3,144,144,144,0,0
+2016,2016-06-21 00:00:00,Tanzania,Mahenge,Chikuti,HLC,1,151,151,151,0,0
+2016,2016-06-22 00:00:00,Tanzania,Mahenge,Chikuti,HLC,3,141,141,141,0,0
+2016,2016-06-23 00:00:00,Tanzania,Mahenge,Chikuti,HLC,2,263,263,263,0,0
+2016,2016-06-24 00:00:00,Tanzania,Mahenge,Chikuti,HLC,2,215,215,215,0,0
+2016,2016-06-25 00:00:00,Tanzania,Mahenge,Chikuti,HLC,3,147,147,147,0,0
+2016,2016-06-27 00:00:00,Tanzania,Mahenge,Chikuti,HLC,1,262,262,262,0,0
+,,,,,,,,,,,

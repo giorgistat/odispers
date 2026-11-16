@@ -7,6 +7,7 @@
 #'
 #' @keywords internal
 #' @importFrom stats coef vcov logLik fitted nobs predict simulate
+#' @importFrom Matrix sparseMatrix
 #' @importFrom Rcpp sourceCpp
 #' @useDynLib odispers, .registration = TRUE
 "_PACKAGE"

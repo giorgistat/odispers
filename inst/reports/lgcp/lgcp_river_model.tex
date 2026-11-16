@@ -1,0 +1,194 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{amsmath,amssymb,graphicx,booktabs,float,setspace,placeins}
+\usepackage[authoryear,round]{natbib}
+\usepackage[hidelinks]{hyperref}
+\onehalfspacing
+\widowpenalty=10000
+\clubpenalty=10000
+\graphicspath{{figures/}}
+\title{A log-Gaussian Cox model for latent river breeding sites and onchocerciasis prevalence}
+\author{}
+\date{10 November 2026}
+
+\begin{document}
+\maketitle
+
+\section{Introduction}
+
+Blackfly breeding sites are unobserved in the village prevalence data. We represent them by a log-Gaussian Cox process (LGCP) on the river network: a Gaussian field determines the local density of breeding sites, and each realized site contributes exposure to every village within its dispersal range. The same latent sites therefore link the village outcomes. This construction distinguishes uncertainty about where sites occur from variation in the intensity that generates them.
+
+This report follows the data--model--estimation--results structure of the existing river-model reports. It describes the implemented LGCP, summarizes the full-data and spatial holdout analyses saved on 7 November 2026, and records the code improvements and validation performed on 10 November. The archived chains show substantial disagreement, including different regimes for the dispersal width. Their numerical summaries describe the saved simulations; a definitive comparison of converged Bayesian models remains unavailable.
+
+A separate four-chain diagnostic run on 10 November records latent-field trajectories for the tail-down model at 800~km. This supplements the archived parameter diagnostics and leaves the original forecast comparisons unchanged.
+
+\section{Data and spatial representation}
+
+The analysis contains 900 REMO surveys in Sudan and South Sudan, with 2,386 positives among 37,831 individuals examined; 550 villages have no positives. The observed positive fraction is 6.31\%, and 24 villages have at least half their participants positive. The HydroRIVERS network retains reaches with average discharge at least 0.1~m$^3$/s. The saved design contains 286,068 river quadrature cells and 145,329 field vertices. At the 60~km dispersal cutoff, 68,980 cells can contribute to at least one survey.
+
+The five breeding covariates are log discharge, log-transformed slope, capped log-transformed inundation, longitude and latitude. Each is centered and scaled using river-cell lengths as weights. Village transmission uses standardized log aridity; the occurrence regression uses aridity centered at 0.4 and divided by 0.2. These transformations are fixed in the archived design. The response and trial count of a held-out survey are both masked during fitting, while its original trial count is restored for predictive scoring.
+
+\section{Model}\label{sec:model}
+
+\subsection{Latent sites and their strengths}
+
+Let $\Gamma$ denote the river network and $s_j$ the midpoint of cell $j$, whose length is $\ell_j$~km. Let $z_j$ contain its five breeding covariates, $\theta$ their coefficients, and $u_j$ the field interpolated from the graph vertices. Conditional on this field, the implemented cell model is
+\[
+ N_j\mid u_j,\theta\sim\operatorname{Poisson}(\mu_j),\qquad
+ \mu_j=\ell_j\rho_0\exp(z_j^\top\theta+u_j),\qquad \rho_0=0.04\ \mathrm{km}^{-1},
+\]
+with conditionally independent cell counts. The baseline source rate is fixed and there is no breeding intercept in these analyses. The Gaussian field has either the symmetric Whittle--Mat\'ern precision or the tail-down precision supplied by the package, with field-scale parameter $\sigma_u=0.5$ and river-network range $r\in\{200,400,800\}$~km. The same field-scale parameter need not give identical marginal variances for the two graph constructions, particularly near junctions and boundaries.
+
+Each site independently has strength $1-d$ or $1+d$ with equal probability. If $H_j\mid N_j\sim\operatorname{Binomial}(N_j,1/2)$ is the number of stronger sites in a cell, its total marked mass is
+\[
+ M_j=(1-d)(N_j-H_j)+(1+d)H_j.
+\]
+A site's strength is shared by all the villages it reaches. Its mean strength is one for every $d$, and the unit-strength model is obtained at $d=0$.
+
+\subsection{Dispersal and village outcomes}
+
+Let $x_i$ be the location of village $i$. The Gaussian dispersal kernel uses straight-line distance $h$, width $b$ and fixed cutoff $\phi=60$~km. With $\Phi$ denoting the standard normal distribution function, the line-normalized kernel and the village exposure are
+\[
+ K_b(h)=\frac{\exp\{-h^2/(2b^2)\}}
+ {\sqrt{2\pi}\,b\{\Phi(\phi/b)-\Phi(-\phi/b)\}}\,\mathbf{1}\{h<\phi\},
+ \qquad E_i=\sum_j K_b(\|x_i-s_j\|)M_j.
+\]
+Cell length enters the Poisson mean once; it does not multiply a site's kernel contribution again. The width $b$, cutoff $\phi$ and river-field range $r$ describe different scales. The package also supports a compact Wendland kernel, but the six archived comparisons in this report all use the Gaussian kernel.
+
+Let $A_i$ indicate whether village $i$ is in an active transmission zone. Write $c_i=(\mathrm{AI}_i-0.4)/0.2$ for centered aridity and $v_i$ for standardized log aridity. In the archived analyses,
+\begin{align*}
+ A_i\mid E_i&\sim\operatorname{Bernoulli}(q_i), &
+ \operatorname{logit}(q_i)&=\gamma_0+\gamma_c c_i+\gamma_E E_i,\\
+ Y_i\mid A_i,E_i&\sim\operatorname{Binomial}(n_i,A_i p_i), &
+ \operatorname{logit}(p_i)&=\log E_i+\beta_0+\beta_v v_i.
+\end{align*}
+Here $n_i$ is the number examined and $Y_i$ the number positive. A zero exposure gives $p_i=0$ exactly, although $q_i$ may remain positive. The occurrence indicator is shared by everyone in a village, so its marginal zero probability is
+\[
+ \Pr(Y_i=0\mid E_i)=1-q_i+q_i(1-p_i)^{n_i}.
+\]
+The package's alternative complementary log-log link sets $p_i=1-\exp\{-E_i\exp(\beta_0+\beta_v v_i)\}$. It is supported and tested, but is not the link used in the archived tables.
+
+\subsection{Priors and interpretation}
+
+All breeding, transmission and occurrence coefficients have independent $N(0,1.5^2)$ priors; $d$ is uniform on $[0,1]$, and $\log b$ is uniform on $[\log 1,\log 240]$, with $b$ measured in kilometres. The source rate, field scale, river range and cutoff are fixed within each model configuration. Thus uncertainty in these quantities is not included in the reported intervals. In particular, the inferred number of sites and their strength contrast depend on the assumed reference source rate. With prevalence alone, they should be interpreted as features of a latent exposure model rather than as directly measured breeding-site abundance.
+
+\input{estimation.tex}
+
+\section{Predictive assessment}
+
+The five spatial folds each contain 180 villages, with 100~km blocks assigned together. Training and test blocks can touch: there is no geographic buffer. Each held-out predictive distribution averages $\operatorname{Binomial}(n_i,A_i p_i)$ over the retained joint draws from the corresponding training fit. Field range and other fixed settings remain as specified above, while the width and regression coefficients are fitted separately in every fold.
+
+We report the Brier score for the event of zero positives, the continuous ranked probability score (CRPS) for the observed fraction positive, and the sum of village marginal count log scores. Brier and CRPS give equal weight to villages, and lower values are better; higher count log scores are better. The sum of marginal log scores is not a joint spatial log likelihood. The expected number of nonzero villages provides an additional calibration summary.
+
+The full-data checks answer a separate question. Each configuration generated 2,000 fresh river landscapes: a new field, sites, marks, village activities and outcomes, with parameter draws taken jointly from the fitted chains. These simulations use the observed locations and sample sizes, but regenerate the local field and sites instead of conditioning on the inferred local landscape. They assess the model's capacity to generate the observed overall pattern; their scores are not held-out validation scores.
+
+\section{Results}
+
+\subsection{Spatial holdout forecasts}
+
+Table~\ref{tab:cv} and Figure~\ref{fig:scores} summarize the saved forecasts. Tail-down at 800~km has the smallest Brier and CRPS and the largest count log score in this finite-chain comparison. The expected nonzero counts are close to the observed 350 across configurations. These rankings are provisional because all 30 model--fold combinations fail the recorded convergence criteria, discussed below.
+
+\begin{table}[H]
+\centering\small
+\caption{Five-fold held-out scores from the archived runs. Each row uses all 900 villages exactly once as held-out observations.}
+\label{tab:cv}
+\begin{tabular}{lrrrrr}
+\toprule
+Field & $r$ (km) & Brier & CRPS & Log score & Nonzero\\
+\midrule
+\input{heldout_rows.tex}
+\end{tabular}
+\end{table}
+
+\begin{figure}[htbp]
+\centering\includegraphics[width=\textwidth]{heldout_scores.png}
+\caption{Scores of the saved held-out forecasts by field and river range. The log score is shown per village; all configurations have convergence flags.}
+\label{fig:scores}
+\end{figure}
+
+Figure~\ref{fig:map} compares observed proportions with held-out mean prevalence for the tail-down 800~km configuration. The predictions show the broad north--south contrast, with less local variation than the observed fractions. They are forecasts at survey locations; combining their five fitted folds does not produce a single joint realization of the river process.
+
+\begin{figure}[htbp]
+\centering\includegraphics[width=.93\textwidth]{heldout_map.png}
+\caption{Observed fractions and held-out mean prevalence at the 900 surveys, with a common color scale. The right panel uses tail-down at 800~km and combines predictions from five training fits.}
+\label{fig:map}
+\end{figure}
+
+\subsection{Chain agreement and predictive stability}
+
+We use rank-normalized $\widehat R$ to summarize between-chain agreement and bulk effective sample size (ESS) to summarize information in the retained draws \citep{vehtari2021}. The archived diagnostic flag is any non-finite diagnostic, parameter $\widehat R>1.05$, or bulk ESS below 100. Every holdout configuration has all five folds flagged. Table~\ref{tab:diagnostics} also reports how many held-out village risks have poor diagnostics; agreement of a few aggregate scores does not establish agreement of the local predictions.
+
+\begin{table}[H]
+\centering\small
+\caption{Diagnostics across the five holdout fits. The first two diagnostic columns are the worst monitored parameter values; the last two count held-out village-risk flags.}
+\label{tab:diagnostics}
+\begin{tabular}{lrrrrr}
+\toprule
+Field & $r$ (km) & Max $\widehat R$ & Min ESS & Risk $\widehat R>1.05$ & Risk ESS $<100$\\
+\midrule
+\input{diagnostic_rows.tex}
+\end{tabular}
+\end{table}
+
+The full-data width traces in Figure~\ref{fig:widths} illustrate why simple pooling is problematic. Some chains remain near a narrow kernel, while others spend long periods at much larger widths. Equal pooling gives equal weight to these runs; it does not establish the posterior probability of the width regimes. The 95\% intervals in Table~\ref{tab:full} are therefore descriptive pooled quantiles, rather than validated credible intervals.
+
+\begin{figure}[htbp]
+\centering\includegraphics[width=.88\textwidth]{width_traces.png}
+\caption{Full-data kernel-width traces after burn-in, shown every 20 sweeps. Colors distinguish the four chains, the vertical scale is logarithmic, and the dashed line marks the fixed 60~km cutoff.}
+\label{fig:widths}
+\end{figure}
+
+\FloatBarrier
+\input{field_mixing_results.tex}
+
+\subsection{Fresh-landscape checks}
+
+Table~\ref{tab:full} summarizes the full-data runs and their regenerated landscapes. The simulated overall positive fraction is above the observed 6.31\% in every configuration. Some settings also generate appreciably more nonzero villages than observed. These discrepancies warrant model and prior sensitivity analysis, alongside improved mixing; they cannot be resolved by interpreting a favorable held-out score as proof that the entire generative model is calibrated.
+
+\begin{table}[H]
+\centering\small
+\caption{Exploratory full-data summaries. Width intervals are pooled 2.5\%--97.5\% quantiles; the final columns are means over fresh landscapes. Observed: 350 nonzero villages and 6.31\% positive.}
+\label{tab:full}
+\begin{tabular}{lrrrrr}
+\toprule
+Field & $r$ (km) & Width median & Width interval & Nonzero & Positive (\%)\\
+\midrule
+\input{full_data_rows.tex}
+\end{tabular}
+\end{table}
+
+\FloatBarrier
+\section{Code performance and validation}
+
+The 10 November revision removes dense row extraction when initializing feasible source counts: the transposed sparse kernel lists only cells in reach of each positive village. It also reuses Poisson means between field summaries and the next count sweep, and skips the binomial calculation when a village has zero likelihood weight. The activity likelihood is still evaluated whenever its state is observed. Kernel construction now handles very broad and very narrow Gaussian widths without squaring the width or subtracting nearly equal probabilities. If a positive village has no representable positive kernel weight, initialization gives a direct error explaining the width and cell-resolution issue.
+
+The code separates fixed design construction, initial counts, field updates and kernel updates into named functions and files. Comments identify the conditional distributions and the order of each sweep, including where all updates share the same exposure. These changes retain the existing public arguments and output structure.
+
+\input{validation_results.tex}
+
+These timings concern computation for a short fixed workload, including initialization; they do not measure effective independent draws per second. The speed improvement does not resolve the chain disagreement in the archived scientific analyses. The original full-data comparisons and 120 holdout chains were not rerun for the performance benchmark; the separate field-diagnostic refit is described in Section~\ref{sec:field-mixing}.
+
+\section{Discussion}
+
+The LGCP provides an explicit account of shared, unobserved breeding sites and their contributions to village exposure. For the saved held-out forecasts, the tail-down field at 800~km gives the best aggregate scores among the six configurations. The strongest limitation is posterior exploration: width regimes disagree across chains, and many local predictions also have poor diagnostics. Site-density assumptions, mark contrast and transmission regression may compensate for one another, making source-rate sensitivity and better exploration of width particularly relevant.
+
+A subsequent scientific comparison should retain the same folds and score definitions, improve mixing, and assess cell-resolution and fixed-hyperparameter sensitivity. The current implementation checks support the tested calculations and provide a faster starting point. They do not turn the archived finite-chain rankings into a settled model-selection result.
+
+\appendix
+\section{Files and reproducibility}
+
+The directory \path{inst/reports/lgcp/data} contains the numerical summaries, village forecasts, survey coordinates, thinned width traces and field-diagnostic plotting data. The original full-data and spatial holdout archives and the separate field-monitoring run, including the source files for every bundled table, are listed in \texttt{data/sources.txt}. The figures and tables can be rebuilt from the repository root with
+\begin{verbatim}
+Rscript inst/scripts/lgcp/report_figures.R
+cd inst/reports/lgcp
+pdflatex -halt-on-error lgcp_river_model.tex
+bibtex lgcp_river_model
+pdflatex -halt-on-error lgcp_river_model.tex
+pdflatex -halt-on-error lgcp_river_model.tex
+\end{verbatim}
+The performance script is \texttt{inst/scripts/lgcp/benchmark.R}. Source snapshots, timings, numerical replay checks, test logs and package-check output for the code revision are retained in \texttt{jonas\_local/lgcp\_audit\_20261110}. Scientific tables are reconstructed from the bundled village forecasts; their generation checks that the aggregate Brier, CRPS and log scores agree with the archived comparison.
+
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\end{document}

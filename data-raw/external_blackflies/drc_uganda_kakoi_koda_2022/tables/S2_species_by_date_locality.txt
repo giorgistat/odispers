@@ -1,0 +1,187 @@
+PAGE 1
+                                                                                                                    
+                                                                                                                    
+                                                                                                                    
+                                                                                                                    
+                                                                                                                    
+                                                                                                                    
+          PLoSNTDs                                                                                                  
+          Identification of the Onchocerciasis Vector in the Kakoi-Koda Focus of the Democratic Republic of Congo   
+          By Rory J Post, Anne Laudisoit, Christine Laemmer, Kenneth Pfarr, Achim Hoerauf, Michel Mandro, Pablo Tortosa, Yann Gomard, Tony Ukety,
+          Thomson Lakwo, Claude Mande, Lorne Farovitch, Uche Amazigo, Didier Bakajika, David Oguttu, Naomi Awaca & Robert Colebunders
+                                                                                                                    
+                                                                                                                    
+          SUPPORTING   MATERIAL                                                                                     
+                                                                                                                    
+                                                                                                                    
+          S2 Table:  List of Species Identified  from  the  Ituri Highlands  by  Date  and  Locality                
+                                                                                                                    
+                                                                                                                    
+                                                                                                                    
+                                                                                                                    
+           Date   River* & Latitude/ Species &                                                                      
+           (D-M-Y) Locality Longitude Life                                                                          
+                          (deg.dec) Stage**                                                                         
+                                   dentulosum vorax hargreavesi bwambanum alcocki cervicornutum Impukane/ unicornutum berghei
+                                                                                       ituriense                    
+           2015                                                                                                     
+           15-08-15 Koda  N02.01104                                                                       4 P       
+                  Lokpa   E30.90872                                                                                 
+           26-09-15 Koda  N02.02499 5 P + 13 L                                                                      
+                  Bala    E30.90443                                                                                 
+           23-10-15 Koda  N02.01104 3 P                                                                             
+                  Gono    E30.90872                                                                                 
+           19-10-15 Kuda  N02.12322         1 P                                                                     
+                  Adrasi  E30.96900                                                                                 
+           24-09-15 Kuda  N02.12322 3 P + 27 L 24 P + 68 L 1 L 1 L    1 P                                           
+                  Adrasi  E30.96900                                                                                 
+           20-10-15 Kuda  N02.12322 7 P                                                                             
+                  Adrasi  E30.96900                                                                                 
+           23-09-15 Kuda  N02.10425         2 P                       3 P                                           
+                  Ndroi   E30.97488                                                                                 
+                                                                                                                    
+                                                                                                                    
+                                                                                                                    
+                                                                                                                    
+                                                                                                                    
+
+PAGE 2
+                                                                                                                    
+                                                                                                                    
+                                                                                                                    
+                                                                                                                    
+                                                                                                                    
+                                                                                                                    
+           24-09-15 Kuda  N02.10425                                                    1 L                          
+                  Ndroi   E30.97488                                                                                 
+           19-10-15 Kuda  N02.10425 1 P + 3 L 1 NM                                              8 P                 
+                  Ndroi   E30.97488                                                                                 
+           26-10-15 Kuda  N02.11101         1 L + 1 AF       6 L                                                    
+                  Djupacora 1 E30.96219                                                                             
+           26-09-15 Madai N02.02959 8 PP                     6 P                                3 P                 
+                  Bala    E30.90721                                                                                 
+           26-09-15 Lodda N02.04853 9 P                                                                             
+                  Zaambi  E30.91453                                                                                 
+           Oct 2015 Lodda N02.04862 2 P                                                                             
+                  Zaambi  E30.91464                                                                                 
+           23-10-15 Yakpajo N02.12459                        2 P      2 P                                           
+                  Ndroi   E30.98039                                                                                 
+           19-10-15 Muda  N02.09889         1 L                                                                     
+                  Adrasi  E30.9736                                                                                  
+           24-10-15 Yadda N01.97877                 2 NM                                                            
+                  Ndeke 3 E30.91766                                                                                 
+           24-10-15 Gridda N01.98321 3 P + 2 NM                                                                     
+                  Ndeke 3 E30.91695                                                                                 
+           2016                                                                                                     
+           12-08-16 Ndeke N01.97887                                                    5 P                          
+                          E30.91764                                                                                 
+           15-08-16 Kuda  N02.10404         4 L                                                                     
+                  Ndroi   E30.97229                                                                                 
+           18-08-16 Kuda  N02.08436         20 L                                                                    
+                  Kudiwek E31.00458                                                                                 
+           2017                                                                                                     
+           22-08-17 Awoo Chute N02.16494 1 NM + 9 P 3 NF + 1 NM                                                     
+                  Djupudnik E30.99906                                                                               
+           22-08-17 Kulubu N02.10439 3 AF   15 AF                                                                   
+                  (near)  E31.02308                                                                                 
+                  Djuparam                                                                                          
+                                                                                                                    
+                                                                                                                    
+                                                                                                                    
+                                                                                                                    
+                                                                                                                    
+                                                                                                                    
+
+PAGE 3
+                                                                                                                    
+                                                                                                                    
+                                                                                                                    
+                                                                                                                    
+                                                                                                                    
+                                                                                                                    
+           Oct-Nov Djuparam N02.10439 34 AF 1 AF                                                                    
+           2017           E31.02308                                                                                 
+           15-08-17 Kakoi N02.09949         12 P                                                                    
+                  Djupulungo E31.03542                                                                              
+           18-08-17 Kakoi N02.12854         12 P                                                                    
+                  Djupuchelo E31.04591                                                                              
+           16-08-17 Kuda  N02.09819         60 P                                                                    
+                  Djupudero E30.99144                                                                               
+           16-08-17 Alakpa N02.09819                         11 P            5 P                                    
+                  Djupudero E30.99144                                                                               
+           15-08-17 Kakoi N02.09773         9 L                                                                     
+                  Rima    E31.03268                                                                                 
+           20-08-17 Kakoi N02.09773         17 P                                                                    
+                  Rima    E31.03268                                                                                 
+           20-08-17 Kolubu N02.10351        3 AF                                                                    
+                  (near)  E31.02260                                                                                 
+                  Uchudi Hill                                                                                       
+           21-08-17 Awoo  N02.16813         8 P                                                                     
+                  Pont Awoo E31.04783                                                                               
+           21-04-17 Koda  N02.00021 5 L + 4 P                                                                       
+                  Rassia  E30.90450                                                                                 
+           22-08-17 Koda  N02.00021 14 P + 3 AF                                                                     
+                  Rassia Dam E30.90450                                                                              
+           20-08-17 Kulubu N02.10439 1 AF                                                                           
+                  (near Camp E31.02308                                                                              
+                  Uchudi)                                                                                           
+           19-04-17 Lodda N02.04862 7 L                                                                             
+                  Zaambi  E30.91464                                                                                 
+           2018                                                                                                     
+           Feb-Mar Djuparam N02.10439 37 AF 1 AF                                                                    
+           2018           E31.02308                                                                                 
+           Mar 2018 Djuparam N02.10439 64 AF 1 AF                                                                   
+                          E31.02308                                                                                 
+           April  Djuparam N02.10439 1 AF                                                                           
+           2018           E31.02308                                                                                 
+                                                                                                                    
+                                                                                                                    
+                                                                                                                    
+                                                                                                                    
+
+PAGE 4
+                                                                                                                    
+                                                                                                                    
+                                                                                                                    
+                                                                                                                    
+                                                                                                                    
+                                                                                                                    
+           05-04-18 Kulubu N02.09487 12 AF                                                                          
+                          E31.00255                                                                                 
+           07-04-18 Kulubu N02.09487 5 AF                                                                           
+                          E31.00255                                                                                 
+           08-04-18 Dabu  N02.07365 2 AF                                                                            
+                          E31.02237                                                                                 
+          *In most cases this is the river from which samples were taken, but for appetitive female adult blackflies (AF from Human Landing Catches) this
+          is the nearest river to the vector collection site (often situated on the bank of the river).             
+          **P=Pupae; L=Larvae; NF=Neonate female adult (reared from pupae); NM=Neonate male adult (reared from pupae); AF=Appetitive female
+          adult (from Human Landing Catch).                                                                         
+                                                                                                                    
+                                                                                                                    
+                                                                                                                    
+                                                                                                                    
+                                                                                                                    
+                                                                                                                    
+                                                                                                                    
+                                                                                                                    
+                                                                                                                    
+                                                                                                                    
+                                                                                                                    
+                                                                                                                    
+                                                                                                                    
+                                                                                                                    
+                                                                                                                    
+                                                                                                                    
+                                                                                                                    
+                                                                                                                    
+                                                                                                                    
+                                                                                                                    
+                                                                                                                    
+                                                                                                                    
+                                                                                                                    
+                                                                                                                    
+                                                                                                                    
+                                                                                                                    
+                                                                                                                    
+                                                                                                                    
+                                                                                                                    

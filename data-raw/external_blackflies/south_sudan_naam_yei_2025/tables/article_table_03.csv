@@ -1,0 +1,7 @@
+Principal effects (fixed terms),Estimate,Statistic,p-value
+(Intercept),32.079,0.666,0.510
+Intervention vs Control,-30.774,-0.456,0.651
+Rainy vs Dry,0.426,-0.639,0.527
+Smooth terms,Effective degrees of Freedom (EDF),F-statistic,p-value
+"te (time, season*)",7.893,23.777,<0.001
+"te (time, group**)",0.000,0.000,0.588

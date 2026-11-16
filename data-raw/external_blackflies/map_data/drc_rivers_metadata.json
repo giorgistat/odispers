@@ -1,0 +1,501 @@
+{
+  "currentVersion" : 12, 
+  "id" : 1, 
+  "name" : "Rivers associated with onchocerciasis in Kakoi-Koda", 
+  "type" : "Feature Layer", 
+  "serviceItemId" : "a5f46a5ac09c42a29eef0433e57d0d5e", 
+  "cacheMaxAge" : 30, 
+  "displayField" : "name", 
+  "description" : "", 
+  "copyrightText" : "", 
+  "defaultVisibility" : true, 
+  "editingInfo" : {
+    "lastEditDate" : 1769605314095, 
+    "schemaLastEditDate" : 1769605314095, 
+    "dataLastEditDate" : 1769605314095
+  }, 
+  "relationships" : [], 
+  "isDataVersioned" : false, 
+  "hasContingentValuesDefinition" : false, 
+  "supportsAppend" : true, 
+  "supportsCalculate" : true, 
+  "supportsASyncCalculate" : true, 
+  "supportsTruncate" : true, 
+  "supportsAttachmentsByUploadId" : true, 
+  "supportsAttachmentsResizing" : true, 
+  "supportsRollbackOnFailureParameter" : true, 
+  "supportsStatistics" : true, 
+  "supportsExceedsLimitStatistics" : true, 
+  "supportsAdvancedQueries" : true, 
+  "supportsValidateSql" : true, 
+  "supportsCoordinatesQuantization" : true, 
+  "supportsLayerOverrides" : true, 
+  "supportsTilesAndBasicQueriesMode" : true, 
+  "supportsFieldDescriptionProperty" : true, 
+  "supportsQuantizationEditMode" : true, 
+  "supportsColumnStoreIndex" : true, 
+  "supportsApplyEditsWithGlobalIds" : false, 
+  "supportsMultiScaleGeometry" : true, 
+  "supportsReturningQueryGeometry" : true, 
+  "enableNullGeometry" : false, 
+  "hasGeometryProperties" : true, 
+  "geometryProperties" : 
+  {
+    "shapeLengthFieldName" : "Shape__Length", 
+    "units" : "esriMeters"
+  }, 
+  "advancedQueryCapabilities" : {
+    "supportsPagination" : true, 
+    "supportsPaginationOnAggregatedQueries" : true, 
+    "supportsQueryRelatedPagination" : true, 
+    "supportsQueryWithDistance" : true, 
+    "supportsOutDistance" : true, 
+    "supportsReturningQueryExtent" : true, 
+    "supportsStatistics" : true, 
+    "supportsOrderBy" : true, 
+    "supportsDistinct" : true, 
+    "supportsQueryWithResultType" : true, 
+    "supportsSqlExpression" : true, 
+    "supportsTimeRelation" : true, 
+    "supportsAdvancedQueryRelated" : true, 
+    "supportsCountDistinct" : true, 
+    "supportsPercentileStatistics" : true, 
+    "supportsApproxPercentileStatistics" : true, 
+    "supportsSpatialAggregationStatistics" : true, 
+    "supportsTrueCurve" : true, 
+    "supportedSpatialAggregationStatistics" : [
+      "EnvelopeAggregate", 
+      "CentroidAggregate", 
+      "ConvexHullAggregate"
+    ], 
+    "supportsLod" : true, 
+    "supportsQueryWithLodSR" : false, 
+    "supportedLodTypes" : [
+      "geohash"
+    ], 
+    "supportsReturningGeometryCentroid" : false, 
+    "supportsReturningGeometryEnvelope" : true, 
+    "supportsReturningGeometryProperties" : true, 
+    "supportsQueryWithDatumTransformation" : true, 
+    "supportsCurrentUserQueries" : true, 
+    "supportsHavingClause" : true, 
+    "supportsOutFieldSQLExpression" : true, 
+    "supportsMaxRecordCountFactor" : true, 
+    "supportsTopFeaturesQuery" : true, 
+    "supportsDisjointSpatialRel" : true, 
+    "supportsQueryWithCacheHint" : true, 
+    "supportedOperationsWithCacheHint" : [
+      "query", 
+      "queryTopFilter", 
+      "queryAnalytics", 
+      "queryAttachments", 
+      "queryRelated", 
+      "queryBins", 
+      "queryPivot"
+    ], 
+    "supportsQueryAnalytic" : true, 
+    "supportsQueryPivot" : true, 
+    "supportsQueryBins" : true, 
+    "supportsDefaultSR" : true, 
+    "supportsTranslations" : false, 
+    "supportsAggIds" : true, 
+    "supportsQueryWithCollation" : true, 
+    "supportsISODOW" : true, 
+    "supportsISOWeek" : true, 
+    "supportsFullTextSearch" : true, 
+    "fullTextSearchCapabilities" : {
+      "supportsAccentSensitivity" : true, 
+      "supportsStopWords" : true, 
+      "supportsSearchOperator" : true, 
+      "supportsOperator" : true
+    }
+  }, 
+  "advancedQueryAnalyticCapabilities" : {
+    "supportsLinearRegression" : true, 
+    "supportsTrendlineRegression" : true, 
+    "supportsAsync" : true, 
+    "supportsPercentileAnalytic" : true
+  }, 
+  "queryBinsCapabilities" : {
+    "supportsAsync" : true, 
+    "supportsAutoIntervalBin" : true, 
+    "supportsFixedIntervalBin" : true, 
+    "supportsFixedBoundariesBin" : true, 
+    "supportsDateBin" : true, 
+    "supportsClassificationBin" : true, 
+    "supportsStackBy" : true, 
+    "supportsSplitBy" : true, 
+    "supportsFirstDayOfWeek" : true, 
+    "supportsSnapToData" : true, 
+    "supportsReturnFullIntervalBin" : true, 
+    "supportsReturnStackValueRange" : true, 
+    "supportsNormalization" : true, 
+    "supportedStatisticTypes" : [
+      "COUNT", 
+      "SUM", 
+      "AVG", 
+      "VAR", 
+      "STDDEV", 
+      "MIN", 
+      "MAX", 
+      "PERCENTILE_CONT", 
+      "PERCENTILE_DISC", 
+      "APPROX_PERCENTILE_CONT", 
+      "APPROX_PERCENTILE_DISC", 
+      "CentroidAggregate", 
+      "EnvelopeAggregate", 
+      "ConvexHullAggregate"
+    ], 
+    "supportedNormalizationTypes" : [
+      "boxCox", 
+      "field", 
+      "inverse", 
+      "log", 
+      "naturalLog", 
+      "percentOfTotal", 
+      "squareRoot"
+    ]
+  }, 
+  "supportedOperationsWithCollation" : "query,addField,updateField", 
+  "advancedEditingCapabilities" : {
+    "supportedSqlFormatsInCalculate" : [
+      "standard"
+    ], 
+    "supportsAsyncApplyEdits" : true, 
+    "supportsReturnEditResults" : true, 
+    "supportsApplyEditsbyUploadID" : true, 
+    "supportedApplyEditsUploadIDFormats" : "JSON,PBF", 
+    "supportsTranslation" : false, 
+    "supportsMaxTranslations" : 10
+  }, 
+  "infoInEstimates" : [
+    "extent", 
+    "count"
+  ], 
+  "useStandardizedQueries" : true, 
+  "geometryType" : "esriGeometryPolyline", 
+  "minScale" : 0, 
+  "maxScale" : 0, 
+  "extent" : {
+    "xmin" : 3385578.8961222731, 
+    "ymin" : 211857.77433716133, 
+    "xmax" : 3457953.5436000042, 
+    "ymax" : 269639.97290000319, 
+    "spatialReference" : {
+      "wkid" : 102100, 
+      "latestWkid" : 3857
+    }
+  }, 
+  "spatialReference" : {
+    "wkid" : 102100, 
+    "latestWkid" : 3857
+  }, 
+  "drawingInfo":{"renderer":{"type":"uniqueValue","field1":"waterway","defaultSymbol":{"type":"esriSLS","style":"esriSLSSolid","color":[0,112,255,255],"width":1},"defaultLabel":"rivers","uniqueValueGroups":[],"uniqueValueInfos":[],"fieldDelimiter":",","authoringInfo":{"colorRamp":{"type":"multipart","colorRamps":[{"type":"algorithmic","algorithm":"esriCIELabAlgorithm","fromColor":[209,252,182,255],"toColor":[209,252,182,255]},{"type":"algorithmic","algorithm":"esriCIELabAlgorithm","fromColor":[227,179,252,255],"toColor":[227,179,252,255]},{"type":"algorithmic","algorithm":"esriCIELabAlgorithm","fromColor":[252,197,184,255],"toColor":[252,197,184,255]},{"type":"algorithmic","algorithm":"esriCIELabAlgorithm","fromColor":[182,236,252,255],"toColor":[182,236,252,255]},{"type":"algorithmic","algorithm":"esriCIELabAlgorithm","fromColor":[252,243,210,255],"toColor":[252,243,210,255]},{"type":"algorithmic","algorithm":"esriCIELabAlgorithm","fromColor":[202,205,252,255],"toColor":[202,205,252,255]},{"type":"algorithmic","algorithm":"esriCIELabAlgorithm","fromColor":[184,252,223,255],"toColor":[184,252,223,255]},{"type":"algorithmic","algorithm":"esriCIELabAlgorithm","fromColor":[252,192,227,255],"toColor":[252,192,227,255]},{"type":"algorithmic","algorithm":"esriCIELabAlgorithm","fromColor":[185,182,252,255],"toColor":[185,182,252,255]},{"type":"algorithmic","algorithm":"esriCIELabAlgorithm","fromColor":[252,215,230,255],"toColor":[252,215,230,255]},{"type":"algorithmic","algorithm":"esriCIELabAlgorithm","fromColor":[236,204,252,255],"toColor":[236,204,252,255]},{"type":"algorithmic","algorithm":"esriCIELabAlgorithm","fromColor":[207,252,244,255],"toColor":[207,252,244,255]},{"type":"algorithmic","algorithm":"esriCIELabAlgorithm","fromColor":[244,252,182,255],"toColor":[244,252,182,255]}]}}},"scaleSymbols":true,"transparency":0,"labelingInfo":[{"labelExpressionInfo":{"expression":"$feature.RiverName","title":"Custom"},"lineOrientation":"unconstrained","labelPlacement":"esriServerLinePlacementAboveAlong","textLayout":"followFeature","deconflictionStrategy":"dynamic","allowOverrun":false,"repeatLabel":true,"repeatLabelDistance":23999,"lineConnection":"none","multiPart":"labelPerPart","useClippedGeometry":true,"stackLabel":false,"removeDuplicates":"none","where":"\"RiverName\" IS NOT NULL\r\n","useCodedValues":true,"maxScale":0,"minScale":0,"name":"Label Class 1","priority":0,"symbol":{"type":"esriTS","color":[0,77,168,255],"backgroundColor":null,"borderLineColor":null,"borderLineSize":null,"verticalAlignment":"baseline","horizontalAlignment":"center","rightToLeft":false,"angle":0,"xoffset":0,"yoffset":0,"kerning":true,"haloColor":[255,255,255,255],"haloSize":1,"font":{"family":"Arial","size":9,"style":"normal","weight":"bold","decoration":"none"}}},{"labelExpressionInfo":{"expression":"$feature[\"name\"]"},"labelPlacement":"esriServerLinePlacementCenterAlong","textLayout":"straight","deconflictionStrategy":"dynamic","allowOverrun":false,"repeatLabel":true,"repeatLabelDistance":216,"lineConnection":"none","multiPart":"labelPerPart","useClippedGeometry":true,"stackLabel":false,"removeDuplicates":"none","useCodedValues":true,"maxScale":0,"minScale":0,"name":"Label Class 2","priority":0,"symbol":{"type":"esriTS","color":[38,38,38,255],"backgroundColor":null,"borderLineColor":null,"borderLineSize":null,"verticalAlignment":"baseline","horizontalAlignment":"center","rightToLeft":false,"angle":0,"xoffset":0,"yoffset":0,"kerning":true,"haloColor":[247,247,247,255],"haloSize":0.75,"font":{"family":"Arial","size":10,"style":"normal","weight":"normal","decoration":"none"}}}]}, 
+  "allowGeometryUpdates" : true, 
+  "trueCurveSupportMode" : "OGC", 
+  "supportedCurveTypes" : [
+    "esriGeometryCircularArc"
+  ], 
+  "supportedTrueCurvePbfFeatureEncodings" : [
+    "esriCompressedShapeBuffer", 
+    "esriDefault"
+  ], 
+  "allowTrueCurvesUpdates" : true, 
+  "onlyAllowTrueCurveUpdatesByTrueCurveClients" : false, 
+  "hasAttachments" : false, 
+  "htmlPopupType" : "esriServerHTMLPopupTypeAsHTMLText", 
+  "hasMetadata" : true, 
+  "hasM" : false, 
+  "hasZ" : false, 
+  "objectIdField" : "OBJECTID", 
+  "uniqueIdField" : 
+  {
+    "name" : "OBJECTID", 
+    "isSystemMaintained" : true
+  }, 
+  "globalIdField" : "", 
+  "typeIdField" : "waterway", 
+  "collation" : {
+    "locale" : "neutral", 
+    "caseSensitive" : false, 
+    "accentSensitive" : true
+  }, 
+  "fields" : [
+    {
+      "name" : "OBJECTID", 
+      "type" : "esriFieldTypeOID", 
+      "alias" : "objectid", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : false, 
+      "editable" : false, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "osm_id2", 
+      "type" : "esriFieldTypeString", 
+      "alias" : "osm_id2", 
+      "sqlType" : "sqlTypeOther", 
+      "length" : 255, 
+      "nullable" : true, 
+      "editable" : true, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "attribution", 
+      "type" : "esriFieldTypeString", 
+      "alias" : "attribution", 
+      "sqlType" : "sqlTypeOther", 
+      "length" : 255, 
+      "nullable" : true, 
+      "editable" : true, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "boat", 
+      "type" : "esriFieldTypeString", 
+      "alias" : "boat", 
+      "sqlType" : "sqlTypeOther", 
+      "length" : 255, 
+      "nullable" : true, 
+      "editable" : true, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "intermittent", 
+      "type" : "esriFieldTypeString", 
+      "alias" : "intermittent", 
+      "sqlType" : "sqlTypeOther", 
+      "length" : 255, 
+      "nullable" : true, 
+      "editable" : true, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "layer", 
+      "type" : "esriFieldTypeString", 
+      "alias" : "layer", 
+      "sqlType" : "sqlTypeOther", 
+      "length" : 255, 
+      "nullable" : true, 
+      "editable" : true, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "name", 
+      "type" : "esriFieldTypeString", 
+      "alias" : "name", 
+      "sqlType" : "sqlTypeOther", 
+      "length" : 255, 
+      "nullable" : true, 
+      "editable" : true, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "name_en", 
+      "type" : "esriFieldTypeString", 
+      "alias" : "name_en", 
+      "sqlType" : "sqlTypeOther", 
+      "length" : 255, 
+      "nullable" : true, 
+      "editable" : true, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "seasonal", 
+      "type" : "esriFieldTypeString", 
+      "alias" : "seasonal", 
+      "sqlType" : "sqlTypeOther", 
+      "length" : 255, 
+      "nullable" : true, 
+      "editable" : true, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "source_transform", 
+      "type" : "esriFieldTypeString", 
+      "alias" : "source_transform", 
+      "sqlType" : "sqlTypeOther", 
+      "length" : 255, 
+      "nullable" : true, 
+      "editable" : true, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "source_date", 
+      "type" : "esriFieldTypeString", 
+      "alias" : "source_date", 
+      "sqlType" : "sqlTypeOther", 
+      "length" : 255, 
+      "nullable" : true, 
+      "editable" : true, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "source_ref", 
+      "type" : "esriFieldTypeString", 
+      "alias" : "source_ref", 
+      "sqlType" : "sqlTypeOther", 
+      "length" : 255, 
+      "nullable" : true, 
+      "editable" : true, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "tunnel", 
+      "type" : "esriFieldTypeString", 
+      "alias" : "tunnel", 
+      "sqlType" : "sqlTypeOther", 
+      "length" : 255, 
+      "nullable" : true, 
+      "editable" : true, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "waterway", 
+      "type" : "esriFieldTypeString", 
+      "alias" : "waterway", 
+      "sqlType" : "sqlTypeOther", 
+      "length" : 255, 
+      "nullable" : true, 
+      "editable" : true, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "width", 
+      "type" : "esriFieldTypeString", 
+      "alias" : "width", 
+      "sqlType" : "sqlTypeOther", 
+      "length" : 255, 
+      "nullable" : true, 
+      "editable" : true, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "RiverName", 
+      "type" : "esriFieldTypeString", 
+      "alias" : "RiverName", 
+      "sqlType" : "sqlTypeOther", 
+      "length" : 50, 
+      "nullable" : true, 
+      "editable" : true, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "Shape__Length", 
+      "type" : "esriFieldTypeDouble", 
+      "alias" : "Shape__Length", 
+      "sqlType" : "sqlTypeDouble", 
+      "nullable" : true, 
+      "editable" : false, 
+      "domain" : null, 
+      "defaultValue" : null
+    }
+  ], 
+  "indexes" : [
+    {
+      "name" : "PK__INTEGRAT__F4B70D851474BF78", 
+      "fields" : "OBJECTID", 
+      "isAscending" : true, 
+      "isUnique" : true, 
+      "description" : "", 
+      "indexType" : "Attribute"
+    }, 
+    {
+      "name" : "user_27963.INTEGRATED_DATA_FOR_THE_KAKOI_KODA_ONCHOCERCIASIS_FOCUS__DRC_WFL1_RIVERS_ASSOCIATED_WITH_ONCHOCERCIASIS_IN_KAKOI_KODA_Shape_sidx", 
+      "fields" : "Shape", 
+      "isAscending" : true, 
+      "isUnique" : false, 
+      "description" : "", 
+      "indexType" : "Spatial"
+    }, 
+    {
+      "name" : "Shape__Length_Index", 
+      "fields" : "Shape__Length", 
+      "isAscending" : true, 
+      "isUnique" : false, 
+      "description" : "", 
+      "indexType" : "Attribute"
+    }
+  ], 
+  "dateFieldsTimeReference" : {
+    "timeZone" : "UTC", 
+    "timeZoneIANA" : "Etc/UTC", 
+    "respectsDaylightSaving" : false
+  }, 
+  "preferredTimeReference" : null, 
+  "types" : [], 
+  "templates" : [
+    {
+      "name" : "New Feature", 
+      "description" : "", 
+      "drawingTool" : "esriFeatureEditToolLine", 
+      "prototype" : {
+        "attributes" : {
+          "osm_id2" : null, 
+          "attribution" : null, 
+          "boat" : null, 
+          "intermittent" : null, 
+          "layer" : null, 
+          "name" : null, 
+          "name_en" : null, 
+          "seasonal" : null, 
+          "source_transform" : null, 
+          "source_date" : null, 
+          "source_ref" : null, 
+          "tunnel" : null, 
+          "waterway" : null, 
+          "width" : null, 
+          "RiverName" : null
+        }
+      }
+    }
+  ], 
+  "supportedQueryFormats" : "JSON, geoJSON, PBF", 
+  "supportedAppendFormats" : "sqlite,geoPackage,shapefile,filegdb,featureCollection,geojson,csv,excel,jsonl,featureService,pbf", 
+  "supportedAppendSourceFilterFormats" : "sqlite,geoPackage,shapefile,filegdb,featureService", 
+  "supportedExportFormats" : "csv,shapefile,sqlite,geoPackage,filegdb,featureCollection,geojson,kml,excel,parquet", 
+  "supportedConvertFileFormats" : "JSON,PBF,Parquet", 
+  "supportedConvertContentFormats" : "LayerEditCollection,FeatureCollection", 
+  "supportedSpatialRelationships" : [
+    "esriSpatialRelIntersects", 
+    "esriSpatialRelContains", 
+    "esriSpatialRelCrosses", 
+    "esriSpatialRelEnvelopeIntersects", 
+    "esriSpatialRelIndexIntersects", 
+    "esriSpatialRelOverlaps", 
+    "esriSpatialRelTouches", 
+    "esriSpatialRelWithin", 
+    "esriSpatialRelDisjoint", 
+    "esriSpatialRelRelation"
+  ], 
+  "guidFormat" : "", 
+  "supportsContingentValues" : true, 
+  "supportsEditingContingentValues" : true, 
+  "supportedContingentValuesFormats" : "JSON, PBF", 
+  "supportsFieldGroups" : true, 
+  "supportedSyncDataOptions" : 260, 
+  "hasStaticData" : false, 
+  "maxRecordCount" : 2000, 
+  "standardMaxRecordCount" : 2000, 
+  "maxIdsCount" : 1000000, 
+  "standardMaxRecordCountNoGeometry" : 32000, 
+  "tileMaxRecordCount" : 4000, 
+  "maxRecordCountFactor" : 1, 
+  "capabilities" : "Query"
+}

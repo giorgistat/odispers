@@ -1,0 +1,28 @@
+LGCP report data, assembled 10 November 2026
+
+heldout_comparison.csv: exact copy of
+  jonas_local/lgcp_gaussian_cv_20261107/comparison.csv
+heldout_predictions.csv: exact copy of
+  jonas_local/lgcp_gaussian_cv_20261107/heldout_predictions.csv
+full_data_comparison.csv: exact copy of
+  jonas_local/lgcp_gaussian_kernel_20261107/comparison.csv
+villages.csv: long, lat, y and n, retaining row order, from villages in
+  jonas_local/range_sweep_20261107/inputs.rds
+width_traces.csv: every twentieth retained sweep from width_draws.rds in
+  jonas_local/lgcp_gaussian_kernel_20261107/{wm,taildown}_range{200,400,800}/
+  Original retained rows per chain: 6000. Original sweeps: 2001--8000.
+
+These scientific summaries are archived results, not refits with the
+10 November code revision. Every model/fold has a convergence flag.
+
+Field-specific monitoring, 10 November 2026:
+  field_diagnostics.csv, field_group_summary.csv, field_plot_data.rds:
+  jonas_local/lgcp_field_mixing_20261110/
+  Four full-data tail-down, 800 km chains; seeds 111, 222, 333, 444;
+  initial widths 10, 20, 40, 80 km; 8000 sweeps with 2000 burn-in.
+  All fields start at zero. Recorded 128 footprint and 32 other vertices,
+  and five cell-length-weighted field averages/contrasts.
+  Field diagnostics and ACFs use all retained draws; plot traces use every fifth.
+  Runner: inst/scripts/lgcp/field_mixing.R
+  Summary: inst/scripts/lgcp/field_mixing_summary.R
+  The ordinary fit object does not store the latent field trajectory.

@@ -45,7 +45,8 @@ odisp_fit_zil_ml <- function(formula, breeding, data, nodes, graph, pairs = NULL
   S <- odisp_u_setup(formula, breeding, data, nodes, graph, pairs, phi, trials, aridity, prior_sd = 1)
   S$m_c <- c(stats::qlogis(min(max(mean(S$y > 0), 0.05), 0.95)), rep(0, ncol(S$X) - 1))
   p <- ncol(S$X); q <- ncol(S$B); n <- length(S$y)
-  nm_cf <- c(paste0("lambda.", colnames(S$X)), paste0("pi.", colnames(S$X)), paste0("theta.", S$nodes_names))
+  nm_cf <- c(paste0("lambda.", colnames(S$X)), paste0("pi.", colnames(S$X)),
+             if (length(S$nodes_names)) paste0("theta.", S$nodes_names))
   nm_ps <- c("log_sigma_u", "log_sigma_z", "a_E", "gamma", "log_range")
   # starting values: coefficients by name (else the fit without u and Z), parameters
   cf0 <- c(S$m_beta, S$m_c, S$m_theta); names(cf0) <- nm_cf

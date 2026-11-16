@@ -103,6 +103,12 @@ pmf_dE <- function(md, me, Sig, n) {      # predictive pmf, 20 x 20 Gauss-Hermit
 }
 cv_zil <- function(fit, folds) {
   S_all <- fit$setup; fld <- fit$fld
+  if (length(folds) != S_all$m_all || anyNA(folds))
+    stop("supply one non-missing fold label per original village")
+  # The setup omits unreachable villages with zero counts. Keep the original
+  # fold assignment for each retained village, in the setup's row order.
+  folds <- folds[S_all$has]
+  if (length(unique(folds)) < 2L) stop("cross-validation needs at least two folds among reachable villages")
   p <- ncol(S_all$X); q <- ncol(S_all$B)
   one <- function(train, test) {
     S_tr <- subset_setup(S_all, train); S_te <- subset_setup(S_all, test)

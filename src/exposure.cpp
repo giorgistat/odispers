@@ -17,6 +17,8 @@ List exposure_cpp(const IntegerVector& start, const IntegerVector& j,
                   const NumericVector& phi, double a, double c, bool deriv) {
   const int m = phi.size();
   const int q = deriv ? Z.ncol() : 0;
+  if (w.size() != len.size() || (q > 0 && Z.nrow() != len.size()))
+    stop("breeding weights and covariates must have one row per node");
   NumericVector E(m), dE_dlogphi(m);
   NumericMatrix dE_dtheta(m, q);
   for (int i = 0; i < m; ++i) {

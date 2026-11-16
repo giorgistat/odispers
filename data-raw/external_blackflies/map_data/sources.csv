@@ -1,0 +1,7 @@
+source,file,url,download_date,bytes,sha256
+Natural Earth rivers,natural_earth_rivers.zip,https://naturalearth.s3.amazonaws.com/10m_physical/ne_10m_rivers_lake_centerlines.zip,2026-10-31,2079507,ded71b01870855ccfe19b51f2ec14c9bb48fae23c0e9f3c11974d426433b5c38
+Natural Earth countries,natural_earth_countries.zip,https://naturalearth.s3.amazonaws.com/50m_cultural/ne_50m_admin_0_countries.zip,2026-10-31,799734,5fed433373581fa648920435f937d95f2d3c0200e067409c6478dcdf1b853139
+Natural Earth lakes,natural_earth_lakes.zip,https://naturalearth.s3.amazonaws.com/10m_physical/ne_10m_lakes.zip,2026-10-31,2349685,0803a06f9c3cb4671d89b68c48b142aad9366ba40f665245e12a913fbc61722a
+DRC study web map,drc_source_webmap.json,https://www.arcgis.com/sharing/rest/content/items/43d179502a234f0dbc38af712ad68190/data?f=json,2026-10-31,2283302,972ca1b48b666040b2cef46bf4ae9e558da3620bbf637916e8e552dc573b70f6
+DRC river layer metadata,drc_rivers_metadata.json,https://services9.arcgis.com/sEpCvgNgaobnx1fj/arcgis/rest/services/Integrated_data_for_the_Kakoi_Koda_onchocerciasis_focus__DRC_WFL1/FeatureServer/1?f=pjson,2026-10-31,18429,81c81e1eb68edb8c797b4696fb1467564ed02951733d057b9a5d93aff9cd258a
+DRC river geometry,drc_rivers.geojson,https://services9.arcgis.com/sEpCvgNgaobnx1fj/arcgis/rest/services/Integrated_data_for_the_Kakoi_Koda_onchocerciasis_focus__DRC_WFL1/FeatureServer/1/query?where=1%3D1&outFields=*&outSR=4326&f=geojson,2026-10-31,627814,18b6b3e008878529b791196cca978e17d784842b8ab2666b55a840db5534c5bd

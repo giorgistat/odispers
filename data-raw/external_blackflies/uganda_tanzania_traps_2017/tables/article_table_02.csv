@@ -1,0 +1,9 @@
+Year,Country,District,Location,Trap Days,Total Blackflies,Total Preserved,damnosum,bovis,vorax,adersi,hirsutum,Other,Not Preserved
+2015,Uganda,Lamwo,Apyeta Bridge,3,327,327,1,326,0,0,0,0,0
+2015,Uganda,Lamwo,Beyogoya,3,179,179,6,173,0,0,0,0,0
+2015,Uganda,Moyo,Gwere Luzira,3,766,766,766,0,0,0,0,0,0
+2015,Uganda,Moyo,Pamulu,3,935,935,929,0,0,0,0,6,0
+2015,Uganda,Nwoya,Ayago Bridge,9,3962,3962,3961,0,0,0,0,1,0
+2016,Uganda,Nwoya,Ayago Bridge,5,3476,1201,1196,0,0,0,0,5,2275b
+2016,Tanzania,Ulanga,Chikuti,15,3507,3282,3161,0,8,11,5,97,225C
+,,,Total,41,13152,10652,10020,499,8,11,5,109a,2500

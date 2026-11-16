@@ -1,0 +1,25 @@
+"diagnostic","dataset_id","survey","tested_all_coordinates","positive_all_coordinates","tested_with_coordinates","positive_with_coordinates","tested_without_coordinates"
+"Skin snip","1.1","2015: case-control, analytic dataset 1.1",203,77,83,43,120
+"Skin snip","1.2 & 4.1","2015: separate case-control survey 1.2 / 4.1",101,51,99,50,2
+"Skin snip","2.1","2015: mapping dataset 2.1",173,66,133,54,40
+"Skin snip","5.1","2017: epilepsy cohort 5.1",401,144,77,45,324
+"Skin snip","7.1","2016: community survey 7.1",0,0,0,0,0
+"Skin snip","7.1.1","2018: child survey 7.1.1",0,0,0,0,0
+"Skin snip","8.1","2021: child survey 8.1",0,0,0,0,0
+"Skin snip","9.1","2017: adult male REA survey 9.1",0,0,0,0,0
+"Ov16 antibodies","1.1","2015: case-control, analytic dataset 1.1",203,76,83,37,120
+"Ov16 antibodies","1.2 & 4.1","2015: separate case-control survey 1.2 / 4.1",0,0,0,0,0
+"Ov16 antibodies","2.1","2015: mapping dataset 2.1",0,0,0,0,0
+"Ov16 antibodies","5.1","2017: epilepsy cohort 5.1",368,130,77,49,291
+"Ov16 antibodies","7.1","2016: community survey 7.1",915,280,915,280,0
+"Ov16 antibodies","7.1.1","2018: child survey 7.1.1",60,1,60,1,0
+"Ov16 antibodies","8.1","2021: child survey 8.1",97,2,97,2,0
+"Ov16 antibodies","9.1","2017: adult male REA survey 9.1",94,43,0,0,94
+"Nodules","1.1","2015: case-control, analytic dataset 1.1",3,3,3,3,0
+"Nodules","1.2 & 4.1","2015: separate case-control survey 1.2 / 4.1",0,0,0,0,0
+"Nodules","2.1","2015: mapping dataset 2.1",111,31,55,13,56
+"Nodules","5.1","2017: epilepsy cohort 5.1",406,24,71,10,335
+"Nodules","7.1","2016: community survey 7.1",0,0,0,0,0
+"Nodules","7.1.1","2018: child survey 7.1.1",0,0,0,0,0
+"Nodules","8.1","2021: child survey 8.1",0,0,0,0,0
+"Nodules","9.1","2017: adult male REA survey 9.1",94,39,0,0,94

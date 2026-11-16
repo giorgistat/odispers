@@ -227,3 +227,59 @@ test_that("zero-inflated fit estimates the range of a directed field and resumes
                       estimate_range = TRUE, bfgs = TRUE, checkpoint = ck, trace = FALSE)
   expect_gte(f2$logLik, f1$logLik - 1e-3)
 })
+
+test_that("raw and log exposure transforms give the correct two-predictor gradients and curvature", {
+  tt <- toy_u_setup(m=40,seed=94)
+  g <- directed_graph(river_graph(tt$nodes,vertex_spacing=5),"taildown")
+  S <- odisp_u_setup(y~AI,~log(DIS_AV_CMS),tt$v,tt$nodes,g,tt$pairs,30,"n","AI",10)
+  S$m_c <- c(0,0)
+  R <- wm_precision(g,50)
+  fld <- list(R=R,Rch=Matrix::Cholesky(R,LDL=FALSE),sig_u=.6,sig_z=.4,aE=.7,gamma=-.25)
+  x <- list(beta=c(-3,.2),c=c(-.4,.1),theta=.1,u=rep(.08,g$nv),z=rep(.05,length(S$y)))
+  xv <- odisp_zil_vec(x); delta <- sin(seq_along(xv))/sqrt(length(xv))
+  evaluate <- function(vv) {
+    state <- odisp_zil_unvec(vv,x)
+    ev <- odisp_zil_eval(state,S,fld); lk <- odisp_zil_lik(ev$d,ev$e,S)
+    op <- odisp_zil_ops(state,ev,lk,S,fld)
+    centre <- odisp_zil_vec(list(beta=S$m_beta,c=S$m_c,theta=S$m_theta,u=0*x$u,z=0*x$z))
+    list(value=lk$ll-.5*odisp_zil_prior(state,S,fld),
+         gradient=op$Jtw(lk$gd,lk$ge)-op$Pv(vv-centre),hv=op$Hv(delta))
+  }
+  for (q in c("linear","log")) for (p in c("linear","log")) {
+    fld$occurrence_scale <- q; fld$risk_scale <- p
+    h <- 1e-5; center <- evaluate(xv); plus <- evaluate(xv+h*delta); minus <- evaluate(xv-h*delta)
+    expect_equal(sum(center$gradient*delta),(plus$value-minus$value)/(2*h),tolerance=2e-6)
+    expect_equal(center$hv,unname((minus$gradient-plus$gradient)/(2*h)),tolerance=2e-6)
+  }
+})
+
+test_that("integrated mixture likelihood stays finite for saturated risks", {
+  a <- odisp_zil_lik(c(.2,.2,.2),c(-1000,1000,1000),list(n=c(3,3,3),y=c(1,0,3)))
+  expect_true(all(is.finite(unlist(a))))
+  expect_equal(a$ge,c(1,0,0))
+  expect_equal(a$ll,2*plogis(.2,log.p=TRUE)+plogis(-.2,log.p=TRUE)+log(3)-1000)
+})
+
+test_that("directional raw exposure in either predictor preserves the zero-risk boundary", {
+  tt <- toy_u_setup(m=35,seed=73)
+  graph <- directed_graph(river_graph(tt$nodes,vertex_spacing=5),"taildown")
+  S <- tt$v
+  inside <- tt$pairs$i[tt$pairs$r<30][1]
+  ll <- sf::st_coordinates(sf::st_transform(S[inside,],4326))[1,]
+  newdata <- sf::st_as_sf(data.frame(lon=c(ll[1],-5),lat=c(ll[2],0),AI=c(S$AI[inside],.4)),
+                          coords=c("lon","lat"),crs=4326)
+  for (gate in c("log","linear")) for (risk in c("log","linear")) {
+    fit <- odisp_fit_zil(y~AI,~log(DIS_AV_CMS),S,tt$nodes,graph,tt$pairs,phi=30,range_u=50,
+                         fixed=list(sigma_u=.6,sigma_z=.4,a_E=.35,gamma=.2),trace=FALSE,
+                         occurrence_scale=gate,risk_scale=risk)
+    pr <- predict(fit,newdata,tt$nodes,graph)
+    a <- fit$coefficients[3]+newdata$AI*fit$coefficients[4]
+    b <- fit$coefficients[1]+newdata$AI*fit$coefficients[2]
+    E <- pr$E[1]
+    expect_gt(E,0)
+    expect_equal(pr$pi[1],unname(plogis(a[1]+.35*if(gate=="log") log(E) else E)))
+    expect_equal(pr$p_zone[1],unname(-expm1(-exp(b[1]+.2*if(risk=="log") log(E) else E))))
+    expect_equal(unname(unlist(pr[2,c("E","p_zone","prevalence")])),rep(0,3))
+    expect_equal(pr$pi[2],unname(if(gate=="log") 0 else plogis(a[2])))
+  }
+})

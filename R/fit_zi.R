@@ -77,7 +77,8 @@ odisp_fit_zi <- function(formula, breeding, data, nodes, graph, pairs = NULL, ph
   fld <- make_fld(par)
   if (trace) cat(sprintf("  converged: logLik = %.3f, %d evaluations\n", res$logLik, length(state$cache)))
   est <- c(res$x$beta, res$x$theta)
-  names(est) <- c(paste0("beta.", colnames(S$X)), paste0("theta.", S$nodes_names))
+  names(est) <- c(paste0("beta.", colnames(S$X)),
+                 if (length(S$nodes_names)) paste0("theta.", S$nodes_names))
   dimnames(res$Vfix) <- list(names(est), names(est))
   a <- res$a; b <- res$b
   structure(list(coefficients = est, vcov = res$Vfix,
@@ -282,18 +283,18 @@ print.odisp_zifit <- function(x, ...) {
 predict.odisp_zifit <- function(object, newdata, nodes, graph, pairs = NULL, aridity = "AI", ...) {
   S <- object$setup; phi <- S$phi; h <- object$hyper
   delta <- if ("delta" %in% names(h)) h[["delta"]] else 0
-  if (is.null(pairs)) pairs <- river_pairs(newdata, nodes, phi)
+  pairs <- odisp_prediction_pairs(newdata, nodes, pairs, phi)
   keep <- pairs$r < phi
   i <- pairs$i[keep]; j <- pairs$j[keep]; t <- pairs$r[keep] / phi
-  Bn <- stats::model.matrix(S$breeding, as.data.frame(nodes)[j, , drop = FALSE])
-  Bn <- Bn[, colnames(Bn) != "(Intercept)", drop = FALSE]
+  Bn <- odisp_prediction_matrix(S$breeding, as.data.frame(nodes)[j, , drop = FALSE],
+                                 S$breeding_spec, colnames(S$B), drop_intercept = TRUE)
   q <- length(S$m_theta); p <- length(S$m_beta)
   w <- exp(as.vector(Bn %*% object$coefficients[p + seq_len(q)]) +
            as.vector(graph$A[j, , drop = FALSE] %*% object$u))
   E <- as.vector(tapply(c(nodes$len[j] * (1 - t)^4 * (1 + 4 * t) / (2 / 3 * phi) * w, rep(0, pairs$m)),
                         c(i, seq_len(pairs$m)), sum))
   nd <- sf::st_drop_geometry(newdata)
-  X <- stats::model.matrix(stats::delete.response(stats::terms(S$formula)), nd)
+  X <- odisp_prediction_matrix(S$formula, nd, S$prevalence_spec, colnames(S$X))
   b <- as.vector(X %*% object$coefficients[seq_len(p)])
   lai <- log(nd[[aridity]])
   pi_ <- ifelse(E > 0, -expm1(-h[["alpha"]] * E * exp(delta * lai)), 0)

@@ -24,7 +24,9 @@ odisp_fit_zil(
   bfgs = FALSE,
   range_up = range_u,
   x_start = NULL,
-  multistart = TRUE
+  multistart = TRUE,
+  occurrence_scale = c("log", "linear"),
+  risk_scale = c("log", "linear")
 )
 }
 \arguments{
@@ -66,6 +68,14 @@ a_E, gamma)}.}
 \code{sigma_z}, \code{a_E}, \code{gamma}.}
 
 \item{trace}{Logical; print progress.}
+
+\item{range_up}{Range of the tail-up component when the graph combines
+tail-up and tail-down fields. Used as a starting value when
+\code{estimate_range = TRUE}, otherwise held fixed.}
+
+\item{occurrence_scale}{Use log exposure (default) or raw, linear exposure in the activity logit.}
+
+\item{risk_scale}{Use log exposure (default) or raw, linear exposure in the log hazard within an active village. At exactly zero exposure the risk is defined to be zero. With linear exposure its right-hand limit can differ.}
 }
 \value{
 An object of class \code{odisp_zilfit}.
@@ -73,7 +83,7 @@ An object of class \code{odisp_zilfit}.
 \description{
 A village lies in a zone of local transmission with probability
 \eqn{\pi(x)}; outside, there are no positives, and inside, the number of
-positives is binomial with prevalence \eqn{p(x) = 1 - e^{-\lambda(x)}}. Both
+positives is binomial with prevalence \eqn{p(x) = 1 - e^{-\lambda(x)}}. By default both
 parts are regressions on the logarithm of the exposure from the river
 network and on the covariates of \code{formula} (for example log aridity),
 each with its own coefficients:
@@ -81,8 +91,9 @@ each with its own coefficients:
 \log\lambda(x) = d(x)^\top b + \gamma \log E(x) + Z(x),}
 where \eqn{E(x) = \int_\Gamma K_\phi(\|x-s\|) \exp\{z(s)^\top\theta + u(s)\}
 ds}, \eqn{u} is a Whittle-Matern field on the river network and \eqn{Z} an
-independent village effect. Where no river lies within reach, \eqn{E = 0}, so
-that \eqn{\pi = 0} (for \eqn{a_E > 0}) and \eqn{\lambda = 0}.
+independent village effect. Either regression can instead use raw exposure.
+At zero exposure the active-village risk is zero by definition. A raw-exposure
+activity logit then equals its village covariate predictor.
 }
 \details{
 The coefficients \eqn{a}, \eqn{b} and \eqn{\theta}, the field and the

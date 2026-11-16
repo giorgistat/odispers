@@ -1,0 +1,2328 @@
+                                                              Dimension-independent likelihood-informed MCMC
+
+                                                                     Tiangang Cuia , Kody J. H. Lawb , Youssef M. Marzouka
+                                                                 a
+                                                                   Massachusetts Institute of Technology, Cambridge, MA 02139, USA
+                                             b
+                                                 Computer Science and Mathematics Division, Oak Ridge National Laboratory, Oak Ridge, TN 37934, USA
+
+
+
+
+                                          Abstract
+                                          Many Bayesian inference problems require exploring the posterior distribution of high-dimensional
+
+
+
+
+arXiv:1411.3688v2 [stat.CO] 17 Oct 2015
+                                          parameters that represent the discretization of an underlying function. This work introduces a
+                                          family of Markov chain Monte Carlo (MCMC) samplers that can adapt to the particular structure
+                                          of a posterior distribution over functions. Two distinct lines of research intersect in the methods
+                                          developed here. First, we introduce a general class of operator-weighted proposal distributions that
+                                          are well defined on function space, such that the performance of the resulting MCMC samplers is
+                                          independent of the discretization of the function. Second, by exploiting local Hessian information
+                                          and any associated low-dimensional structure in the change from prior to posterior distributions, we
+                                          develop an inhomogeneous discretization scheme for the Langevin stochastic differential equation
+                                          that yields operator-weighted proposals adapted to the non-Gaussian structure of the posterior.
+                                          The resulting dimension-independent and likelihood-informed (DILI) MCMC samplers may be use-
+                                          ful for a large class of high-dimensional problems where the target probability measure has a density
+                                          with respect to a Gaussian reference measure. Two nonlinear inverse problems are used to demon-
+                                          strate the efficiency of these DILI samplers: an elliptic PDE coefficient inverse problem and path
+                                          reconstruction in a conditioned diffusion.
+                                          Keywords: Markov chain Monte Carlo, likelihood-informed subspace, infinite-dimensional inverse
+                                          problems, Langevin SDE, conditioned diffusion
+
+
+
+                                          1. Introduction
+
+                                              Many Bayesian inference problems require sampling a posterior distribution of high-dimensional
+                                          parameters that represent the discretization of some underlying function. Examples include inverse
+                                          problems governed by partial differential equations (PDEs) [1, 2, 3] and path reconstructions of
+                                          stochastic differential equations [4, 5]. Yet sampling the posterior with standard Markov chain
+                                          Monte Carlo (MCMC) algorithms can become arbitrarily slow as the representation of the unknown
+                                          function is refined; the convergence rates of such algorithms typically degrade with increasing pa-
+                                          rameter dimension [6, 7, 8, 9]. Here we present a dimension-independent and likelihood-informed
+                                          MCMC sampling framework that enables efficient exploration of posterior distributions over func-
+                                          tions. Our framework builds on recent work in dimension-independent MCMC sampling by iden-
+                                          tifying changes in the local curvature of the log-posterior, relative to the log-prior, and using this
+
+
+                                             Email addresses: tcui@mit.edu (Tiangang Cui), lawkj@ornl.gov (Kody J. H. Law), ymarz@mit.edu (Youssef
+                                          M. Marzouk)
+
+                                          Preprint submitted to Journal of Computational Physics                                      October 20, 2015
+information to design more effective proposal distributions. We cast these proposals within a gen-
+eral class of operator-weighted proposals that guarantee dimension independence while allowing
+flexibility in the design of structure-exploiting MCMC algorithms.
+    Previous work [10, 11] has shown that it is possible to overcome degeneration of the convergence
+rates of standard MCMC algorithms by formulating them in function space. In particular, [10, 11]
+consider a posterior that is absolutely continuous with respect to a Gaussian reference measure,
+typically chosen to be the prior. By deriving proposals that yield valid Markov transition kernels on
+a function space, these efforts yield algorithms with performance that is dimension independent, i.e.,
+robust under mesh refinement. Recent work has begun to integrate this function space perspective
+with other state-of-the-art sampling approaches such as sequential Monte Carlo [12, 13] and particle
+MCMC [14] (which were originally designed for finite-dimensional parameters) along with multi-
+level Monte Carlo [15]. Examples include [16], which uses function space proposals inspired by
+those in [10, 11] as building blocks within a sequential Monte Carlo scheme, and [17, 18], which
+employ function space algorithms within a multi-level MCMC scheme for variance reduction. An
+important takeaway from these efforts is that although proposals that are well-defined on function
+space provide mixing rates that are independent of discretization, they do not guarantee good
+mixing in absolute terms; additional analysis and exploitation of the structure of the posterior is
+essential.
+    To improve MCMC mixing in finite-dimensional settings, another important line of research
+has focused on using information about the local geometry of the posterior distribution to scale
+and guide proposals. Examples include the stochastic Newton method [19], which uses low-rank
+approximations of the Hessian of the log-posterior to build Gaussian proposals, and Riemannian
+manifold MCMC [20], which uses the Fisher information matrix (and the prior precision matrix) to
+construct a local metric for both Langevin proposals and Hamiltonian dynamics. Implicit in the low-
+rank approximations of [19] is the idea that the Hessian of the log-likelihood can be compared with
+the prior covariance to identify directions in parameter space along which the posterior distribution
+differs most strongly from the prior. This idea is formalized for linear inverse problems in [21];
+at its heart lies the solution of a generalized eigenproblem involving both operators. In linear-
+Gaussian problems, a transformation of the resulting dominant eigendirections reveals the directions
+of greatest variance reduction, relative to the prior. Solutions of the eigenproblem can also be used
+to construct optimal approximations of the posterior covariance, in the form of low-rank negative
+semidefinite updates of the prior covariance [21]. The form of these approximations is crucial, as
+it suggests the following tie to dimension-independent algorithms: The proposals used in [10, 11]
+rely on sampling from the Gaussian prior measure on an infinite-dimensional space. It is natural
+to alter these proposals only in a finite number of dimensions—where the posterior differs most
+strongly from the prior—to achieve better mixing while preserving dimension independence.
+    A first attempt in this direction is the operator-weighted proposal of [22], which employs a
+relaxed version of the log-likelihood Hessian, evaluated at a single point near the posterior mode, to
+rescale the preconditioned Crank-Nicolson proposal of [11]. Of course, in inverse problems with non-
+linear forward operators or non-Gaussian noise, the log-likelihood Hessian varies over the parameter
+space. Nonetheless, if local Hessians have low rank and dominant eigenspaces that are somewhat
+aligned, changes from the prior to the posterior will be confined to a relatively low-dimensional
+subspace of the parameter space. We will call this subspace the “likelihood-informed” subspace
+(LIS). [23] introduced the notion of the LIS and constructed it from the dominant eigenspace of the
+posterior expectation of a preconditioned log-likelihood Hessian. There, the LIS was used to approx-
+
+                                                  2
+imate the posterior distribution in finite-dimensional nonlinear inverse problems, by replacing the
+posterior in complementary directions with the prior. In inverse problems with limited observations
+and smoothing forward operators, the LIS is relatively low dimensional and such approximations
+can be quite accurate.
+    We will use the notion of an LIS in the present work, but extend it to the infinite-dimensional
+setting and seek exact sampling; in this context, the LIS can be seen as means of convergence
+acceleration that captures key features of the posterior. The goal of this paper is to design MCMC
+algorithms that are dimension independent, that sample from the exact posterior distribution, and
+that exploit a posterior structure wherein departures from the prior—including non-Gaussianity—
+are concentrated on a finite number of directions. To realize these goals, we introduce a general class
+of proposal distributions that simultaneously guarantee dimension-independent MCMC sampling
+and allow the essential structure of the posterior (i.e., departures from the Gaussian prior) to be
+captured in a flexible manner, via both local gradient information and a set of global covariance-
+like (i.e., bounded and self-adjoint) operators. We then discuss particular instances of this class
+for which the operators are derived from the LIS. The proposals themselves can be obtained from
+an underlying Langevin SDE by applying an inhomogeneous time discretization scheme on the LIS
+and its complement. We then incorporate these proposals into MCMC either as Metropolis or
+Metropolis-within-Gibbs updates.
+    The rest of this paper is organized as follows. Section 2 reviews some theoretical background
+on the infinite-dimensional Bayesian formulation of inverse problems and function-space MCMC
+methods, as well as previous work aimed at improving the efficiency of these samplers. Section 3
+introduces a general class of operator-weighted proposals that enables the design of dimension-
+independent and likelihood-informed (DILI) samplers. We then discuss the construction of a global
+LIS and describe several different DILI MCMC samplers based on the LIS. We also recall a few
+non-DILI algorithms that will subsequently be used for benchmarking. In Section 4, an elliptic PDE
+inverse problem is used to evaluate the performance of the various samplers introduced in Section
+3. In Section 5, we apply the same samplers to the problem of path reconstruction in a conditioned
+diffusion and highlight key differences in performance. Section 6 offers some brief discussion and
+concluding remarks.
+
+2. Theoretical background
+
+    In this section we recall the Bayesian formulation of inverse problems in the function space
+setting and provide some background on the relevant MCMC methods. We then review precondi-
+tioned Crank-Nicolson (pCN) proposals, which yield dimension-independent MCMC algorithms for
+posterior distributions over function space equipped with an appropriate Gaussian prior. We close
+this section with a discussion of how local geometry information can be used to inform MCMC
+proposals.
+
+2.1. Bayesian inference framework
+    Suppose that the parameter of interest is some function u ∈ H, where H is a separable Hilbert
+space. Suppose further that the prior distribution µ0 is such that µ0 (H) = 1. We assume that the
+observation y is in RNy . Let L(u; y) denote the likelihood function of y given u, which is assumed
+to be bounded away from zero µ0 -almost surely. Let µy denote the posterior probability measure
+of the unknown u conditioned on the observation y. The posterior distribution on infinitesimal
+
+                                                  3
+volume elements du in H is given by
+
+                                        µy (du) ∝ L(u; y)µ0 (du).                                   (1)
+
+Let F : X → RNy denote the forward operator, defined on some Banach space X ⊆ H with
+µ0 (X ) = 1, and assume the noise on the observation is additive and Gaussian with zero mean.
+Then the observation model has the form
+
+                                   y = F (u) + e,       e ∼ N (0, Γobs ).
+
+We define the data-misfit functional
+                                          1
+                              η(u; y) =     (F (u) − y)> Γ−1
+                                                          obs (F (u) − y) .                         (2)
+                                          2
+The likelihood function can then be written as
+
+                                        L(u; y) ∝ exp(−η(u; y)).                                    (3)
+
+      The inner products on the data space RNy and the parameter space H are denoted h· , ·i and
+h· , ·iH , respectively, with associated norms denoted by k · k and k · kH . For brevity, where misin-
+terpretation is not possible, we will drop the subscripts H. Throughout this paper we adopt the
+following assumptions about the forward operator:
+
+Assumption 2.1. The forward operator F : X → RNy satisfies the following:
+  1. For all 1 > 0, there exists a constant K1 (1 ) > 0 such that, for all u ∈ X ,
+
+                                    kF (u)k ≤ exp K1 (1 ) + 1 kuk2H .
+                                                                      
+
+
+  2. For all 2 > 0 there exists a constant K2 (2 ) > 0 such that, for all u1 , u2 ∈ X with ku1 kH < 2
+     and ku2 kH < 2 ,
+                                  kF (u1 ) − F (u2 )k ≤ K2 (2 )ku1 − u2 kH .
+  3. For all u ∈ X, there exists a bounded linear operator J : X → RNy such that for all δu ∈ X
+
+                                      kF (u + δu) − F (u) − J(u)δuk
+                                  lim                               = 0.
+                                 δu→0             kδukH
+
+   Given observations y such that kyk < ∞ and a forward operator that satisfies the first two
+conditions in Assumption 2.1, [3] shows that the resulting data-misfit function is sufficiently bounded
+and locally Lipschitz, and that the posterior measure is dominated by the prior measure. The third
+condition in Assumption 2.1 states that the forward model is first order Fréchet differentiable, and
+hence the Gauss-Newton approximation of the Hessian of the data-misfit functional is bounded.
+   We assume that the prior measure is Gaussian with mean m0 ∈ H and a covariance operator
+Γpr on H that is self-adjoint, positive definite, and trace-class, so that the prior provides a full
+probability measure on H. The covariance operator Γpr also defines the inner product h·, ·iΓpr =
+  −1/2    −1/2
+hΓpr · , Γpr ·i and the associated norm k · kΓpr on the Hilbert space H. It is convenient to define
+the covariance operator through its inverse Γ−1 pr , referred to as the prior precision and often chosen
+to be a Laplace-like differential operator [3].
+                                                    4
+    We note that the posterior distribution µy does not admit a density with respect to Lebesgue
+measure. Instead of a “posterior density,” we can define the limiting ratio of the probabilities of
+                                                 1/2
+shrinking balls at two points u1 and u2 in Im(Γpr ) by the exponential of the difference of the
+Onsager-Machlup functional (OMF),
+
+                                              η(u; y) + ku − m0 k2Γpr ,                             (4)
+
+evaluated at u1 and u2 . Then the maximizer of the probability over vanishing balls, the maximum
+a posteriori (MAP) estimator, is the minimizer of this functional,1 as shown in [24] for problems
+like those considered here.
+    Here we assume that the data y are finite dimensional. For suitable combinations of forward
+model and observational noise, this setting can be generalized to problems with infinite-dimensional
+data sets [3, 24].
+
+2.2. MCMC on function space
+    MCMC methods, in particular the Metropolis-Hastings (MH) algorithm [25, 26], can be em-
+ployed to sample the posterior distribution µy over H. The MH algorithm defines a Markov chain
+by prescribing an accept-reject move based on a proposal distribution q. One step of the MH
+algorithm is given as follows:
+Definition 2.2 (Metropolis-Hastings kernel). Given the current state uk , a candidate state u0 is
+drawn from the proposal distribution q(uk , ·). Define the pair of measures
+
+                                         ν(du, du0 ) = q(u, du0 )µ(du)
+                                                                                                    (5)
+                                        ν ⊥ (du, du0 )
+                                                     = q(u0 , du)µ(du0 ).
+
+Then the next state of the Markov chain is set to uk+1 = u0 with probability
+
+                                                    dν ⊥
+                                                                 
+                                       0                        0
+                               α(uk , u ) = min 1,       (uk , u ) ;                                (6)
+                                                     dν
+
+otherwise, with probability 1 − α(uk , u0 ), it is set to uk+1 = uk .
+     The MH algorithm requires the absolute continuity condition ν ⊥  ν to define a valid accep-
+tance probability and hence a valid transition kernel [27]. We will refer to a MH algorithm as
+well-defined if this absolute continuity condition is satisfied. Most of the MCMC proposals used
+in current literature—e.g., vanilla random walks, Metropolis adjusted Langevin (MALA) [28], sim-
+plified manifold MALA [20]—violate this condition in the limit dim(H) → ∞. For these proposals,
+the MH algorithm is defined only in finite dimensions [11] and the convergence rate degenerates
+under mesh refinement. Extensive investigations have been carried out to study the rate of de-
+generation of various proposals and optimal scaling relative to this. See [6, 29, 7] and references
+therein.
+     For target probability measures over function space, the sequence of papers [10, 11, 30, 3]
+provide a viable way of constructing well-defined MH algorithms using appropriate discretizations
+of Langevin SDEs. The key step in the construction of such algorithms is to ensure the absolute
+continuity condition ν ⊥  ν. We will revisit these constructions in the next subsection.
+
+  1                                                                                         1/2
+      The functional is extended to H by prescribing it to take the value +∞ outside of Im(Γpr ).
+
+                                                          5
+2.3. Preconditioned semi-implicit proposal
+    Following [10, 11, 30], we recall the preconditioned Crank-Nicolson (pCN) proposal. Consider
+the Langevin SDE
+                                                                 √
+                      du = −P Γ−1
+                                                            
+                                  pr (u − m0 ) + γ∇u η(u; y) dτ + 2PdW(τ ),                  (7)
+
+where P is a symmetric, positive-definite, and bounded operator and dW(τ ) is space-time white
+noise over H × R+ . For any such P, the SDE (7) has invariant distribution µy for γ = 1 and
+invariant distribution µ0 for γ = 0; see [11] and references therein.
+    Following [10, 11] we let P = Γpr . A first order semi-implicit discretization of (7), parameterized
+by ϑ ∈ (0, 1], defines a family of proposal distributions:
+                                                                                √
+            0    1 − (1 − ϑ)4τ                        γ4τ                         24τ 1/2
+           u =                  (u − m0 ) + m0 −             Γpr ∇u η(u; y) +           Γ ξ,         (8)
+                    1 + ϑ4τ                         1 + ϑ4τ                   1 + ϑ4τ pr
+
+where ξ ∼ N (0, I), 4τ is the time step, and γ = {0, 1} is a tuning parameter to switch between
+the full Langevin proposal (γ = 1) and the random walk (Ornstein-Uhlenbeck) proposal (γ = 0).
+Simulating the Langevin SDE thus provides a method for approximately sampling from µy when
+γ = 1 or from µ0 when γ = 0. Under certain technical conditions, Theorem 4.1 of [10] shows
+that ϑ = 1/2 (a Crank-Nicolson scheme) is the unique choice that delivers well-defined MCMC
+algorithms when dim(H) → ∞. Putting ϑ = 1/2 and letting a = (2 − 4τ )/(2 + 4τ ), (8) can be
+rewritten as                                                     p
+                  u0 = a(u − m0 ) + m0 − γ(1 − a)Γpr ∇u η(u; y) + 1 − a2 Γ1/2
+                                                                          pr ξ,             (9)
+where it is required that a ∈ (−1, 1). If γ = 0, the invariant distribution of (9) remains µ0 .
+However, if γ = 1, the invariant distribution of the discretized system is different from the invariant
+distribution of (7). To remove the bias, one can employ the Metropolis correction, as discussed by
+[28].
+    The pCN proposal (9) has the desired dimension independence property, in that the autocor-
+relation of the resulting samples does not increase as the discretization of u is refined. Since the
+scale of the posterior distribution necessarily tightens, relative to the prior, along directions in the
+parameter space that are informed by the data, maintaining a reasonable acceptance probability
+requires that the step size used in the proposal (9) be dictated by these likelihood-informed direc-
+tions. As shown in [22], the Markov chain produced by MH with the standard pCN proposal then
+decorrelates more quickly in the parameter subspace that is data-informed than in the subspace that
+is dominated by the prior. The proposed moves in the prior-dominated directions are effectively
+too small or conservative, resulting in poor mixing. The underlying issue is that the scale of the
+proposal (9) is uniform in all directions with respect to the norm induced by the prior covariance,
+and hence it does not adapt to the posterior scaling induced by the likelihood function.
+    It is therefore desirable to design proposals that adapt to this anisotropic structure of the
+posterior while retaining dimension independence. A first example is the operator-weighted proposal
+of [22], which specifically (though without loss of generality) targets a white-noise prior, m0 = 0
+and Γpr = I:
+                                                           1/2
+                                       u0 = Au + I − A2         ξ.                                  (10)
+Some intuition for this proposal can be had by comparing to (9) in the case γ = 0: the new proposal
+replaces the scalar a with a symmetric operator A. This operator is constructed from a regularized
+
+                                                   6
+approximation of the Hessian of the OMF (4) at a single posterior sample, chosen close to or at the
+MAP estimate. The dimension independence property of the proposal (10) can be seen simply by
+noticing its reversibility with respect to the prior,
+
+                                q(u, du0 )µ0 (du) = q(u0 , du)µ0 (du0 ),
+
+which implies
+                          ν(du, du0 ) = exp{η(u; y) − η(u0 ; y)}ν ⊥ (du, du0 )
+and hence the absolute continuity condition ν ⊥  ν (given that Conditions (1) and (2) of Assump-
+tion 2.1 also hold). In comparison with (9), the proposal (10) produces direction-dependent step
+sizes and, in particular, different step sizes for parameter directions that are prior-dominated than
+for directions that are influenced by the likelihood—insofar as this anisotropy is captured by A.
+The autocorrelation time of the resulting MH chain can thus be substantially smaller than that of
+a chain using the original pCN proposal [22].
+    Despite these performance improvements, this simple operator-weighted proposal has several
+limitations, especially when compared to state-of-the-art MCMC approaches for finite-dimensional
+problems. First, we note that A only uses information from a single point in the posterior, which
+may not be representative of posterior structure in a non-Gaussian problem. Also, (10) uses no
+gradient information and more broadly no local information, e.g., to describe the geometry of the
+target measure around each u. Also, the particular form of A used above does not necessarily
+identify directions of greatest difference between posterior and the prior or reference measure.
+(This point will be explained more fully in Section 3.2.) A more general class of operator-weighted
+proposals, designed in part to address these limitations, will be presented in Section 3.
+
+2.4. Explicit proposals using local geometry
+    Before describing our general class of operator-weighted proposals, we briefly recall the simpli-
+fied manifold MALA [20] and stochastic Newton [19] algorithms, which are related to an explicit
+discretization of the Langevin SDE (7). Both are well-established MCMC methods that use Hessian
+or Hessian-related information from the posterior distribution to achieve more efficient sampling.
+Simplified manifold MALA uses the proposal:
+
+                       u0 = u − P(u) ∇u η(u; y) + Γ−1
+                                                              p
+                                                                24τ P(u)1/2 ξ,
+                                                       
+                                                   pr u 4τ +                                     (11)
+
+where the preconditioning operator P(u) is derived from√the expected Fisher information. Stochastic
+Newton prescribes 4τ = 1 and discards the factor of 2 above, which gives the proposal
+
+                          u0 = u − P(u) ∇u η(u; y) + Γ−1            1/2
+                                                            
+                                                        pr u + P(u)     ξ,                    (12)
+
+where the preconditioning operator P(u) is the inverse of the posterior Hessian (or a low-rank
+approximation thereof; see [19, 21]) at the current sample u. We note that simplified manifold
+MALA and stochastic Newton are closely related for a likelihood function with additive Gaussian
+noise, as the expected Fisher information is equivalent to the Gauss-Newton approximation of the
+data-misfit Hessian in this case. Even though operations using the local preconditioner can be
+computationally expensive, both methods provide significant reductions in autocorrelation time
+per MCMC sample over standard random walks and even non-preconditioned MALA algorithms.
+    In a sense, the Hessian information—or more generally, the local Riemannian metric [20]—used
+by these proposals provides two useful insights into the structure of the posterior distribution.
+                                                   7
+First is an approximation of the local geometry, e.g., relative scaling along different directions in
+the parameter space, curvature, etc. Second, however, is insight into how the posterior distribution
+locally differs from a base measure, in particular, the prior distribution. When the Hessian of the
+data-misfit functional is compact, departures from the prior will be limited to a finite number of di-
+rections. One can explicitly identify these directions and partition the parameter space accordingly,
+into a finite-dimensional subspace and its complement. Of course, this particular partition is based
+only on local information, so one must consider methods for globalizing it—effectively incorporating
+the dependence of the Hessian on u. Given such an extension, this partitioning suggests a useful way
+of designing efficient MCMC proposals in infinite dimensions: use any effective MCMC proposal on
+a finite-dimensional subspace, and revert to a simpler function-space sampling framework on the
+infinite-dimensional complement of this subspace, thus yielding a well-defined MCMC algorithm in
+infinite dimensions and ensuring discretization-invariant mixing. The next section will explain how
+to realize this idea in the context of a more general operator-weighted MCMC.
+
+3. Likelihood-informed MCMC
+    In this section, we first introduce a general class of operator-weighted MCMC proposals that
+guarantee dimension-independent sampling; within this class, there is considerable flexibility to
+capture the structure of the posterior by choosing the associated operators appropriately. We then
+take a detour to discuss the notion of a likelihood-informed subspace (LIS), which describes the
+parameter subspace where the posterior distribution departs most strongly from the prior. Based
+on the LIS, we derive a low-rank posterior covariance approximation scheme and then use both
+of these building blocks to guide the inhomogeneous discretization of a preconditioned Langevin
+SDE. This discretization naturally leads to the construction of various operator-weighted proposals
+that fall within our general class. We provide several specific examples of such proposals and
+then describe an adaptive posterior sampling framework that combines LIS construction, low-rank
+posterior covariance approximation, and automatic proposal adaptation.
+
+3.1. Operator-weighted proposals
+    We consider a general class of operator-weighted proposals from u to u0 given by
+                  u0 = Γ1/2  −1/2                     1/2  1/2              1/2
+                        pr AΓpr (u − uref ) + uref − Γpr GΓpr ∇u η(u; y) + Γpr Bξ,                    (13)
+                                                                            −1/2
+where A, B, and G are bounded self-adjoint operators on Im(Γpr ), ξ ∼ N (0, I), uref = m0 + mref
+                   1/2
+with mref ∈ Im(Γpr ), and Γpr is the prior covariance operator defined in Section 2.1. Suppose
+                                                                                            −1/2
+further that these operators are defined through a complete orthonormal system (ψi ) in Im(Γpr )
+and sequences (ai ), (bi ), and (gi ) of positive numbers such that
+                            Aψi = ai ψi ,    Bψi = bi ψi ,      Gψi = gi ψi ,      i ∈ N.
+Using matrix notion, let Ψ = [ψ1 , ψ2 , . . .] and Ψ∗ = [ψ1 , ψ2 , . . .]∗ , where we define
+                                        Ψ∗ v ≡ [hψ1 , vi, hψ2 , vi, . . .]∗ .
+Defining the diagonal operators DA,ij = δij ai , DB,ij = δij bi , and DG,ij = δij gi , we can represent the
+spectral decompositions of the operators above as A = ΨDA Ψ∗ , B = ΨDB Ψ∗ , and G = ΨDG Ψ∗ ,
+respectively. The following theorem establishes conditions on the operators A, B, and G such that
+the proposal (13) yields a well-defined Metropolis-Hastings algorithm for probability measures over
+function space.
+                                                         8
+Theorem 3.1. Suppose the self-adjoint operators A, B, and G are defined by a common set of
+                         −1/2
+eigenfunctions ψi ∈ Im(Γpr ), i ∈ N, and sequences of eigenvalues (ai ), (bi ), and (gi ), respectively.
+Suppose further that the posterior measure µy is equivalent to the prior measure µ0 = N (m0 , Γpr ).
+The proposal (13) delivers a well-defined MCMC algorithm if the following conditions hold:
+   1. All the eigenvalues (ai ), (bi ), and (gi ) are real and bounded, i.e., ai , bi , gi ∈ R, and there exists
+      some C < ∞ such that |ai |, |bi |, |gi | < C, ∀i ∈ N.
+   2. For any index i ∈ N such that bi = 0, we have ai = 1 and gi = 0.
+   3. For any index i ∈ N such that bi 6= 0 we have |bi | ≥ c for some c > 0.
+   4. The sequences of eigenvalues (ai ) and (bi ) satisfy
+                                             ∞
+                                             X                      2
+                                                    a2i + b2i − 1        < ∞.
+                                             i=1
+
+Proof. See Appendix B for the detailed proof.
+
+    We note that Condition (2) of Theorem 3.1 is designed for situations where the parameter u is
+partially updated, conditioned on those components corresponding to bi = 0. The other conditions
+in Theorem 3.1 ensure that the operators A, B, and G are bounded, and that the measures ν and
+ν ⊥ in (5) are equivalent.
+    To simplify subsequent derivations of acceptance probabilities and various examples of operator-
+weighted proposals, we now define the following useful transformations.
+Definition 3.2 (Transformation that diagonalizes the prior covariance operator).
+
+                                            v = Γ−1/2
+                                                 pr (u − uref ),                                           (14)
+                                              1/2
+where uref = m0 + mref with mref ∈ Im(Γpr ).
+Definition 3.3 (Transformation that diagonalizes operators A, B, and G).
+
+                                                    w = Ψ∗ v.                                              (15)
+
+    By applying the transformation (14) to u, which has prior measure µ0 = N (m0 , Γpr ), we obtain
+                                                                      −1/2
+a prior measure on v of the form µ̃v0 ≡ N (−vref , I), where vref = Γpr mref . We can then define a
+                                                                                               1/2
+reference measure µv0 = N (0, I) associated with the parameter v. Since we require mref ∈ Im(Γpr ),
+                                                                v
+by the Feldman-Hajek theorem (see Appendix A) we have µ̃0  µ0 with   v
+
+
+                               dµ̃v0
+                                                                    
+                                                 1       2
+                                     (v) = exp − kvref k − hvref , vi .
+                               dµv0              2
+                                                 1/2
+The potential function η has input u = Γpr v + uref , which is by definition almost surely in H.
+Therefore, µvy  µv0 by transitivity of absolute continuity. And thus the posterior measure defined
+on the parameter v has the form:
+                                                                       
+                          dµy                         1      2
+                              (v) ∝ exp −η(v; y) − kvref k − hvref , vi ,                      (16)
+                          dµ0                         2
+                      1/2
+where η(v; y) = η(Γpr v + uref ; y).
+                                                        9
+   The proposal distribution (13) can then be rewritten as
+                                      v 0 = Av − G∇v η(v; y) + Bξ,                                (17)
+                      1/2
+where ∇v η(v; y) = Γpr ∇u η(u; y). Applying the unitary transformation (15), we can simultaneously
+diagonalize the operators A, B, and G. The resulting proposal distribution on w is then
+                                  w0 = DA w − DG ∇w η(w; y) + DB ξ,                               (18)
+where we again use the degenerate notation ∇w η(w; y) = Ψ∗ ∇v η(v; y), with v = Ψw.
+
+Remark 3.4. Covariance operators in infinite dimensions are typically taken to be trace-class on
+H, so that draws have finite H-norm. For the transformed parameters v and w, the associated
+proposals use a Gaussian measure with identity covariance operator. Even though the identity
+operator is not trace-class on H and hence draws from this Gaussian measure do not have finite H
+                                                                     −1/2
+norm, they are still square-integrable in the weighted space Im(Γpr ). Furthermore, (17) or (18)
+still yield a well-defined function space proposal for the parameter u after the inverse transformation
+is applied.
+
+    For brevity of notation, the rest of this paper will define our proposals using the transformed
+parameter v. Dealing explictly with the transformed parameter v also allows for a more compu-
+tationally efficient implementation of the operator-weighted proposal in finite dimensions. This is
+                                                             1/2
+because each update only requires applying the operator Γpr once to transform the sample v back
+to u for evaluating the forward model, and another time to compute ∇v η(v; y). In comparison, the
+                                                                                      1/2
+operator-weighted proposal defined for parameter u requires applying the operator Γpr four times
+                             −1/2
+and applying the operator Γpr once for each update.
+    The following corollary gives the acceptance probability of proposal (13).
+Corollary 3.5. Consider the proposal
+                                      v 0 = Av − G∇v η(v; y) + Bξ,
+where A, B, and G satisfy the conditions of Theorem 3.1. The acceptance probability of this proposal
+is
+                            α(v, v 0 ) = min 1, exp ρ(v 0 , v) − ρ(v, v 0 ) ,
+                                                                          
+
+where
+         ρ(v, v 0 ) = −η(v; y) − hvref , vi − 1/2 v, B0 −2 A0 2 + B0 2 − I0 v
+                                                                           
+
+                                                                    1                      2
+                      − B0 −1 G0 ∇v η(v; y), B0 −1 I0 v 0 − A0 v −      B0 −1 G0 ∇v η(v; y) ,
+                                                                
+                                                                    2
+and where B0 , A0 , I0 , G0 denote the respective operators projected onto {ψi }bi 6=0 .
+Proof. The detailed proof is given in Appendix C.
+
+   Theorem 3.1 and Corollary 3.5 provide a wide range of possibilities for constructing valid
+operator-weighted proposals for infinite-dimensional problems. As described in Section 2, one
+important advantage of operator-weighted proposals over simple pCN proposals is the ability to
+prescribe different step sizes in different directions of the parameter space. By utilizing information
+from the Hessian of the data-misfit functional and the prior covariance, one can construct operators
+A, B, and G that adapt to the structure of the posterior.
+                                                    10
+3.2. Likelihood-informed subspace
+    The first step in constructing the operators appearing in proposal distribution (13) is to identify
+a suitable set of basis functions Ψ. We will choose these basis functions in order to expose a posterior
+structure wherein departures from the prior may be limited to a low-dimensional subspace of the
+parameter space. This structure is a consequence of several factors typical of inverse problems
+and other distributed-parameter inference configurations: the smoothing action of the forward
+operator, the limited accuracy or number of observations, and smoothing from the prior. The
+parameter subspace capturing this prior-to-posterior update will be called the likelihood-informed
+subspace (LIS). In designing function-space MCMC proposals, identification of the LIS will provide
+a useful way to adapt to posterior structure through the construction of the operators A, B, and G
+in (13).
+    For finite-dimensional inverse problems, the LIS can be derived from the dominant eigenvectors
+of the prior-preconditioned Hessian of the data misfit function, which is a finite dimensional version
+of the potential η(u; y) in (2). This construction was used in [31] to build low-rank update approx-
+imations to the posterior covariance matrix for large-scale linear inverse problems. It has also been
+generalized to inverse problems with infinite-dimensional parameters, for the purpose of construct-
+ing a Laplace approximation of the posterior measure [32, 33]. [21] proved the optimality of this
+approximation in the linear-Gaussian case—in the sense of minimizing the Förstner-Moonen [34]
+distance from the exact posterior covariance matrix over the class of positive definite matrices that
+are rank-r negative semidefinite updates of the prior covariance, for any given r. These optimality
+results also extend to optimality statements between Gaussian distributions [21].
+    The investigations mentioned above compute the LIS locally, through the eigendecomposition
+of the prior-preconditioned Hessian at a given parameter value u. When the forward model is
+nonlinear, however, the Hessian of the potential varies over the parameter space and hence a local
+LIS may not be sufficient to capture the entire prior-to-posterior update. One approach for dealing
+with a non-constant Hessian, introduced in [23], is to “globalize” the LIS by combining local LIS
+information from many points in the posterior. [23] uses this global LIS to approximate a non-
+Gaussian posterior in finite dimensions, where the posterior distribution in the complement of the
+global LIS is taken to be equal to the prior. In other words, the approximation decomposes the
+posterior into a finite subspace of likelihood-informed directions and a complementary subspace
+(CS) of prior-dominated directions, with mutually independent distributions in each subspace.
+Here we will extend the notion of a global LIS to the infinite-dimensional setting, where the CS
+becomes infinite-dimensional. Then we will incorporate the global LIS into the operator-weighted
+MCMC presented in Section 3.1, in order to achieve exact posterior sampling rather than posterior
+approximation.
+    In the remainder of Section 3.2, we review the computation of the local LIS and then discuss the
+globalization of the LIS through the estimation of posterior expectations. Based on the global LIS,
+we will also present a structure-exploiting posterior covariance approximation for non-Gaussian
+posteriors. This covariance approximation naturally integrates the global LIS with the second-
+order geometry of the posterior, and will be used in later subsections to design operator-weighted
+proposals. We conclude this subsection by discussing iterative construction procedures for the
+global LIS and the posterior covariance approximation.
+
+3.2.1. Local likelihood-informed subspace
+    Let the forward model be Fréchet differentiable. Then the linearization of the forward model
+at a given parameter u, J(u) = ∇u F (u), yields the local sensitivity of the parameter-to-data map.
+                                                  11
+The Gauss-Newton approximation of the Hessian of the data-misfit functional (2) at u (hereafter
+referred to as the GNH) then becomes
+
+                                        H(u) = J∗ (u)Γ−1
+                                                      obs J(u),                                      (19)
+
+and can be used to construct a local Gaussian approximation N (m(u), Γpos (u)) of the posterior
+measure, where
+
+                    Γ−1                −1
+                     pos (u) = H(u) + Γpr     and m(u) = u − Γpos (u)∇u η(u; y).                     (20)
+                             1/2
+Along a function ϕ ∈ Im(Γpr ), consider the local Rayleigh ratio
+
+                                                    hϕ, H(u)ϕi
+                                        R(ϕ; u) =               .                                    (21)
+                                                     hϕ, Γ−1
+                                                          pr ϕi
+
+This ratio quantifies how strongly the likelihood constrains variation in the ϕ direction relative to
+the prior. When this ratio is large, the likelihood limits variation in the ϕ direction more strongly
+than the prior, and vice-versa. We note that similarly to the Onsager-Machlup functional, (21) can
+                                                         1/2
+be extended to H by setting R(ϕ; u) = 0 outside Im(Γpr ). We will in particular be concerned with
+                −1/2
+ϕ such that kΓpr ϕk = 1.
+                                             −1/2
+    Applying the change of variables φ = Γpr ϕ ∈ H, the Rayleigh ratio (21) becomes
+                                                   D                    E
+                                                       1/2          1/2
+                                                     Γpr φ, H(u)Γpr φ
+                             R(ϕ;
+                             e    u) = R(φ; u) =                          .                      (22)
+                                                             hφ, φi
+
+This naturally leads to considering the eigendecomposition of the prior-preconditioned GNH (ppGNH)
+                                                     
+                                        Γ1/2
+                                         pr  H(u)Γ1/2
+                                                  pr    φi = λ i φi ,                         (23)
+
+which is positive semidefinite by construction. The dominant eigenfunctions of the ppGNH are local
+                                                                                  1/2         1/2
+maximizers of the Rayleigh quotient (22). Indeed, for the basis function ϕi = Γpr φi ∈ Im(Γpr ),
+the Rayleigh quotient has value λi , i.e.,
+
+                                             R(ϕi ; u) = λi .
+
+Thus, the ppGNH captures the (local) balance of likelihood and prior information described above:
+the largest eigenvalues of (23) correspond to directions along which the likelihood dominates the
+prior, and the smallest eigenvalues correspond to directions along which the posterior is determined
+almost entirely by the prior. The basis functions {ϕ1 , . . . , ϕl } corresponding to the l leading eigen-
+values of (23), such that λ1 ≥ λ2 ≥ . . . ≥ λl ≥ %l > 0, span the local likelihood-informed subspace
+(LIS). The resulting approximation of the local posterior covariance Γpos (u) has the form
+                                                         l
+                                                         X        λi
+                               Γpos (u) ≈ Γ(l)
+                                           pos = Γpr −                ϕ ϕ∗ ,                         (24)
+                                                                λi + 1 i i
+                                                         i=1
+
+where ϕi and λi depend on the point u. Note that a Gaussian measure with this covariance and with
+mean m(u) (20) still endows the Hilbert space H with full measure. In a finite-dimensional setting,
+                                                    12
+this covariance corresponds precisely to the approximation shown to be optimal in [21]. Note also
+that the number of nonzero eigenvalues in (23) is most Ny , and thus the local LIS is indeed low-
+dimensional compared to the infinite-dimensional parameter space. If the nonzero eigenvalues λi
+decay quickly, then one can reduce the dimension of the local LIS even further, with an appropriate
+choice of truncation threshold %l > 0.
+                                                  −1/2
+Remark 3.6. The change of variables φ = Γpr ϕ has the same role as the whitening transforma-
+                                               1/2
+tion in Definition 3.2. For the parameter v = Γpr (u − uref ), the GNH w.r.t. v is
+                                                  1/2
+                                          H(v) = Γpr  H(u)Γ1/2
+                                                           pr ,
+
+which is identical to the ppGNH in (23). The associated local Rayleigh quotient for parameter v
+has the form
+                                     e v) = hφ, H(v)φi .
+                                     R(φ;                                                  (25)
+                                                 hφ, φi
+In this case, the orthonormal basis {φ1 , . . . , φl } forms the local LIS for the parameter v. Henceforth,
+for brevity and to maintain notation consistent with our exposition of operator-weighted proposals
+above, we will discuss the global LIS and the associated posterior covariance approximation in terms
+of the transformed parameter v.
+
+3.2.2. Global likelihood-informed subspace
+    To extend the pointwise criterion (25) into a global criterion for identifying likelihood-informed
+directions for nonlinear problems, we consider the posterior expectation of the local Rayleigh quo-
+tient,
+                                          e v) = hφ, Sφi ,
+                                        h        i
+                                       E R(φ;
+                                                       hφ, φi
+where S is the expectation of the local GNH (working in whitened coordinates):
+                                        Z
+                                    S=          H(v)µy (dv).                                            (26)
+                                                  −1/2
+                                              Im(Γpr     )
+
+As in the local case, it is natural to then construct a global LIS from the eigendecomposition
+
+                                                S θj = ρj θj .                                          (27)
+
+The eigenfunctions corresponding to the r leading eigenvalues ρ1 ≥ ρ2 ≥ . . . ≥ ρr ≥ %g > 0, for some
+threshold %g > 0, form a basis Θr = [θ1 , . . . , θr ] of the global LIS (again in the whitened coordinates).
+We typically choose a truncation threshold %g ≈ 0.1, thus retaining parameter directions where the
+“impact” of likelihood is at least one tenth that of prior. The expected GNH can be approximated
+using a Monte Carlo estimator based on samples adaptively drawn from the posterior. This adaptive
+procedure is described in Section 3.2.4.
+
+Remark 3.7. Since we assume that the Fréchet derivative of the forward operator exists, the
+GNH operator is defined on function space. We take the approach of differentiating and then
+discretizing, so that dimension independence is conserved assuming a convergent discretization of
+the linearization.
+
+                                                       13
+3.2.3. Low-rank posterior covariance approximation
+    The posterior covariance describes important aspects of the global structure of the posterior
+(e.g., its scale and orientation) and thus is often used in constructing efficient MCMC samplers for
+the finite dimensional setting—for example, the adaptive Metropolis [35] and adaptive Metropolis-
+adjusted Langevin [36] methods. When the posterior covariance matrix arises from the discretiza-
+tion of an infinite-dimensional posterior, however, computing, storing, and factorizing this matrix—
+all standard operations required by most MCMC methods—are not feasible. Suppose that the dis-
+cretized parameter space has dimension N . Then estimating the posterior covariance from samples
+(without assuming any special structure) requires at least O(N ) posterior samples;   the storage cost
+         2                                                                     3
+                                                                                 
+is O N ; and the computational cost of a covariance factorization is O N . Here, we will instead
+use the global LIS to derive a covariance approximation scheme for which the costs of estimating,
+storing, and factorizing the posterior covariance all scale linearly with the discretization dimension
+N.
+    Since the global LIS captures those parameter directions where the posterior differs most
+strongly from the prior, we can approximate the posterior measure by projecting the argument
+of the likelihood function onto the finite-dimensional global LIS spanned by Θr . Given the rank-r
+orthogonal projection operator Πr = Θr Θ∗r , the approximation takes the form
+                                µy (dv) ≈ µ̃y (dv) ∝ L(Πr v; y)µ0 (dv).                           (28)
+The orthogonal projector Πr decomposes the parameter as
+                                        v = Πr v + (I − Πr ) v,
+where Πr v and (I − Πr ) v are projections of the parameter v onto the low-dimensional LIS and
+the infinite-dimensional CS, respectively. Since the prior measure µ0 (dv) is Gaussian with zero
+mean and identity covariance, Πr v and (I − Πr ) v are independent under the prior. Furthermore,
+the argument of the likelihood function in (28) depends only on the LIS-projected parameter Πr v.
+Therefore, Πr v and (I − Πr ) v are also independent under the approximated posterior µ̃y (dv). This
+independence and the LIS projection lead to an approximate posterior covariance (for the parameter
+v) that takes the form
+                         Covµy [v] ≈ Σ := Covµy [Πr v] + Covµ0 [(I − Πr ) v].
+This covariance Σ is the sum of the marginal posterior covariance within the LIS,
+                                       Covµy [Πr v] = Θr Σr Θ∗r ,
+where the r × r matrix Σr is the posterior covariance projected onto the LIS basis Θr , and the
+marginal prior covariance within the CS,
+                                   Covµ0 [(I − Πr ) v] = I − Θr Θ∗r .
+Introducing the eigendecomposition Σr = Wr Dr Wr∗ and reweighing the basis Θr using the orthog-
+onal matrix Wr ,
+                                        Ψr = Θr Wr ,                                       (29)
+we can diagonalize the covariance approximation and write it as a low-rank update of the identity:
+                                   Σ = Θr Σr Θ∗r + (I − Θr Θ∗r )
+                                       = Ψr (Dr − Ir ) Ψ∗r + I .                                  (30)
+                                                  14
+where Ir denotes the r × r identity matrix. The corresponding approximate posterior covariance
+                         1/2    1/2
+for the parameter u is Γpr Σ Γpr . Note that Πr = Θr Θ∗r = Ψr Ψ∗r .
+    Given a basis for the LIS, the number of samples required to estimate the low-rank approxima-
+tion (30) now depends on the rank of the LIS rather than on the discretized parameter dimension
+N . Furthermore, the cost of storing this approximated covariance is dominated by the storage of
+the LIS basis, which is proportional to the discretization dimension N . The cost of computing
+the eigendecomposition of Σr is of order r3 , which is asymptotically negligible compared with the
+discretization dimension. Similarly, the factorization of the diagonalized posterior covariance (30)
+only involves the r × r diagonal matrix Dr , and hence these operations are also asymptotically
+negligible. The dominant computational cost here is reweighing the LIS basis as in (29), which is
+proportional to the discretization dimension N .
+
+3.2.4. Iterative construction
+    The low-rank approximation of the posterior covariance (30) will be used to design operator-
+weighted proposals. Yet building this covariance approximation requires posterior samples, both
+for computing the global LIS and for constructing the projected posterior covariance Σr . These
+computations must therefore be carried out on-the-fly during posterior sampling. Here we discuss
+two building block algorithms—for estimating the global LIS and the projected posterior covariance
+from a given set of posterior samples—which are later used in the adaptive sampling algorithms of
+Section 3.4.
+    We first consider the global LIS. Suppose that we have a set of m posterior samples vk ∼ µy
+for k = 1 . . . m. The expected GNH (26) could be directly approximated using the Monte Carlo
+estimator
+                                                 m
+                                              1 X
+                                        Sm =        H(vk ).                                   (31)
+                                             m
+                                                        k=1
+
+If the discretized parameter has dimension N , the cost of storing Sm and the computational cost
+of updating it are both proportional to N 2 . Furthermore, the cost of a direct eigendecomposition
+of Sm for computing the global LIS basis is of order N 3 . Thus, it is not feasible to directly
+apply the Monte Carlo estimate and eigendecomposition here. Instead, we again use the low-rank
+structure of the problem to design an iterative updating scheme for computing and updating the
+eigendecomposition of Sm as more posterior samples are drawn.
+    As discussed earlier for the local LIS, each local GNH H(vk ) is well captured by a low-rank
+decomposition
+                                           l(vk )
+                                           X
+                                  H(vk ) ≈        λi (vk )φi (vk )φ∗i (vk ),                  (32)
+                                                 i=1
+
+where λi (vk ) and φi (vk ) are eigenvalues and eigenvectors depending on the parameter vk . The
+eigenspectrum is truncated at some local threshold %l , i.e., λ1 (vk ) ≥ λ2 (vk ) ≥ . . . ≥ λl(vk ) (vk ) ≥ %l >
+0. Similar to the global LIS truncation threshold, we typically choose the local truncation threshold
+%l = %g = 0.1. Now let Λ(vk ) be the l(v        k ) × l(vk ) diagonal matrix such that Λij (vk ) = δij λi (vk ),
+and let Φ(vk ) = φ1 (vk ), . . . , φl(vk ) (vk ) be the rank-l(vk ) local LIS basis. Using matrix notation,
+the decomposition of the local GNH can be rewritten as
+
+                                        H(vk ) ≈ Φ(vk ) Λ(vk )Φ∗ (vk ).
+
+
+                                                       15
+By computing the action of the local GNH on functions—each action requires one forward model
+evaluation and one adjoint model evaluation—the eigendecomposition can be computed using either
+Krylov subspace methods [37] or randomized algorithms [38, 39]. This way, the number of forward
+and adjoint evaluations used to obtain (32) is proportional to the target rank l(vk ).
+    For the current sample set {vk }m
+                                    k=1 , suppose that the expected GNH also admits a rank-M
+approximation for some M (m), in the form of
+
+                                         Sm ≈ Θm Ξm Θ∗m ,
+
+where Ξm ∈ RM ×M , with [Ξm ]ij = δij ρi and Θm = [θ1 , . . . , θM ] containing the eigenvalues and
+eigenfunctions of Sm , respectively. To maintain an accurate representation of the expected GNH
+and its eigendecomposition during the adaptive construction, we truncate this eigendecomposition
+conservatively rather than applying the %g = 0.1 threshold used to truncate the global LIS. In this
+paper, we set the truncation threshold to %s = 10−4 . Given a new sample vm+1 , the eigendecom-
+position can be updated using the incremental SVD method [40]; this procedure is described in
+Steps 6–9 of Algorithm 1. In the discretization of the infinite-dimensional problem, the bases Θm
+and Φ(vm+1 ) are represented by “tall and skinny” matrices, and thus the computational cost of
+this iterative update is proportional to the discretization dimension N . The major computational
+cost in this procedure is the eigendecomposition of the local GNH—which involves a number of
+linearized forward model and adjoint model solves—in Step 2 of Algorithm 1. To initialize the
+global LIS, we choose the MAP estimate (defined in Section 2.1) as the initial sample at which to
+decompose the local GNH.
+
+Algorithm 1 Incremental update of the expected GNH and global LIS.
+Input: Θm , Ξm , vm+1
+Output: Θm+1 , Ξm+1 , Θr , Ξr
+ 1: procedure UpdateLIS(Θm , Ξm , vm+1 , Θm+1 , Ξm+1 , Θr , Ξr )
+ 2:    Compute the local LIS basis through H(vm+1 ) ≈ Φ(vm+1 ) Λ(vm+1 ) Φ∗ (vm+1 )
+ 3:    if m = 0 then
+ 4:       Initialize S1 by setting Θ1 = Φ(v1 ) and Ξ1 = Λ(v1 )
+ 5:    else
+ 6:       Compute the QR decomposition [Θm , Φ(vm+1 )] = QR
+ 7:       Compute the new eigenvalues through the eigendecomposition
+                                                       
+                               1       m Ξm       0
+                                   R                      R∗ = W Ξm+1 W∗
+                            m+1          0     Λ(vm+1 )
+
+ 8:        Compute the new basis Θm+1 = QW
+ 9:        Return new decomposition Θm+1 and Ξm+1 such that all ρi ≥ %s
+10:    end if
+11:    Return LIS basis Θr = Θm+1 (:, 1 : r) and LIS eigenvalues Ξr = Ξm+1 (1 : r, 1 : r),
+    such that ρ1 , . . . , ρr ≥ %g                              . MATLAB notation is used here
+12: end procedure
+
+
+    Algorithm 1 provides an efficient way of updating the expected GNH given a new posterior
+sample vm+1 . In Section 3.4 we will describe how to embed Algorithm 1 into an adaptive framework
+for posterior exploration, where new samples for each update are generated by operator-weighted
+                                                16
+MCMC. This approach thus automatically explores the landscape of the likelihood; depending on
+this landscape, the number of samples needed to give a reasonable estimate of the expected GNH
+(and in particular, its dominant eigendirections) may vary significantly. (For instance, if the log-
+likelihood is quadratic, only one sample is needed!) In general, to limit the total number of expensive
+eigendecompositions of the local GNH, we would like to terminate this adaptive construction process
+as soon as the estimated LIS stabilizes.
+    To this end, let {Θr , Ξr } and {Θr0 , Ξr0 } denote the global likelihood informed subspaces and
+associated eigenvalues evaluated at successive iterations of the LIS construction process. And let
+
+                              Sr = Θr Ξr Θ∗r ,   and Sr0 = Θr0 Ξr0 Θ∗r0 ,
+
+denote the (truncated) expected GNHs at the same two iterations. We use the Förstner distance
+[34] between (I + Sr ) and (I + Sr0 ),
+
+                                                 ∞
+                                                                                 !1
+                                                 X                                   2
+                                                         2
+                      dF (I + Sr , I + Sr0 ) =         ln (λi (I + Sr , I + Sr0 ))       ,        (33)
+                                                 i=1
+
+to monitor the converge of the LIS. Here λi (A, B) is the ith generalized eigenvalue of the pencil
+(A, B). The Förstner distance was introduced in [34] as a metric for positive definite covariance
+matrices, and is also related to the Kullback-Leibler divergence or Hellinger distance between Gaus-
+sian distributions, as described in [21]. In the present setting, the infinite-dimensional generalized
+eigenproblem in (33) can be reformulated as a finite-dimensional generalized eigenproblem, so that
+the Förstner metric becomes directly applicable. Since the expected GNHs Sr and Sr0 are symmet-
+ric and finite-rank operators, the corresponding operators (I + Sr ) and (I + Sr0 ) differ only on the
+finite dimensional subspace V that is the sum of the ranges of Sr and Sr0 . In other words, there are
+only a finite number of nonzero terms in the summation (33). Letting V = span(Θr ) + span(Θr0 ),
+dF can be equivalently and efficiently computed by projecting the operators (I + Sr ) and (I + Sr0 )
+onto V. Recall that in the discretized space both Θr and Θr0 are “tall and skinny” matrices, and
+therefore the computational cost of evaluating dF scales linearly with the discretization dimension
+N.
+    An alternative criterion for monitoring the convergence of the global LIS is the weighted subspace
+distance from [41], which is used in [23]. In practice, we find that both criteria produce consistent
+results.
+
+Algorithm 2 Update of the low-rank posterior covariance approximation.
+Input: Θr , Σr
+Output: Ψr , Dr
+ 1: procedure UpdateCov(Θr , Σr , Ψr , Dr )
+ 2:    Compute eigendecomposition Wr Dr Wr∗ = Σr
+ 3:    Return the reweighted LIS basis Ψr = Θr Wr and the diagonalized covariance Dr
+ 4: end procedure
+
+
+    Given a global LIS basis Θr and an empirical estimate of the posterior covariance projected
+onto the LIS, Σr , the low-rank approximation (30) of the posterior covariance can be constructed
+using the procedure described in Algorithm 2. When the LIS is fixed, estimation of Σr from
+posterior samples only requires storage of order r2 for the covariance matrix itself and an empirical
+                                                   17
+mean. Given a new posterior sample v, Σr can be updated by a rank-one modification using the
+r-dimensional vector Θ∗r v. Since the factorization and inversion of the posterior covariance (30)
+only involve the r × r diagonal matrix Dr , their computational costs are negligible compared with
+the discretization dimension N . The computational costs of projecting the sample v, reweighing
+the LIS basis as in (29), and computing the eigendecomposition of Σr scale as N r, N r2 , and r3 ,
+respectively. The sample projection Θ∗r v has negligible cost compared with other operations such
+as PDE solves, and hence does not require special treatment.
+
+Algorithm 3 Posterior covariance re-projection for each LIS update.
+Input: Θr , Σr , Θr0
+Output: Σr0
+ 1: procedure ProjectCov(Θr , Σr , Θr0 , Σr0 )
+ 2:    T = Θ∗r0 Θr
+ 3:    Σr0 = T(Σr − Ir )T∗ + Ir0
+ 4: end procedure
+
+
+    Finally, we note that each time the global LIS is updated, the estimate Σr of the posterior
+covariance in the LIS must itself be updated. Suppose that the current LIS basis is Θr and that
+the associated projected posterior covariance is Σr . Given a new LIS basis Θr0 , the new projected
+posterior covariance Σr0 can be obtained by projecting the current posterior covariance estimate
+Σ = Θr (Σr − Ir )Θ∗r + I onto the new LIS, as shown in Algorithm 3. The computational cost of this
+procedure is dominated by the multiplication of the LIS bases in step 2, which is proportional to
+N rr0 .
+
+3.3. DILI proposals
+    Now we use the global LIS and the low-rank posterior covariance approximation (30) to develop
+operator-weighted MCMC proposals that are efficient and that satisfy the conditions of Theorem 3.1,
+thus ensuring discretization-invariant mixing in a function space setting.
+    The low-rank posterior covariance Σ = Ψr (Dr − Ir ) Ψ∗r + I is entirely specified by the global LIS
+basis Ψr and the r-dimensional diagonal matrix Dr . Given these objects, the transformed parameter
+                  −1/2
+space Hv ≡ Im(Γpr ) can be partitioned as Hv = Hr ⊕ H⊥ , where the LIS is Hr = span(Ψr ) and
+has finite Hilbert dimension, i.e., card(Ψr ) = r < ∞. We can associate the infinite-dimensional
+CS2 H⊥ ≡ (Hv )⊥ with a set of eigenfunctions Ψ⊥ = [ψr+1 , ψr+2 , . . .] such that H⊥ = span(Ψ⊥ ).
+Ψ = [Ψr , Ψ⊥ ] thus forms a complete orthonormal system in Hv . Recall that the LIS captures
+parameter directions where the posterior differs most strongly from the prior. This partition of the
+parameter space, along with the approximate posterior covariance Σ, can then be used to assign
+eigenvalues to the basis Ψ in order to construct the operators A, B, and G in the proposal (13).
+    An appropriate discretization of the Langevin SDE (7) naturally leads to an eigenvalue assign-
+ment that satisfies Theorem 3.1. Following the sequence of transformations in Definitions 3.2 and
+3.3, the Langevin SDE (7) preconditioned by the low-rank approximation of the posterior covariance
+  1/2   1/2
+Γpr ΣΓpr (for the parameter u) takes the form
+                                         γr Dr (Ψ∗r ∇w η(w; y)) dτ
+                                                                p                     
+         dwr           Dr wr dτ                                               2D   dW   (τ )
+                =−                  −                                 + √        r    r
+                                                                                               ,   (34)
+         dw⊥           w⊥ dτ             γ⊥ Ψ∗⊥ ∇w η(w; y) dτ                2 dW⊥ (τ )
+   2
+     In whitened coordinates, i.e., in terms of the transformed parameter v, the CS is the orthogonal complement of
+the LIS.
+
+                                                        18
+where wr = Ψ∗r v and w⊥ = Ψ∗⊥ v are coefficients of the projection of v onto the LIS and CS,
+respectively. The two tuning parameters γr and γ⊥ take values {0, 1} to switch between a Langevin
+proposal and random walk proposal in the LIS and CS. Now, discretizing this SDE is equivalent
+to assigning eigenvalues to the operators A, B, and G of the operator-weighted proposal (13). We
+will employ an inhomogeneous time discretization strategy: a time discretization scheme tailored to
+the non-Gaussian structure—that is not necessarily dimension-independent—is used in the finite-
+dimensional LIS, while a standard Crank-Nicolson scheme—to ensure dimension-independence—is
+used in the infinite-dimensional CS.
+    In the rest of this subsection, we will provide specific examples of these operator-weighted
+proposals. We will prescribe two different time steps to discretize (34), denoted by 4τr and 4τ⊥ .
+All the proposals we present depend only on the global LIS basis Ψr , the r×r diagonalized covariance
+Dr , and the time steps 4τr and 4τ⊥ . Given the partition defined by the LIS, we will also present
+extensions of those proposals to Metropolis-within-Gibbs schemes.
+
+3.3.1. Basic proposals
+    Here we consider all-at-once proposals that update all the parameter in a single iteration. Two
+examples will be provided, one which does not use gradient information on the LIS (γr = 0) and
+one which does (γr = 1). On the CS, both proposals use the pCN update with γ⊥ = 0. Thus the
+proposal in the CS is given by
+                                         0
+                                       w⊥  = a⊥ w⊥ + b⊥ ξ⊥ ,                                    (35)
+where
+                                                 2 − 4τ⊥                   p
+                      ξ⊥ ∼ N (0, I⊥ ),    a⊥ =           ,    and b⊥ =      1 − a⊥ 2 .
+                                                 2 + 4τ⊥
+Here we use I⊥ to denote the identity operators associated with H⊥ , whereas the identity operator
+associated with Hr is an r × r identity matrix Ir . For the corresponding eigenfunctions Ψ⊥ , the
+operators A, B, and G have uniform eigenvalues a⊥ , b⊥ , and 0, respectively.
+    Various discretization schemes can be used for the Langevin SDE in the LIS. Let the eigenfunc-
+tions Ψr be associated with sequences of eigenvalues (ai ), (bi ), and (gi ), i = 1, . . . , r, giving rise to
+the r × r diagonal matrices DAr , DBr , and DGr . The operators A, B, and G can then be written as
+
+                                   A = Ψr (DAr − a⊥ Ir ) Ψ∗r + a⊥ I,
+                                   B = Ψr (DBr − b⊥ Ir ) Ψ∗r + b⊥ I,                                     (36)
+                                   G =      Ψr DGr Ψ∗r .
+
+Theorem 3.1 and Corollary 3.5 can be used to show when the operator-weighted proposals given
+by (36) yield well-defined MCMC algorithms, and to derive the associated acceptance probability.
+   Our first operator-weighted proposal employs a Crank-Nicolson scheme in the LIS, with γr = 0.
+The resulting discretized Langevin SDE in the LIS has the form
+                                        1
+                            wr0 − wr = − Dr (wr0 + wr )4τr + 2Dr 4τr ξr ,
+                                                            p
+                                        2
+where ξr ∼ N (0, Ir ). Together with the CS proposal (35), we have the following complete proposal:
+
+Proposal 3.1 (LI-Prior: Likelihood-informed proposal that leaves the shifted prior distribution
+invariant).
+                                       v 0 = Av + Bξ,
+                                                     19
+where A, B, and G are given by (36), with
+
+                                D Ar     = (2Ir + 4τr Dr )−1 (2Ir − 4τr Dr ) ,
+                                                     1/2
+                                DBr      = Ir − D2Ar      ,                                       (37)
+                                DGr      = 0.
+
+Since this proposal has D2Ar + D2Br = Ir , the acceptance probability can be simplified to
+
+                       α(v, v 0 ) = min 1, exp η(v) − η(v 0 ) + hvref , v − v 0 i ,
+                                                                                
+                                                                                                  (38)
+                −1/2
+where vref = Γpr       mref .
+    We can instead consider a mixed discretization scheme, which uses an explicit discretization of
+the Langevin proposal (γr = 1) in the LIS. The discretized Langevin SDE in the LIS has the form
+
+                     wr0 − wr = −4τr Dr (wr + Ψ∗r ∇w η(w; y)) + 2Dr 4τr ξr ,
+                                                               p
+
+where ξr ∼ N (0, Ir ). Combined with the CS proposal (35), this leads to the proposal:
+Proposal 3.2 (LI-Langevin: Likelihood-informed proposal that uses the Langevin proposal in
+the LIS).
+                              v 0 = Av − G∇v η(v; y) + Bξ,
+where A, B, and G are given by (36), with
+
+                                             D Ar   = Ir − 4τr Dr ,
+                                                      p
+                                             DBr    =    24τr Dr ,                                (39)
+                                             DGr    = 4τr Dr .
+
+The acceptance probability of this proposal has the form
+
+                            α(v, v 0 ) = min 1, exp(ρ(v 0 , v) − ρ(v, v 0 )) ,
+                                            
+                                                                                                  (40)
+
+where ρ(v, v 0 ) is given by
+                                                             1
+                   ρ(v, v 0 ) = −η(v; y) − hvref , vi −        kΨ∗r vk2
+                                                             2
+                                       1                                                  2
+                                  −      DBr −1 Ψ∗r v 0 − DAr Ψ∗r v + DGr Ψ∗r ∇v η(v; y)     ,
+                                       2
+                −1/2
+where vref = Γpr       mref .
+
+3.3.2. Metropolis-within-Gibbs scheme
+    Given a basis Ψr for the LIS, the parameter v can be split as
+
+                                v = vr + v⊥ ,       vr = Ψr wr ,   v⊥ = Ψ⊥ w⊥ ,
+
+and hence a Metropolis-within-Gibbs update can be quite naturally introduced for vr and v⊥ . This
+update consists of a pair of proposals:
+
+                   Update vr conditioned on v⊥ : v 0 = Ar v − Gr ∇v η(v; y) + Br ξ,              (41a)
+                                                             0
+                   Update v⊥ conditioned on vr : v = A⊥ v + B⊥ ξ,                                (41b)
+                                                        20
+where ξ ∼ N (0, I). By setting a⊥ = 1 and b⊥ = 0 in (36), we can derive the proposal (41a), which
+updates vr conditional on v⊥ . This leads to the operators
+
+              Ar = Ψr (DAr − Ir ) Ψ∗r + I,   Br = Ψr DBr Ψ∗r ,   and Gr = Ψr DGr Ψ∗r .        (42)
+
+Similarly, by setting DAr = Ir , DBr = 0, and DGr = 0, we have the proposal (41b) which updates
+v⊥ conditional on vr . This leads to the operators
+
+                   A⊥ = Ψr Ψ∗r + a⊥ (I − Ψr Ψ∗r ) ,   and B⊥ = b⊥ (I − Ψr Ψ∗r ) .             (43)
+
+These proposals both satisfy the conditions of Theorem 3.1, and therefore lead to a Metropolis-
+Hastings scheme that is well-defined on function space. The following two Metropolis-within-Gibbs
+schemes are derived from Proposals 3.1 and 3.2.
+
+Proposal 3.3 (MGLI-Prior: Metropolis-within-Gibbs update using a likelihood-informed pro-
+posal that is invariant w.r.t. the shifted prior distribution). Let DAr , DBr , and DGr be given by
+(37). Define Ar , Br , and Gr as in (42) and A⊥ , B⊥ as in (43). The updates are given by (41a)
+and (41b) and both have acceptance probability (38).
+
+Proposal 3.4 (MGLI-Langevin: Metropolis-within-Gibbs update using the Langevin proposal
+in the LIS). Let DAr , DBr , and DGr be given by (37). Define Ar , Br , and Gr as in (42) and A⊥
+and B⊥ as in (43). The updates are given by (41a) and (41b), with acceptance probabilities given
+by (40) and (38), respectively.
+
+3.4. Adaptive posterior sampling framework
+    Now we describe how the construction of the global LIS, the low-rank posterior covariance ap-
+proximation, and the operator-weighted proposals can be integrated into a single adaptive posterior
+sampling framework. The building blocks have already been given; in particular, Section 3.2.4 de-
+scribes how to construct and iteratively update the global LIS basis Θr (or equivalently Ψr (29))
+and the posterior covariance Σ from posterior samples, while Section 3.3 shows how to construct
+several different operator-weighted proposals from the LIS and covariance information. All that
+remains is to embed the first two operations within an MCMC approach. The overall framework
+is described in Algorithm 4. At specified intervals (controlled by the parameter nlag ) and until a
+final tolerance (controlled by ∆LIS and nmax ) is reached, the LIS is updated from previous pos-
+terior samples. Every nb samples and/or when the LIS basis is updated, and for the duration of
+the algorithm, the posterior covariance Σ and the operators in the DILI proposal are updated from
+previous samples. Thus the algorithm adaptively captures the global structure of the posterior from
+local Hessian information and from samples, and tunes the resulting operator-weighted proposals
+accordingly.
+    Generally speaking, the major computational cost of Algorithm 4 is the evaluation of the ac-
+ceptance probability at Step 2, which involves a computationally expensive likelihood evaluation
+and—when the Langevin proposals are used—one extra adjoint solve for the gradient evaluation.
+The proposal evaluation in Step 1 only incurs a minor computational cost, as the cost of applying
+the low-rank decompositions of the operators A, B, and G is proportional to the discretization
+dimension N . The computational cost of the LI-Prior proposal is therefore comparable to that of
+a pCN random walk proposal—or other types of random walk proposals used in the finite dimen-
+sional setting—and the computational cost of the LI-Langevin proposal is comparable to standard
+                                                 21
+Algorithm 4 Adaptive function space MCMC with operator-weighted proposals.
+Input: During the LIS construction, we retain (1) {Θm , Ξm } to store the expected GNH evaluated
+    from m samples; and (2) the value of dF (33) between the most recent two updates of the
+    expected GNH, for LIS convergence monitoring.
+Input: At step n, given the state vn , LIS basis Θr , projected empirical posterior covariance Σr ,
+    and operators {A, B, G} induced by {Ψr , Dr , 4τr , 4τ⊥ }, one step of the algorithm is:
+ 1: Compute a candidate v 0 = q(vn , · ; A, B, G) using either LI-prior or LI-Langevin
+ 2: Compute the acceptance probability α(vn , v 0 )
+ 3: if Uniform(0, 1] < α(vn , v 0 ) then vn+1 = v 0 else vn+1 = vn                 . Accept/reject v 0
+ 4: UpdateFlag = false
+ 5: if rem(n+1, nlag ) = 0 & m < nmax & dF ≥ ∆LIS then . Update LIS using selected samples
+ 6:     UpdateLIS(Θm , Ξm , vn+1 , Θm+1 , Ξm+1 , Θr0 , Ξr0 )
+ 7:     ProjectCov(Θr , Σr , Θr0 , Σr0 )
+ 8:     Update the LIS convergence diagnostic dF as in (33)
+ 9:     Θr = Θr0 , Ξr = Ξr0 , Σr = Σr0 , m = m + 1
+10:     UpdateFlag = true
+11: else                                                                           . The LIS is fixed
+12:                                                                      ∗
+        Perform rank-1 update of the empirical covariance Σr given Θr vn+1
+13:     if rem(n+1, nb ) = 0 then UpdateFlag = true
+14: end if
+15: if UpdateFlag then
+16:     UpdateCov(Θr , Σr , Ψr , Dr )
+17:     Update the operators {A, B, G}
+18: end if
+
+
+Metropolis-adjusted Langevin proposals. Purely local methods, such as stochastic Newton [19]
+and manifold MCMC [20], are much more computationally expensive than both LI-Prior and LI-
+Langevin, as they require high-order derivatives of the posterior at every step.
+    Another non-negligible computational burden comes from the adaptive construction of LIS
+(Steps 5–10), where each iteration involves a number of linearized forward model and adjoint model
+evaluations for computing the eigendecomposition of the local GNH, as well as the incremental
+update of the factorized expected GNH in Algorithm 1. Here we employ a fixed-size adaptation
+strategy that limits the total number of local GNH eigendecompositions to be no more than nmax ,
+and we terminate the iterative updates once the subspace convergence diagnostic (33) drops below
+a specified threshold ∆LIS . Furthermore, to ensure that essentially uncorrelated posterior samples
+are used to estimate the expected GNH, sub-sampling with lag nlag is used in Step 7. Since the
+LIS basis is low-rank, the computational costs of updating the posterior covariance (Step 16) and
+the operators (Step 17) are only proportional to the discretization dimension N , and thus do not
+dominate the cost of the forward solve. These costs are further suppressed by only renewing these
+two terms every nb iterations during MCMC sampling. In the numerical experiments below, we
+choose nb = 50.
+    We also note that once the additive construction of LIS terminates, we simulate the Markov
+chain using the operator-weighted proposal built from a fixed LIS, where the empirical covariance
+is henceforth updated only within this fixed r-dimensional subspace. In this situation, existing
+adaptive MCMC theory [35, 42, 36, 43, 44] can be used to establish ergodicity of the chain.
+                                                 22
+Algorithm 5 Adaptive function space MCMC with operator-weighted proposals, using Metropolis-
+within-Gibbs updates.
+Input: During the LIS construction, we have {Θm , Ξm } and dF as in Algorithm 4.
+Input: At step n, given the state vn , LIS basis Θr , projected empirical posterior covariance Σr , and
+    operators {Ar , Br , Gr } and {A⊥ , B⊥ } induced by {Ψr , Dr , 4τr , 4τ⊥ }, one step of the algorithm
+    is:
+ 1: Compute a LIS candidate v 0 = q(vn , · ; Ar , Br , Gr ) using either MGLI-Prior or MGLI-Langevin
+ 2: Compute the acceptance probability α(vn , v 0 )
+ 3: if Uniform(0, 1] < α(vn , v 0 ) then ṽ = v 0 else ṽ = vn end if                  . Accept/reject v 0
+ 4: Compute a CS candidate v 00 = q(ṽ, · ; A⊥ , B⊥ ) using (41b)
+ 5: Compute the acceptance probability α(ṽ, v 00 )
+ 6: if Uniform(0, 1] < α(ṽ, v 00 ) then vn+1 = v 00 else vn+1 = ṽ                   . Accept/reject v 00
+ 7: Follow Steps 4–14 of Algorithm 4 to update the LIS and sample covariance within the LIS
+ 8: if UpdateFlag then
+ 9:     UpdateCov(Θr , Σr , Ψr , Dr )
+10:     Update the operators {Ar , Br , Gr } and {A⊥ , B⊥ }
+11: end if
+
+
+    Just as the all-at-once proposals of Section 3.3.1 are integrated into the adaptive framework of
+Algorithm 4, the Metropolis-within-Gibbs proposals given in Section 3.3.2 can be integrated into
+Algorithm 5. Here the operators {Ar , Br , Gr } and {A⊥ , B⊥ }—for the LIS update and the CS up-
+date, respectively—are determined by {Ψr , Dr , 4τr , 4τ⊥ }. Two proposal and accept/reject steps
+are involved in each iteration of Algorithm 5, and thus it doubles the number of likelihood evalu-
+ations per iteration relative to Algorithm 4. The computational cost of all the other components
+remains the same.
+
+3.5. Benchmark algorithms
+   In the numerical examples of Sections 4 and Section 5, we will benchmark our operator-weighted
+proposals by comparing their performance with two representative proposals from the literature,
+one that is dimension independent and another that exploits posterior Hessian information.
+
+Proposal 3.5 (pCN-RW: Prior-preconditioned Crank-Nicolson random walk proposal [10]). By
+setting γ = 0 in (9) and applying the transformation in Definition 3.2, we obtain the proposal:
+                                                  p
+                                        v 0 = av + 1 − a2 ξ.
+
+where a ∈ (−1, 1).
+
+    Note that the gradient term could have been included by setting γ = 1 in (9). In the numerical
+examples described below, however, the performance of such a pCN Langevin proposal [11] is very
+close to that of the pCN-RW proposal. For brevity, we will therefore only report on pCN-RW in
+our numerical comparisons.
+
+Proposal 3.6 (H-Langevin: Hessian-preconditioned explicit Langevin proposal). Let HM denote
+the Hessian of the data-misfit functional evaluated at the MAP estimate of the parameter v. Pre-
+condition the Langevin SDE (7) with the inverse Hessian of the OMF, (HM + I)−1 , and discretize
+
+                                                   23
+this SDE explicitly, arriving at a proposal of the form:
+
+         v 0 = I − 4τ (HM + I)−1 v − 4τ (HM + I)−1 Dv Φ(v; y) + 24τ (HM + I)−1 ξ
+                                                              p
+
+               = AH v − GH Dv Φ(v; y) + BH ξ.
+
+Now take a low rank approximation of HM ,
+
+                                            HM ≈ ΨM DM Ψ∗M .
+
+to obtain
+
+                              = I − 4τ ΨM −DM (DM + Ir )−1 Ψ∗M + I ,
+                                                                  
+                        AH
+                                                                  
+                                   24τ ΨM (DM + Ir )−1/2 − Ir Ψ∗M + I ,
+                                p
+                        BH    =
+                              = 4τ ΨM −DM (DM + Ir )−1 Ψ∗M + I .
+                                                              
+                        GH
+
+    This H-Langevin proposal essentially combines preconditioned MALA [45] with the low-rank
+Hessian approximation used in the stochastic Newton algorithm [19]. But instead of using a
+location-dependent preconditioner as in simplified manifold MALA [20] and stochastic Newton,
+it uses a constant preconditioner (HM + I)−1 , thus avoiding the computational burden of evaluating
+the local Hessian at each iteration. The same principle has recently been used in [46] to modify the
+stochastic Newton algorithm. The main difference between the H-Langevin proposal and the vari-
+ants of stochastic Newton proposed in [46] is that H-Langevin employs an adjustable discretization
+step 4τ , whereas [46] uses 4τ = 1.
+
+4. Example 1: Elliptic PDE
+
+    Our first numerical example is an inverse problem of an elliptic PDE, i.e., inferring the trans-
+missivity field of the Poisson equation. We use this test case to compare the efficiency of the new
+operator-weighted proposals described in Section 3.3 with the benchmark proposals of Section 3.5.
+We also demonstrate the advantages of using multiple posterior samples to construct the LIS and
+the invariance of the LIS under grid refinement.
+
+4.1. Problem setup
+   Consider the spatial domain Ω = [0, 1]2 with boundary ∂Ω. We denote the spatial coordinate
+by s ∈ Ω. Let κ(s) be the transmissivity field, p(s) be the potential function, and f (s) the forcing
+term. The potential function for a given realization of the transmissivity field is governed by
+                            
+                               −∇ · (κ(s)∇p(s)) = f (s), s ∈ Ω
+                                                                                                 (44)
+                               hκ(s)∇p(s), ~n(s)i = 0,         s ∈ ∂Ω
+
+where ~n(s) is the outward normal to the boundary. To make a well-posed boundary value problem,
+a further condition                      Z
+                                            p(s)dl(s) = 0,                                 (45)
+                                              ∂Ω
+is imposed. The source/sink term f (s) is defined by the superposition of four weighted Gaussian
+plumes with standard deviation 0.05, centered at [0.3, 0.3], [0.7, 0.3], [0.7, 0.7], [0.3, 0.7], with weights
+                                                     24
+{2, −3, −2, 3}. The system of equations (44) is solved by the finite element method with bilinear
+elements on a uniform 40 × 40 grid.
+    The transmissivity field is endowed with a log-normal prior distribution, i.e.,
+
+                                   κ(s) = exp(u(s)), and u(s) ∼ N (0, C) ,                                     (46)
+
+where the covariance operator C is defined through an exponential kernel function
+
+                                               ks − s0 k
+                                                        
+                                0     2
+                          c(s, s ) = σu exp −              , for s, s0 ∈ Ω.                                    (47)
+                                                 2s0
+
+In this example, we set the prior standard deviation σu = 1.25 and the correlation length s0 =
+0.0625. To make the inverse problem more challenging, we use a “true” transmissivity field that is
+not directly drawn from the prior distribution. The true transmissivity field—i.e., the field used to
+generate noisy observations—and the corresponding potential are shown in Figures 1(a) and (b),
+respectively.
+
+                             (a)                             (b)                         (c)
+                    1                              1
+                                                                             0.15
+                   0.8                            0.8                         0.1
+                                                                             0.05
+                   0.6                            0.6                           0
+              s2                             s2
+                                                                             -0.05
+                   0.4                            0.4
+                                                                              -0.1
+                   0.2                            0.2                        -0.15   SNR10
+                                                                              -0.2   SNR50
+                                                                                     Truth
+                    0                              0
+                         0   0.5         1              0    0.5         1
+                              s1                             s1
+
+
+Figure 1: Setup of the elliptic example. (a) The true transmissivity field. (b) The potential p(s) computed from the
+transmissivity field defined in (a), with measurement locations indicated by circles. (c) Data sets: the dashed line
+represents the noise-free potential at each measurement location, while crosses and circles are observations of the
+potential perturbed with Gaussian noise of signal-to-noise ratios 10 and 50, respectively.
+
+   Partial observations of the potential function are collected at 25 measurement sensors as shown
+by the circles in Figure 1(b). The corresponding observation operator M yields the outputs
+
+                                      y = Mp(s) + e,         e ∼ N (0, σ 2 I25 ),
+
+where the observed data is y ∈ R25 . Since amount of information carried in the likelihood function
+affects the structure of the LIS, we use two cases with different noise magnitudes to illustrate this
+relationship. Let the signal-to-noise ratio (SNR) be defined as maxs {u(s)}/σ. The first data set
+is generated with signal to noise ratio 10 (SNR10), and the second set is generated with signal to
+noise ratio 50 (SNR50). Both data sets are shown in Figure 1(c). We note that changing the
+signal-to-noise ratio will have an impact on the LIS dimension similar to changing the number of
+measurements; both affect the amount of information carried in the data.
+
+4.2. Sampling efficiency
+   We now compare the posterior sampling performance of our operator-weighted proposals (Pro-
+posals 3.1–3.4) with that of the pCN-RW and H-Langevin proposals (Proposals 3.5 and 3.6). To
+                                                            25
+build the LIS, the adaptive sampling procedure in Section 3.2.4 is run for 2 × 105 MCMC iterations,
+from which 1000 posterior samples are selected, one every nlag = 200 iterations, to compute the
+expected Hessian. Then we sample the posterior distribution for 106 MCMC iterations using the
+operator-weighted proposals and the benchmark proposals. Samples from the second half of these
+iterations are used to estimate the autocorrelation of the Onsager-Machlup functional (4) and of the
+parameter u projected onto selected eigenfunctions of the prior covariance operator. As the metrics
+of sampling efficiency below will indicate, these sample sizes are significantly larger than one might
+use in practice, particularly with the DILI proposals. Our goal here, however, is to characterize
+the mixing properties of each chain without any potential bias resulting from burn-in and finite
+sample size. Also, our comparisons of mixing along particular directions in the parameter space
+use projections onto prior covariance eigenfunctions because these projections provide a common
+basis for comparison—in contrast to projections w onto modes of the LIS, which can be different
+for different proposals. Moreover, evaluating performance on LIS modes could conceivably yield
+results that are artificially favorable to the DILI proposals.
+    For the SNR10 case, Figure 2 shows the autocorrelation functions of selected components of
+                                                          1/2
+the v parameter. Note that we chose the square root Γpr in Definition 3.2 such that the selected
+components of v correspond to projections of u onto the 1st, 10th, 100th, and 1000th eigenfunctions
+of the prior covariance (i.e., Karhunen-Loève modes). Overall, MGLI-Langevin outperforms the
+other proposals, in some cases quite dramatically. On the low-index eigenfunctions (1 and 10), the
+operator-weighted proposals and the H-Langevin proposal yield similar mixing, as indicated by the
+decay of the autocorrelation. Yet the operator-weighted proposals outperform H-Langevin on the
+higher-index eigenfunctions, as these directions in the parameter space tend to be less constrained
+by the data; indeed, they are more aligned with the CS. This effect can already be observed for
+100th eigenfunction and becomes more significant for the 1000th. Chains produced by pCN-RW
+decorrelate very slowly compared to the other samplers.
+    The autocorrelation of the OMF, shown in Figure 3 along with trace plots for two of the chains,
+provides an alternative summary of sampling performance. Again, we observe that the operator-
+weighed proposals yield shorter autocorrelation times than H-Langevin and pCN-RW.
+    Figure 4 compares the MGLI-Langevin, H-Langevin, and pCN-RW samplers for the SNR50
+case. In parameter directions corresponding to the smoother prior covariance eigenfunctions (e.g.,
+components 1, 10, and 100 of v), the MGLI-Langevin and H-Langevin proposals produce very
+similar autocorrelations. Yet, as in the SNR10 case, MGLI-Langevin significantly outperforms H-
+Langevin for parameter directions corresponding to the high-index eigenfunctions, e.g., v1000 . The
+pCN-RW chain again decorrelates very slowly compared to the other proposals. Looking at the
+OMF in Figure 5, we observe relative performances similar to the SNR10 case: the MGLI-Langevin
+proposal outperforms both pCN-RW and H-Langevin.
+    In both of these test cases, H-Langevin and the operator-weighted proposals have comparable
+sampling efficiency along parameter directions that are dominated by the likelihood; this is not
+surprising, as both use Hessian information from the log-likelihood to scale proposed moves. For
+directions along which the likelihood has a relatively weaker influence than the prior, however, the
+operator-weighted proposals have better sampling efficiency than H-Langevin. To further explore
+this pattern, Figure 6 shows the lag-1 autocorrelation of all 1600 components of v, for both the
+SNR10 and SNR50 cases (subfigures 6(a) and 6(b), respectively). The star symbols represent
+the lag-1 autocorrelation of MCMC samples produced by H-Langevin while the square symbols
+represent results from MGLI-Langevin. We observe that the lag-1 autocorrelations produced by
+
+                                                 26
+                                               (a) 1st component                                                     (b) 10th component
+                            1                                                                         1
+
+                          0.8                                                                        0.8
+
+                          0.6                                                                        0.6
+
+                          0.4                                                                        0.4
+
+                          0.2                                                                        0.2
+
+                            0                                                                         0
+
+                                0    100          200         300        400        500                    0   100       200         300    400   500
+
+                                           (c) 100th component                                                   (d) 1000th component
+                            1                                                                         1
+
+                          0.8                                                                        0.8
+
+                                                                    MGLI-Langevin
+                          0.6                                                                        0.6
+
+               autocorr
+                                                                    MGLI-Prior
+                                                                    LI-Langevin
+                          0.4                                       LI-Prior                         0.4
+                                                                    H-Langevin
+                                                                    PCN-RW
+                          0.2                                                                        0.2
+
+                            0                                                                         0
+
+                                0         50            100            150          200                    0     50            100         150    200
+                                                        lag
+
+
+Figure 2: Autocorrelation functions of selected components of the v parameter produced by various proposals, SNR10
+case. (a) Projection onto the first eigenfunction of the prior covariance; (b) Projection onto the second eigenfunction;
+(c) Projection onto the 100th eigenfunction; (d) Projection onto the 1000th eigenfunction.
+
+                                    (a) trace plot, MGLI-Langevin                                                    (c) autocorrelations
+                    1000                                                                              1
+
+                          800                                                                        0.8
+
+
+                          600                                                                        0.6              MGLI-Langevin
+
+                                                                                          autocorr
+                                5     6            7           8          9       10                                  MGLI-Prior
+                                                                               ×105                  0.4
+                                                                                                                      LI-Langevin
+                                       (b) trace plot, PCN-RW                                                         LI-Prior
+                    1000                                                                                              H-Langevin
+                                                                                                     0.2              PCN-RW
+                          800
+                                                                                                      0
+                          600
+                                5     6            7           8          9       10                       0     50            100         150    200
+                                                 MCMC Steps                    ×10
+                                                                                  5                                            lag
+
+
+Figure 3: Summaries of MCMC mixing via the Onsager-Machlup functional, SNR10 case. (a) Trace plot of OMF
+values produced by MCMC with the MGLI-Langevin proposal. (b) Trace plot of OMF values produced by MCMC
+with the pCN-RW proposal. (c) Autocorrelation of OMF values produced by various proposals.
+
+
+H-Langevin stay almost constant across components of v (i.e., across the prior eigenfunctions). In
+comparison, the lag-1 autocorrelations produced by MGLI-Langevin decrease significantly for the
+components of v corresponding to the high-index eigenfunctions, and are lower on average than the
+autocorrelations from H-Langevin. The other operator-weighted proposals produce similar results,
+though the lag-1 autocorrelations of the lowest-index eigenfunctions are not always smaller with
+
+                                                                                       27
+                                           (a) 1st component                                                  (b) 10th component
+                           1                                                                  1
+
+                         0.8                                                                 0.8
+
+                         0.6                                                                 0.6
+
+                         0.4                                                                 0.4
+
+                         0.2                                                                 0.2
+
+                           0                                                                  0
+
+                               0    1000     2000         3000     4000        5000                0   1000      2000         3000      4000        5000
+
+                                         (c) 100th Component                                              (d) 1000th component
+                           1                                                                  1
+
+                         0.8                                                                 0.8
+
+                         0.6                                                                 0.6
+
+              Autocorr
+                                                               MGLI-Langevin
+                                                               H-Langevin
+                         0.4                                   PCN-RW                        0.4
+
+                         0.2                                                                 0.2
+
+                           0                                                                  0
+
+                               0      500          1000          1500          2000                0   100        200         300        400        500
+                                                    Lag
+
+
+Figure 4: Autocorrelation functions of selected components of the v parameter produced by various proposals, SNR50
+case.
+
+                                   (a) trace plot, MGLI-Langevin                                              (c) autocorrelations
+                   1000                                                                       1
+
+                         800                                                                 0.8
+
+
+                         600                                                                 0.6
+
+                                                                                  autocorr
+                               5     6         7           8         9       10                                                     MGLI-Langevin
+                                                                          ×105               0.4
+                                                                                                                                    H-Langevin
+                                      (b) trace plot, PCN-RW                                                                        PCN-RW
+                   1000
+                                                                                             0.2
+                         800
+                                                                                              0
+                         600
+                               5     6         7           8         9       10                    0   100        200         300        400        500
+                                             MCMC Steps                   ×10
+                                                                             5                                          lag
+
+
+                                   Figure 5: Summaries of MCMC mixing via the OMF, SNR50 case.
+
+
+the operator-weighed proposals than with H-Langevin. For brevity, these results are not shown.
+    In the SNR10 case, the CPU times spent, after adaptive LIS construction, on 106 iterations of
+MCMC with the LI-Prior, LI-Langevin, pCN-RW, and H-Langevin proposal are 0.88 × 105 seconds,
+1.12 × 105 seconds, 0.85 × 105 seconds and 1.25 × 105 seconds, respectively. Here the CPU time
+of LI-Prior is comparable to that of pCN-RW, and the CPU time of LI-Langevin is comparable
+to that of H-Langevin. We also note that the Langevin proposals do not spend much additional
+CPU time on gradient evaluations compared to LI-Prior and pCN-RW, since in the present example
+
+                                                                                  28
+                                                   (a) SNR10                                        (b) SNR50
+                                 1                                                   1
+
+                                0.8                                                 0.8
+
+
+
+               lag 1 autocorr
+                                0.6                                                 0.6
+                                                               H-Langevin                                       H-Langevin
+                                                               MGLI-Langevin                                    MGLI-Langevin
+                                0.4                                                 0.4
+
+                                0.2                                                 0.2
+
+                                 0                                                   0
+                                      0      500          1000           1500             0   500          1000           1500
+                                          components of v parameter
+
+
+Figure 6: The lag-1 autocorrelation of each component of the v parameter. Star and square symbols are the results
+of H-Langevin and MGLI-Langevin, respectively. (a) SNR10 case. (b) SNR50 case.
+
+
+the underlying PDE is self-adjoint and hence the forward solution can be recycled for the adjoint
+evaluation. The CPU times spent on 106 MCMC steps with MGLI-Prior and MGLI-Langevin are
+1.70 × 105 seconds and 2.10 × 105 seconds, respectively. These essentially double the CPU times of
+LI-Prior and LI-Langevin, as expected. The CPU time spent on the adaptive construction of the
+LIS using 1000 posterior samples is about 0.23 × 105 seconds, which is not significant relative to
+the time spent on MCMC sampling. We note that using 1000 samples here is a rather conservative
+choice. From our experience in [23] and the convergence study shown next (see Figure 9), about
+500 samples are sufficient to estimate an LIS with good accuracy. For the SNR50 case, the CPU
+times spent on each of the proposals and on the LIS construction are similar to those of the SNR10
+case, and thus are not reported for brevity.
+
+4.3. Global versus local LIS
+    It is useful to quantify the impact of “globalizing” the LIS on sampling efficiency. In particular,
+we wish to contrast the performance of operator-weighted proposals constructed from a global
+LIS, based on the posterior expected Hessian (as in Section 3.2.2), with that of operator-weighted
+proposals constructed from a single local LIS, based on the Hessian at the MAP. For brevity, we
+limit our comparisons to Proposal 3.4 (MGLI-Langevin). The global LIS is constructed using the
+adaptive sampling strategy detailed at the start of Section 4.2. Results produced with the global LIS
+are labeled ‘Adapt-LIS’ in the figures below. Results obtained with the MGLI-Langevin proposal
+employing a local LIS at the MAP are denoted ‘MAP-LIS.’ Note that the local LIS in the current
+problem has dimension at most 25, since the inverse problem has 25 observations. The global LIS
+can be much larger, since it accounts for posterior variation in the dominant eigenspace of the
+Hessian. In the current setup, the global LIS for the SNR10 case has dimension r = 66 while for
+the SNR50 case it has dimension r = 193; both of these are obtained with truncation thresholds
+τloc = τg = 0.01.
+    Figures 7 and 8 summarize relative sampling performance for both the SNR10 and SNR50 cases.
+We show the autocorrelation of the OMF for each algorithm and the lag-1 autocorrelations of each
+component of v. In both test cases, using a global LIS produces better mixing than a single local
+LIS. The improvement in mixing for the OMF seems slightly more pronounced for the larger-noise
+case (SNR10) than the smaller-noise case (SNR50). This may be due to the broader posterior of
+the former; since the nonlinear forward model is the same in both cases, the variation of the Hessian
+becomes more significant when wider ranges of the parameter space are explored. On the other
+hand, the lag-1 autocorrelations show greater improvements in the SNR50 case. Here, the higher
+                                                                               29
+dimension of the global LIS relative to the local LIS (193 to 25 in the SNR50 case versus 66 to 25
+in the SNR10 case) may play a role. The global LIS is larger in the SNR50 case because the data
+carry more information.
+
+                                              (a) OMF                                      (b) lag 1 autocorrelation of v
+                                1                                                1
+                                                              MAP-LIS                                                MAP-LIS
+                               0.8                            Adapt-LIS         0.8                                  Adapt-LIS
+
+
+
+                    autocorr
+                               0.6                                              0.6
+                               0.4
+                                                                                0.4
+                               0.2
+                                                                                0.2
+                                0
+                                                                                 0
+                                     0   10   20         30      40       50          0        500           1000           1500
+                                                   lag                                     components of v parameter
+
+
+Figure 7: Sampling performance of Adapt-LIS (solid line) and MAP-LIS (dashed line), SNR10 case. (a) Autocorre-
+lation of the OMF. (b) Lag-1 autocorrelation of each component of the v parameter.
+
+
+                                              (a) OMF                                      (b) lag 1 autocorrelation of v
+                                1                                                1
+                                                              MAP-LIS
+                               0.8                            Adapt-LIS         0.8
+
+
+
+                    autocorr
+                               0.6                                              0.6
+                                                                                                                     MAP-LIS
+                               0.4                                                                                   Adapt-LIS
+                                                                                0.4
+                               0.2
+                                                                                0.2
+                                0
+                                                                                 0
+                                     0   50   100    150         200      250         0        500           1000           1500
+                                                   lag                                     components of v parameter
+
+
+       Figure 8: Sampling performance of Adapt-LIS (solid line) and MAP-LIS (dashed line), SNR50 case.
+
+
+
+4.4. LIS under grid refinement
+    We now explore how grid refinement affects the dimensionality and structure of the global LIS,
+as well as the convergence of the adaptive procedure for constructing it. In the examples below,
+the transmissivity field κ(s) and the associated potential function p(s) are discretized on 40 × 40,
+80 × 80, and 120 × 120 grids.
+    Figure 9 shows the dimension of the LIS and the convergence diagnostic (33) versus the number
+of samples used in the adaptive construction process, for the SNR50 case only. For all three
+discretizations, the distance (33) between likelihood-informed subspaces at adjacent iterations drops
+by several orders of magnitude over the course of the adaptive sampling procedure, as shown in
+Figure 9(b). The rates of convergence of this distance are comparable for all three discretizations.
+After a few hundred samples, the dimensionality of LIS also converges for all three discretizations.
+Note that the 40 × 40 grid yields a slightly higher-dimensional LIS than the two more refined grids:
+at the end of the adaptive procedure, the LIS of the 40 × 40 grid has dimension r = 193, while the
+80 × 80 and 120 × 120 grids yield r = 178 and r = 176, respectively. This effect can be ascribed to
+discretization errors on the 40 × 40 grid; since the forward model converges under grid refinement,
+we expect the dimension of the associated LIS also to converge. The first five basis vectors of
+
+                                                                                      30
+                                                (a) LIS dimension                                 (b) LIS convergence diagnostic
+                                200                                                        10-2
+                                                                                                                        40 × 40
+                                                                                                                        80 × 80
+                                150
+                                                                                                                        120 × 120
+
+
+                    dimension                                                 diagnostic
+                                                                                           10-4
+                                100
+
+                                                                40 × 40
+                                 50                             80 × 80                    10-6
+                                                                120 × 120
+                                  0
+                                        200 400 600 800 1000 1200 1400                            200 400 600 800 1000 1200 1400
+                                                    iteration                                               iteration
+
+
+Figure 9: The dimension of the LIS and the subspace convergence diagnostic (33) versus the number of samples used
+in the adaptive algorithm; SNR50 case. Dotted, dashed, and solid lines represent the 40 × 40, 80 × 80, and 120 × 120
+grids, respectively. (a) The dimension of the LIS. (b) The convergence diagnostic.
+
+
+the LIS for the various discretizations are plotted in Figure 10. Similar structures are observed at
+different levels of grid refinement.
+                                      Index 1            Index 2            Index 3                    Index 4            Index 5
+
+
+
+
+                40 × 40
+
+
+
+
+                80 × 80
+
+
+
+
+                120 × 120
+
+
+
+
+Figure 10: The first five basis functions of the LIS for three different levels of grid refinement; SNR50 case. Top row:
+40 × 40 grid, middle row: 80 × 80 grid, and bottom row: 120 × 120 grid.
+
+
+
+5. Example 2: Conditioned diffusion
+   In this section, we use noisy point-wise observations of the path of a particle, diffusing in a
+double-well potential, to infer the driving force on the particle and hence its pushforward to the
+path itself. This example is motivated by applications in molecular dynamics.
+
+5.1. Problem setup
+    Consider a stochastic process p : [0, T ] → R governed by the following Langevin SDE:
+                                                          dpt = f (pt )dt + dut ,                 p0 = 0,                           (48)
+                                                                            31
+where f : R → R is globally Lipschitz and dut is an increment of the Brownian motion u ∼ µ0 =
+N (0, C), where C(t, t0 ) = min(t, t0 ). Let the function f have the following form
+
+                                    f (p) := βp(1 − p2 )/(1 + p2 ),
+                                                           Rp
+with β > 0. The corresponding potential is E(p) = − −∞ f (s)ds. From any initial condition p0 ,
+the state pt approaches the invariant measure ofRthe SDE, which has a density Z −1 exp (−2E(p))
+with respect to Lebesgue measure, where Z = R exp (−2E(s)) ds. Since the potential E has a
+double-well shape, the invariant measure is bimodal and paths of (48) will transition from one well
+to the other, with a probability dependent on the magnitude of the stochastic forcing and on the
+scale β of the potential. We will use β = 10 in the examples below. This model is ubiquitous in the
+sciences, perhaps most notably in molecular dynamics where it represents the motion of a particle
+with negligible mass trapped in an energy potential E with thermal fluctuations represented by the
+Brownian forcing.
+    We refer the reader to [5] for a proof that the map u 7→ p is continuous and differentiable
+from C([0, T ], R) → C([0, T ], R). The fact that µ0 (C([0, T ], R)) = 1 follows from the well-known
+property that continuous functions have probability one under Wiener measure. Therefore, this
+Bayesian inverse problem is well-defined [5], and it fits into the framework developed in Section 3.
+The observation operator is defined by Mp := [pt1 , pt2 , . . . , pt20 ]T , and we let
+
+                                  y = Mp + e,     e ∼ N (0, σ 2 I20 ),
+
+where σ = 0.1 and the observation times ti are equispaced within the interval [0, 10]. An Euler-
+Maruyama scheme is used for integration with ∆t = 10−2 , and hence the dimension of our approx-
+imation of this infinite-dimensional pathspace is N = 1000.
+
+5.2. Numerical results
+     We now evaluate the efficiency of the MCMC proposals from Section 3.3 and Section 3.5 on the
+conditioned diffusion example. Figure 11 illustrates the solution to the forward problem taken as the
+truth, the noisy observations of this particular path, and the results of subsequent conditioning—
+i.e., aspects of the posterior. In particular, we show the posterior mean, marginals of the posterior
+density at each time step, and the 0.05 and 0.95 quantiles of the local marginals. Note that the time
+interval t ∈ [0, 10] considered here is long enough to capture two transitions between the potential
+wells. Our numerical experiments use the same chain lengths and burn-in intervals as in the elliptic
+example, detailed in Section 4.2. We also use the same number of iterations as before to adaptively
+construct the global LIS.
+     The numerical results in Figures 12–14 highlight the strong performance of the DILI samplers
+developed in this paper. Figure 12 summarizes the sampling efficiency of each MCMC scheme
+via traces and autocorrelations of the OMF. Not only do the DILI algorithms outperform pCN,
+but they also show dramatically improved mixing over H-Langevin; here, H-Langevin performs
+almost as poorly as pCN. This contrasts with the elliptic PDE cases examined in Section 4, where
+the performance of H-Langevin was reasonably close to that of the DILI proposals. Plots of lag-1
+autocorrelation in Figure 13 reinforce this notion, showing much faster decay of lag-1 autocorrelation
+with MGLI-Langevin than with H-Langevin across the first 1000 eigenfunctions of the prior.
+     Figure 14 shows how mixing performance is improved by using a global LIS rather than a
+local LIS based on the Hessian at the MAP. Both traces in this figure use the MGLI-Langevin
+algorithm, but those marked ‘Adapt-LIS’ use a global LIS constructed via the adaptive algorithm
+                                                 32
+                           2
+                                                                  truth
+                      1.5                                         observation
+                                                                  mean p
+                                                                  0.05 quantile
+                           1                                      0.95 quantile
+
+                      0.5
+
+                 pt        0
+
+                      -0.5
+
+                       -1
+
+                      -1.5
+
+                       -2
+                               0       1        2    3   4         5              6   7          8   9       10
+                                                                  time
+
+
+
+
+                       8
+
+                       6
+
+                       4
+
+                       2
+
+                       0
+                       2
+                                   1                                                                              10
+                                           0                                                             8
+                                                                                                 6
+                                           pt       -1                                4
+                                                                            2             time
+                                                         -2   0
+
+
+
+Figure 11: Setup of the conditioned diffusion example. Top: the true trajectory, the noisy observations, the posterior
+mean of the trajectory, the 0.05 and 0.95 quantiles of the trajectory marginalized at each time. The posterior density
+of the trajectory marginalized at each time is shown as the grayscale background image. Bottom: the posterior
+density of the trajectory marginalized at selected times.
+
+
+of Section 3.2.4. The global LIS clearly yields a much faster decay of the OMF autocorrelation and
+better mixing, as measured by lag-1 autocorrelations, across all components of v.
+
+6. Conclusions
+    This paper has introduced a general class of operator-weighted MCMC proposals that are well
+defined on function space. In Bayesian inference problems that require exploring a posterior distri-
+bution over functions, these proposals yield MCMC sampling performance that is invariant under
+refinement of the discretization of these functions, and hence dimension-independent. While this
+class includes earlier dimension-independent algorithms [10, 11, 22] as particular cases, we use the
+versatility offered by our new family of proposals to design samplers that exploit posterior structure
+wherein departures from the prior—including non-Gaussianity—are concentrated on a finite number
+of directions, captured by a global likelihood-informed subspace (LIS). The global LIS is identified
+by approximating the posterior expectation of the Hessian of a preconditioned data-misfit func-
+tional. A further adaptive strategy based on this decomposition yields computationally affordable
+                                                              33
+                                      (a) trace plot, MGLI-Langevin                                                                    (c) autocorrelations
+                                                                                                                    1
+                600
+
+                500                                                                                                0.8
+
+                400
+
+                                                                                                        autocorr
+                      5                    6           7                8            9       10                    0.6                    MGLI-Langevin
+                                                                                                                                          MGLI-Prior
+                                                                                          ×105                                            LI-Langevin
+                                               (b) trace plot, PCN-RW                                                                     LI-Prior
+                                                                                                                   0.4
+                                                                                                                                          H-Langevin
+                600                                                                                                                       PCN-RW
+                                                                                                                   0.2
+                500
+
+                400                                                                                                 0
+                      5                    6           7                8            9       10                          0        20        40         60         80       100
+                                                   MCMC Steps                             ×105                                                   lag
+
+
+Figure 12: Summaries of MCMC mixing for the conditioned diffusion example. (a) Trace plot of the OMF produced
+by MGLI-Langevin. (b) Trace plot of the OMF produced by pCN-RW. (c) Autocorrelation of the OMF, as produced
+by various proposals.
+
+                                                                1
+
+                                                           0.8
+
+                                                           0.6
+                                                                                                                               H-Langevin
+                                                                                                                               MGLI-Langevin
+                                                           0.4
+
+                                                           0.2
+
+                                                                0
+                                                                    0            200          400                    600           800         1000
+                                                                                  components of v parameter
+
+
+Figure 13: The lag-1 autocorrelation of each component of the v parameter for the conditioned diffusion example.
+Star and square symbols are produced by H-Langevin and MGLI-Langevin proposals, respectively.
+
+                                                           (a) OMF                                                       (b) lag 1 autocorrelation of v
+                                      1                                                        1
+
+                                     0.8                                                      0.8
+
+
+
+                          autocorr
+                                     0.6                                                      0.6
+                                                                             MAP-LIS                                                                    MAP-LIS
+                                                                             Adapt-LIS                                                                  Adapt-LIS
+                                     0.4                                                      0.4
+
+                                     0.2                                                      0.2
+
+                                      0                                                        0
+                                           0      10       20           30      40       50         0                    200        400        600          800     1000
+                                                                lag                                                          components of v parameter
+
+
+Figure 14: Sampling performance of MGLI-Langevin with a global LIS (Adapt-LIS, solid line) versus a local LIS
+(MAP-LIS, dashed line) for the conditioned diffusion example. (a) Autocorrelation of the OMF. (b) Lag-1 autocor-
+relation of each component of the v parameter.
+
+
+approximations of the posterior covariance. All of this geometric information is used to construct
+dimension-independent and likelihood-informed (DILI) proposal distributions; the four variations
+studied here (Proposals 3.1–3.4) also make use of local gradient information and Metropolis-within-
+Gibbs updates. Numerical experiments for two nonlinear inverse problems suggest that these DILI
+
+                                                                                                    34
+samplers offer significant gains in sampling efficiency over current state-of-the-art algorithms.
+    This work can be extended in many directions. First, one can certainly consider alternative
+constructions of the LIS. Of particular interest are parallel methods for constructing the global LIS,
+strategies for infinite batch-updating of the LIS that are compatible with adaptive MCMC, and even
+directed strategies for optimally exploring the variation of the preconditioned data-misfit Hessian. If
+only gradients of the data-misfit function are available, one might resort to so-called active subspace
+methods [47, 48] as an alternative way of building up LIS-like information. If gradients are also
+not available, then a different approach might be taken, for example adaptively building covariance
+information from samples and using regularized estimates to build an approximate LIS.
+    Second, many other operator-weighted proposal constructions are possible. For example, given
+the approximation of the empirical posterior covariance Σ = Ψr (Dr − Ir ) Ψ∗r + I defined in (30), we
+can define the operators
+
+                                  A = (ar − a⊥ )Ψr Ψ∗r + a⊥ I
+                                  B = Ψr (br Dr 1/2 − b⊥ Ir )Ψ∗r + b⊥ I
+                                  G = 0,
+                                                         p             q
+where ar , a⊥ ∈ (−1, 1), and br and b⊥ take values 1 − ar and 1 − a2⊥ , respectively. Given a set
+                                                                2
+
+of posterior samples {u1 , . . . , un }, by setting the reference variable mref to be the difference of the
+empirical posterior mean and the prior mean, i.e., mref = n1 nk=1 uk − m0 , the resulting proposal
+                                                                    P
+(13) has a Gaussian approximation of the posterior as its invariant distribution.
+    Finally, while this work has focused on the design of global operators (e.g., A, B, and G that do
+not depend on the local parameter value), there is much room to combine global and local opera-
+tors. As an example of the latter, [49] uses a semi-implicit discretization of a locally-preconditioned
+Langevin equation to derive a proposal that, under appropriate assumptions, yields a dimension-
+independent MCMC algorithm. The present work may provide a rather general way of constructing
+local preconditioners that satisfy these assumptions. In particular, the partition of parameter space
+induced by the LIS provides an opportunity to introduce a variety of efficient proposals on the LIS
+(e.g., locally-preconditioned manifold MALA, even RMHMC) while preserving dimension indepen-
+dence through a suitable discretization of a Langevin equation on the CS. Combining proposals in
+this manner extends beyond the notion of local preconditioning. We leave a fuller development of
+these ideas to future work.
+
+Acknowledgments
+
+    T. Cui and Y. M. Marzouk acknowledge financial support from the US Department of Energy,
+Office of Advanced Scientific Computing Research (ASCR), under grant number DE-SC0009297,
+as part of the DiaMonD Multifaceted Mathematics Integrated Capability Center. K.J.H. Law was
+supported by the King Abdullah University of Science and Technology (KAUST) SRI UQ Center,
+and an Oak Ridge National Laboratory Directed Research and Development Strategic Hire grant.
+
+References
+ [1] A. Tarantola, Inverse Problem Theory and Methods for Model Parameter Estimation, Society for Industrial
+     Mathematics, Philadelphia, 2005.
+
+
+                                                    35
+ [2] J. P. Kaipio, E. Somersalo, Statistical and Computational Inverse Problems, volume 160, Springer, New York,
+     2004.
+ [3] A. M. Stuart, Inverse problems: a Bayesian perspective, Acta Numerica 19 (2010) 451–559.
+ [4] A. Beskos, O. Papaspiliopoulos, G. O. Roberts, P. Fearnhead, Exact and computationally efficient likelihood
+     based estimation for discretely observed diffusion processes (with discussion), Journal of the Royal Statistical
+     Society: Series B (Statistical Methodology) 68 (2006) 333–382.
+ [5] M. Hairer, A. M. Stuart, J. Voss, Signal processing problems on function space: Bayesian formulation, stochastic
+     PDEs and effective MCMC methods, in: D. Crisan, B. Rozovsky (Eds.), The Oxford Handbook of Nonlinear
+     Filtering, Oxford University Press, 2011.
+ [6] G. O. Roberts, A. Gelman, W. R. Gilks, Weak convergence and optimal scaling of random walk Metropolis
+     algorithms, Annals of Applied Probability 7 (1997) 110–120.
+ [7] G. O. Roberts, J. S. Rosenthal, Optimal scaling of various Metropolis-Hastings algorithms, Statistical Science
+     16 (2001) 351–367.
+ [8] J. C. Mattingly, N. Pillai, A. M. Stuart, Diffusion limits of the random walk Metropolis algorithm in high
+     dimensions, Annals of Applied Probability 22 (2012) 881–930.
+ [9] N. S. Pillai, A. M. Stuart, A. H. Thiery, Optimal scaling and diffusion limits for the Langevin algorithm in high
+     dimensions, Annals of Applied Probability 22 (2012) 2320–2356.
+[10] A. Beskos, G. O. Roberts, A. M. Stuart, J. Voss, MCMC methods for diffusion bridges, Stochastic Dynamics
+     8 (2008) 319–350.
+[11] S. L. Cotter, G. O. Roberts, A. M. Stuart, D. White, MCMC methods for functions: modifying old algorithms
+     to make them faster, Statistical Science 28 (2013) 424–446.
+[12] N. Chopin, A sequential particle filter method for static models, Biometrika 89 (2002) 539–552.
+[13] P. D. Moral, A. Doucet, A. Jasra, Sequential Monte Carlo samplers, Journal of the Royal Statistical Society:
+     Series B (Statistical Methodology) 68 (2006) 411–436.
+[14] C. Andrieu, A. Doucet, R. Holenstein, Particle Markov chain Monte Carlo methods, Journal of the Royal
+     Statistical Society: Series B (Statistical Methodology) 72 (2010) 269–342.
+[15] M. B. Giles, Multi-level Monte Carlo path simulation, Operations Research 56 (2008) 607–617.
+[16] A. Beskos, A. Jasra, N. Kantas, Sequential Monte Carlo methods for high-dimensional inverse problems: A case
+     study for the Navier-Stokes equations, preprint (2013) arXiv:1307.6127.
+[17] V. H. Hoang, C. Schwab, A. M. Stuart, Complexity analysis of accelerated MCMC methods for Bayesian
+     inversion, Inverse Problems 29 (2013) 085010.
+[18] C. Ketelsen, R. Scheichl, A. L. Teckentrup, A hierarchical multilevel Markov chain Monte Carlo algorithm with
+     applications to uncertainty quantification in subsurface flow, preprint (2013) arXiv:1303.7343.
+[19] J. Martin, L. C. Wilcox, C. Burstedde, O. Ghattas, A stochastic Newton MCMC method for large-scale
+     statistical inverse problems with application to seismic inversion, SIAM Journal on Scientific Computing 34
+     (2012) A1460–A1487.
+[20] M. Girolami, B. Calderhead, Riemann manifold Langevin and Hamiltonian Monte Carlo methods, Journal of
+     the Royal Statistical Society: Series B (Statistical Methodology) 73 (2011) 123–214.
+[21] A. Spantini, A. Solonen, T. Cui, J. Martin, L. Tenorio, Y. Marzouk, Optimal low-rank approximation of linear
+     Bayesian inverse problems, preprint (2014). arXiv:1407.3463.
+[22] K. J. Law, Proposals which speed up function-space MCMC, Journal of Computational and Applied Mathe-
+     matics 262 (2014) 127–138.
+[23] T. Cui, J. Martin, Y. Marzouk, A. Solonen, A. Spantini, Likelihood-informed dimension reduction for nonlinear
+     inverse problems, Inverse Problems 30 (2014) 114015.
+[24] M. Dashti, K. J. H. Law, A. M. Stuart, J. Voss, MAP estimators and posterior consistency in Bayesian
+     nonparametric inverse problems, Inverse Problems 29 (2013) 095017.
+[25] N. Metropolis, A. W. Rosenbluth, M. N. Rosenbluth, A. H. Teller, E. Teller, Equation of state calculations by
+     fast computing machines, Journal of Chemical Physics 21 (1953) 1087–1092.
+[26] W. Hastings, Monte Carlo sampling using Markov chains and their applications, Biometrika 57 (1970) 97–109.
+[27] L. Tierney, A note on Metropolis-Hastings kernels for general state spaces, Annals of Applied Probability 8
+     (1998) 1–9.
+[28] J. E. Besag, Discussion of “representations of knowledge in complex systems” by U. Grenander and M. I. Miller,
+     Journal of the Royal Statistical Society: Series B (Statistical Methodology) 56 (1994) 549–603.
+[29] G. O. Roberts, J. S. Rosenthal, Optimal scaling of discrete approximations to Langevin diffusions, Journal of
+     the Royal Statistical Society: Series B (Statistical Methodology) 60 (1998) 255–268.
+[30] M. Hairer, A. M. Stuart, S. Vollmer, Spectral gaps for a Metropolis-Hastings algorithm in infinite dimensions,
+
+                                                         36
+     Annals of Applied Probability 24 (2014) 2455–2490.
+[31] H. P. Flath, L. C. Wilcox, V. Akcelik, J. Hill, B. van Bloemen Waanders, O. Ghattas, Fast algorithms for
+     Bayesian uncertainty quantification in large-scale linear inverse problems based on low-rank partial Hessian
+     approximations, SIAM Journal on Scientific Computing 33 (2011) 407–432.
+[32] T. Bui-Thanh, C. Burstedde, O. Ghattas, J. Martin, G. Stadler, L. C. Wilcox, Extreme-scale UQ for Bayesian
+     inverse problems governed by PDEs, in: ACM/IEEE Supercomputing SC12, Salt Lake City, Utah, 2012.
+[33] T. Bui-Thanh, O. Ghattas, J. Martin, G. Stadler, A computational framework for infinite-dimensional Bayesian
+     inverse problems. Part I: The linearized case, with application to global seismic inversion, SIAM Journal on
+     Scientific Computing 35 (2013) A2494–A2523.
+[34] W. Förstner, M. Boudewijn, A metric for covariance matrices, in: Geodesy: The Challenge of the 3rd Millen-
+     nium, Springer, Berlin Heidelberg, 2003, pp. 299–309.
+[35] H. Haario, E. Saksman, J. Tamminen, An adaptive Metropolis algorithm, Bernoulli 7 (2001) 223–242.
+[36] Y. F. Atchadé, An adaptive version for the Metropolis adjusted Langevin algorithm with a truncated drift,
+     Methodology and Computing in Applied Probability 8 (2006) 235–254.
+[37] G. H. Golub, C. F. V. Loan, Matrix Computations, JHU Press, 2012.
+[38] N. Halko, P. Martinsson, J. A. Tropp, Finding structure with randomness: Probabilistic algorithms for con-
+     structing approximate matrix decompositions, SIAM Review 53 (2011) 217–288.
+[39] E. Liberty, F. Woolfe, P. G. Martinsson, V. Rokhlin, M. Tygert, Randomized algorithms for the low-rank
+     approximation of matrices, Proceedings of the National Academy of Sciences 104 (2007) 20167–20172.
+[40] M. Brand, Incremental singular value decomposition of uncertain data with missing values, in: Computer
+     Vision – ECCV 2002, Springer, Berlin Heidelberg, 2002, pp. 707–720.
+[41] F. Li, Q. Dai, W. Xu, G. Er, Weighted subspace distance and its applications to object recognition and retrieval
+     with image sets., Signal Processing Letters, IEEE 16 (2009) 227–230.
+[42] C. Andrieu, E. Moulines, On the ergodicity properties of some adaptive MCMC algorithms, The Annals of
+     Applied Probability 16 (2006) 1462–1505.
+[43] G. O. Roberts, J. S. Rosenthal, Coupling and ergodicity of adaptive Markov chain Monte Carlo algorithms,
+     Journal of Applied Probability 44 (2007) 458–475.
+[44] E. Saksman, M. Vihola, et al., On the ergodicity of the adaptive metropolis algorithm on unbounded domains,
+     The Annals of applied probability 20 (2010) 2178–2203.
+[45] G. O. Roberts, S. Stramer, Langevin diffusions and Metropolis-Hastings algorithms, Methodology and Com-
+     puting in Applied Probability 4 (2002) 337–357.
+[46] N. Petra, J. Martin, G. Stadler, O. Ghattas, A computational framework for infinite-dimensional Bayesian
+     inverse problems: Part II. Stochastic Newton MCMC with application to ice sheet flow inverse problems, SIAM
+     Journal on Scientific Computing (2014). To appear.
+[47] T. M. Russi, Uncertainty quantification with experimental data and complex system models, Ph.D. thesis,
+     University of California, Berkeley, 2010.
+[48] P. G. Constantine, E. Dow, Q. Wang, Active subspace methods in theory and practice: Applications to kriging
+     surfaces, SIAM Journal on Scientific Computing 36 (2014) A1500–A1524.
+[49] A. Beskos, A stable manifold MCMC method for high dimensions, Statistics & Probability Letters 90 (2014)
+     46–52.
+[50] G. D. Prato, J. Zabczyk, Stochastic equations in infinite dimensions, Cambridge University Press, 1992.
+
+
+Appendix A. Feldman-Hajek Theorem
+
+    By the Feldman-Hajek Theorem (see Theorem 2.23 of [50]), a pair of Gaussian measures
+N (m1 , Γ1 ) and N (m2 , Γ2 ) are equivalent measures if and only if the following conditions are satis-
+fied:
+                                                                                             
+                                                                               1/2          1/2
+   1. The two measures have the same Cameron-Martin space, i.e., Im Γ1               = Im Γ2 .
+   2. The difference between the mean functions is in the Cameron-Martin space, i.e., m1 − m2 ∈
+          1/2
+      Im(Γ1 ).
+                                       −1/2 1/2 ∗
+                                            
+                           −1/2 1/2
+   3. The operator T = Γ1 Γ2          Γ1 Γ2       − I is Hilbert-Schmidt.
+
+
+                                                         37
+Appendix B. Proof of Theorem 3.1
+
+   Let q(u, du0 ) denote the proposal distribution defined by (13), which has the form
+
+            u0 = Γ1/2   −1/2                        1/2        1/2     1/2
+                  pr AΓpr (u − uref ) + uref + Γpr Bξ − Γpr GΓpr ∇u η(u; y)
+                                                                                            
+                        −1/2                                     0         ∗ 1/2
+               = Γ1/2
+                  pr  AΓpr   (u − uref ) + uref + Γ 1/2
+                                                    pr  Ψ   DB ξ   − DG  Ψ  Γpr  ∇ u η(u; y)     (B.1)
+
+                                                                              1/2
+where ξ ∼ N (0, I), ξ 0 = Ψ∗ ξ, and uref = m0 + mref with mref ∈ Im(Γpr ). We note that ξ 0 ∼ N (0, I)
+because Ψ is an unitary operator.
+                                1/2
+   The term DB ξ 0 − DG Ψ∗ Γpr ∇u η(u; y) can be decomposed as
+                              (                                 
+                                                    1/2
+                                  bi ξi0 − gi ui ∗ Γpr ∇u η(u; y)  if bi 6= 0
+                                0                                    if bi = 0
+                                                                                  
+                                 1/2             1/2                  1/2
+Therefore the Gaussian laws for Γpr ΨDB ξ 0 and Γpr Ψ DB ξ 0 − DG Ψ∗ Γpr ∇u η(u; y) are equivalent
+                                                1/2
+since, by assumption, Γpr ∇u η(u; y) ∈ Im(Γpr ).
+    Following the argument in the proof of Theorem 4.1 of [10], we can define a simplified proposal
+distribution q̃(u, du0 ) by
+
+                          u0 = Γ1/2  −1/2                     1/2
+                                pr AΓpr (u − uref ) + uref + Γpr ΨDB ξ
+                                                                       0
+
+                                      −1/2
+                              = Γ1/2                           1/2
+                                 pr AΓpr (u − uref ) + uref + Γpr Bξ,                            (B.2)
+
+where q̃(u, du0 ) is equivalent to q(u, du0 ). Now we consider the pair of measures
+
+                                     ν̃(du, du0 ) = q̃(u, du0 )µ0 (du),
+                                    ν̃ ⊥ (du, du0 ) = q̃(u0 , du)µ0 (du0 ),                      (B.3)
+
+which are joint Gaussian measures on (u, u0 ). Under the assumption that µy and µ0 are equiv-
+alent, ν̃ and ν̃ ⊥ are equivalent to the measures ν(du, du0 ) = q(u, du0 )µy (du) and ν ⊥ (du, du0 ) =
+q(u0 , du)µy (du0 ), respectively. To provide a well-defined MH algorithm for the infinite dimensional
+posterior measure µy , one requires that ν̃ and ν̃ ⊥ are equivalent measures, i.e., that
+
+                                                 dν̃ ⊥
+                                                       (u, u0 )
+                                                  dν̃
+is positive and bounded ν̃-almost surely. In the rest of this proof, we will establish the equivalence
+of ν̃ and ν̃ ⊥ , given the conditions provided above.
+     The pair of Gaussian measures ν̃ and ν̃ ⊥ have the form
+
+                      ν̃(du, du0 ) = N (m1 , C1 ) and ν̃ ⊥ (du, du0 ) = N (m2 , C2 ) .           (B.4)
+                                                         1/2
+Recall that uref = m0 + mref , where mref ∈ Im(Γpr ). The mean functions of ν̃ and ν̃ ⊥ have the
+form
+                                         !                                            !
+            m0                                                      1/2   −1/2
+                                                       m0 + mref − Γpr AΓpr mref
+   m1 =                  1/2    −1/2       and m2 =                                     , (B.5)
+            m0 + mref − Γpr AΓpr mref                  m0
+                                                      38
+respectively. The covariance operators of ν̃ and ν̃ ⊥ are
+
+                                         C1 = LQ1 L∗ and C2 = LQ2 L∗ ,                                              (B.6)
+
+respectively, where
+                                                                                                            !
+                                      2                                                      1/2
+                                      DA + D2B DA
+                                                
+                I    DA                                                                      Γpr Ψ   0
+      Q1 =                    , Q2 =                , and L =                                                   .
+               DA D2A + D2B              DA     I                                              0
+                                                                                                    1/2
+                                                                                                   Γpr Ψ
+
+   We now apply the Feldman-Hajek (FH) Theorem (see Appendix A) to show that ν̃ and ν̃ ⊥ are
+equivalent measures, given that the conditions in Theorem 3.1 hold. First we consider the mean
+(condition (2) of the FH theorem). The difference between the mean functions m1 and m2 is
+                                                                 !
+                                            1/2   −1/2
+                                          Γpr AΓpr mref − mref
+                            m1 − m2 =              1/2  −1/2       ,
+                                          mref − Γpr AΓpr mref
+                                 1/2                                                                        1/2
+by (B.5). Since mref ∈ Im(Γpr ) and A is a bounded operator, we have m1 − m2 ∈ Im(C1 ).
+    To show the covariance conditions of the FH theorem, first we decompose the space into H0 ⊕H0
+where H0 = span{ψi }bi =0 and H0 = span{ψi }bi 6=0 . Furthermore, note that due to the block
+structure of diagonal operators, we decompose the product space into H02 ⊕H02 , where Ci = C0i ⊕C0,i
+and C0i and C0,i act only on H02 and H02 respectively. Note that C01 = C02 by Assumption2.1 (2), so
+conditions (1) and (3) of the FH theorem are automatically satisfied. We will consider the measures
+restricted to the H02 space. Indeed, without loss of generality, we will assume |bi | ≥ c > 0 for all
+i ∈ N for the remainder of the proof, so that H2 = H02 .
+    For condition (1) of the FH theorem, note that given conditions (1)–(3) of Theorem 3.1, there
+exist constants c1 , c2 > 0 such that
+
+                  c1 kxk < kQ1 xk < c2 kxk and c1 kxk < kQ2 xk < c2 kxk, ∀x ∈ H2 .
+                      1/2              1/2                                       1/2                1/2             1/2
+Thus the operators Q1 and Q2 have the same image, i.e., Im(Q2 ) = Im(Q2 ). Since Ci =
+   1/2                                       1/2        1/2
+LQi for i = 1, 2, we have immediately Im(C1 ) = Im(C2 ).
+   For condition (3) of the FH theorem, note that the operators Q1 and Q2 can be decomposed as
+Q1 = R1 R∗1 and Q2 = R2 R∗2 , where
+                                                                 
+                                    I   0                 DB DA
+                          R1 =                and R2 =                .                  (B.7)
+                                   DA DB                    0    I
+Thus C1 and C2 can be decomposed as
+
+                                C1 = (LR1 ) (LR1 )∗ and C2 = (LR2 ) (LR2 )∗ ,
+
+respectively. Recollecting terms we have
+                                                                          !
+                            D2A + D2B − I           −DA D−1
+                                                         B  D 2 + D2 − I
+                                                              A     B
+                  T=                                 2 + D−2 I − D2 2 − I    .                                      (B.8)
+                            −DA D−1     2 + D2 − I
+                                                                   
+                                  B    DA    B      DA    B       A
+
+So                                               2                 2      
+                          ∞
+                          X      a2i + b2i − 1          a2i + b2i − 1 + 2b2i           ∞
+                                                                                       X                   2
+         trace (T∗ T) =                                                          <K           a2i + b2i − 1 ,
+                          i=1
+                                                        b4i                            i=1
+                                                              39
+for some K < ∞, and hence the operator T is Hilbert-Schmidt given that condition (4) of Theorem
+3.1 holds.
+    Therefore for operators A, B, and G that satisfy the conditions of Theorem 3.1, the proposal
+(13) yields a well-defined MH algorithm for the infinite dimensional posterior measure µy that is
+equivalent to the prior measure µ0 .
+
+Appendix C. Proof of Corollary 3.5
+
+   Condition (2) of Theorem 3.1 defines a conditional update, in which the components corre-
+sponding to bi = 0 are fixed. These fixed components do not affect the acceptance probability, so
+we will assume |bi | ≥ c > 0 for all i ∈ N in this proof.
+   As in Appendix B, we first define the pair of proposals
+
+                                    q(v, dv 0 ) : v 0 = Av + Bξ − G∇v η(v; y),
+                                    q̃(v, dv 0 ) : v 0 = Av + Bξ.
+
+Then we define the pair of measures ν(dv, dv 0 ) and ν̃(dv, dv 0 ) associated with this pair of proposals
+as ν(dv, dv 0 ) = q(v, dv 0 )µy (dv), and ν̃(dv, dv 0 ) = q̃(v, dv 0 )µ0 (dv), respectively. Here µ0 = N (0, I).
+We can define ν ⊥ (dv, dv 0 ) and ν̃ ⊥ (dv, dv 0 ) in a similar way. The acceptance probability has the
+form
+                                                             dν ⊥
+                                                                           
+                                             0                            0
+                                       α(v, v ) = min 1,           (v, v ) .
+                                                              dν
+Letting                                                                                
+                            0               dν       0          dq(v, ·) 0           dµy
+                    β(v, v ) = log              (v, v ) = log             (v ) log       (v) ,
+                                            dν̃                 dq̃(v, ·)            dµ0
+we have
+                                dν ⊥             dν̃ ⊥
+                                     (v, v 0 ) =       (v, v 0 ) exp β(v 0 , v) − β(v, v 0 ) .
+                                                                                            
+                                                                                                          (C.1)
+                                 dν               dν̃
+Recall equation (16),
+                                                                            
+                                dµy                     1       2
+                                    (v) = exp −η(v; y) − kvref k − hvref , vi ,
+                                dµ0                     2
+                −1/2
+where vref = Γpr       mref . The term 12 kvref k2 is cancelled out in β(v 0 , v) and β(v, v 0 ), and hence we
+have                                                                               
+                                   0                                  dq(v, ·) 0
+                             β(v, v ) = −η(v; y) − hvref , vi + log             (v ) .                   (C.2)
+                                                                      dq̃(v, ·)
+The first two terms in (C.2) are µ0 -a.s. finite by the discussion preceding (16).
+   To simplify the derivation of the right-hand side of (C.1), we apply the transformation (15).
+Then the pair of proposals q(v, dv 0 ) and q̃(v, dv 0 ) defined on the transformed parameters (w, w0 )
+have the form
+
+                                q(w, dw0 ) : w0 = DA w + DB ξ − DG ∇w η(w; y),
+                                q̃(w, dw0 ) : w0 = DA w + DB ξ.
+
+
+                                                             40
+The pair of measures ν̃ ⊥ (v, dv 0 ) and ν̃(v, dv 0 ) transformed onto (w, w0 ) have the form
+                                          ν̃ ⊥ (dw, dw0 ) = q̃(w, dw0 )µw
+                                                                        0 (dw),
+                                           ν̃(dw, dw0 ) = q̃(w0 , dw)µw    0
+                                                                      0 (dw ).
+
+where µw0 = N (0, I) as the transformation (15) is unitary. We want to derive the Radon-Nikodym
+derivatives
+                     dν̃ ⊥            dν̃ ⊥                dq(w, ·) 0       dq(v, ·) 0
+                           (w, w0 ) =       (v, v 0 ), and           (w ) =           (v ).
+                      dν̃              dν̃                 dq̃(w, ·)        dq̃(v, ·)
+    Following the same derivation as in Appendix B, we can show that ν̃ ⊥ (dw, dw0 ) and ν̃(dw, dw0 )
+follow the Gaussian measures
+                           ν̃(dw, dw0 ) = N (0, Q1 ), and ν̃ ⊥ (dw, dw0 ) = N (0, Q2 ),
+where Q1 and Q2 are defined as in (B.6). Thus we have
+                      ⊥            
+                       dν̃       0         1
+                                      = − w0 , DB −2 DA 2 + DB 2 − I w0
+                                                                     
+                 log        (w, w )
+                        dν̃                2
+                                           1
+                                          + w, DB −2 DA 2 + DB 2 − I w .
+                                                                    
+                                           2
+Both terms in the above equation are µ0 -a.s. finite by condition (4) of Theorem 3.1.
+   Following Theorem 2.21 of [50], we have
+                                   
+                     dq(w, ·) 0
+                                      = − DB −1 DG ∇w η(w; y), DB −1 w0 − DA w
+                                                                                 
+               log             (w )
+                     dq̃(w, ·)
+                                          1                        2
+                                        − DB −1 DG ∇w η(w; y) .
+                                          2
+Following the same argument as in Appendix B, we can show that the Gaussian laws of q(w, dw0 )
+                                               dq(w,·)
+and q̃(w, dw0 ) are equivalent, and hence log( dq̃(w,·) (w0 )) is also guaranteed to be µ0 -a.s. finite. This
+can be seen from the equation above, by the conditions of Theorem 3.1 and Assumption 2.1(3),
+since the inner product of an element
+                                       of H with white noise is finite almost surely.
+                          ⊥
+    Transforming log dν̃dν̃ (w, w0 ) back to (v, v 0 ), we have
+
+                                     dν̃ ⊥
+                                                      
+                                                              1 0 −2 2
+                                           (v, v 0 )                  A + B2 − I v 0
+                                                                                  
+                           log                             = −  v ,B
+                                      dν̃                     2
+                                                              1
+                                                             + v, B−2 A2 + B2 − I v .
+                                                                                 
+                                                              2
+                                     
+                       dq(w,·)    0
+Transforming log       dq̃(w,·) (w )      back to (v, v 0 ) and substituting into (C.2), we have
+
+                                                                                          1                2
+     β(v, v 0 ) = −η(v; y) − hvref , vi − B−1 G∇v η(v; y), B−1 v 0 − Av                     B−1 G∇v η(v; y) .
+                                                                                  
+                                                                                      −
+                                                                                          2
+By collecting terms we can define
+                                                     1
+              ρ(v, v 0 ) = −η(v; y) − hvref , vi −       v, B−2 A2 + B2 − I v
+                                                                           
+                                                     2
+                                                                     1                 2
+                                 − B−1 G∇v η(v; y), B−1 v 0 − Av −      B−1 G∇v η(v; y) ,
+                                                                
+                                                                     2
+                                                      41
+and the acceptance probability has the form
+
+                          α(v, v 0 ) = min 1, exp ρ(v 0 , v) − ρ(v, v 0 ) .
+                                                                        
+
+
+
+
+                                                  42
+

@@ -1,0 +1,58 @@
+[
+  {
+    "study": "drc_kakoi_koda_2026",
+    "countries": "DRC",
+    "doi": "10.1371/journal.pntd.0014164",
+    "file": "drc_kakoi_koda_2026/originals/article.xml",
+    "url": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC13557497/fullTextXML"
+  },
+  {
+    "study": "drc_kakoi_koda_2026",
+    "countries": "DRC",
+    "doi": "10.1371/journal.pntd.0014164",
+    "file": "drc_kakoi_koda_2026/originals/S1_epidemiological_data.csv",
+    "url": "https://journals.plos.org/plosntds/article/file?id=10.1371/journal.pntd.0014164.s001&type=supplementary"
+  },
+  {
+    "study": "drc_kakoi_koda_2026",
+    "countries": "DRC",
+    "doi": "10.1371/journal.pntd.0014164",
+    "file": "drc_kakoi_koda_2026/originals/S1_appendix.docx",
+    "url": "https://journals.plos.org/plosntds/article/file?id=10.1371/journal.pntd.0014164.s002&type=supplementary"
+  },
+  {
+    "study": "drc_uganda_kakoi_koda_2022",
+    "countries": "DRC;Uganda",
+    "doi": "10.1371/journal.pntd.0010684",
+    "file": "drc_uganda_kakoi_koda_2022/originals/article.xml",
+    "url": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC9668120/fullTextXML"
+  },
+  {
+    "study": "drc_uganda_kakoi_koda_2022",
+    "countries": "DRC;Uganda",
+    "doi": "10.1371/journal.pntd.0010684",
+    "file": "drc_uganda_kakoi_koda_2022/originals/S1_species.pdf",
+    "url": "https://journals.plos.org/plosntds/article/file?id=10.1371/journal.pntd.0010684.s003&type=supplementary"
+  },
+  {
+    "study": "drc_uganda_kakoi_koda_2022",
+    "countries": "DRC;Uganda",
+    "doi": "10.1371/journal.pntd.0010684",
+    "file": "drc_uganda_kakoi_koda_2022/originals/S2_species_by_date_locality.pdf",
+    "url": "https://journals.plos.org/plosntds/article/file?id=10.1371/journal.pntd.0010684.s004&type=supplementary"
+  },
+  {
+    "study": "drc_uganda_kakoi_koda_2022",
+    "countries": "DRC;Uganda",
+    "doi": "10.1371/journal.pntd.0010684",
+    "file": "drc_uganda_kakoi_koda_2022/originals/S3_crab_trapping.pdf",
+    "url": "https://journals.plos.org/plosntds/article/file?id=10.1371/journal.pntd.0010684.s005&type=supplementary"
+  },
+  {
+    "study": "drc_uganda_kakoi_koda_2022",
+    "countries": "DRC;Uganda",
+    "doi": "10.1371/journal.pntd.0010684",
+    "file": "drc_uganda_kakoi_koda_2022/originals/S4_crossborder_vector_collections.pdf",
+    "url": "https://journals.plos.org/plosntds/article/file?id=10.1371/journal.pntd.0010684.s006&type=supplementary"
+  }
+]

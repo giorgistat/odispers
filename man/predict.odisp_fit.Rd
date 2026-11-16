@@ -15,7 +15,8 @@ the prevalence covariates used in the fit.}
 \item{nodes}{The \code{odisp_network} object used in the fit.}
 
 \item{pairs}{Optional \code{odisp_pairs} for \code{newdata}; computed if
-\code{NULL}, using the \code{max_range} of the fit.}
+\code{NULL}, using the largest dispersal range at the new locations.
+Supplied pairs must cover that range.}
 
 \item{...}{Not used.}
 }

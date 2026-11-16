@@ -1,0 +1,18 @@
+{
+  "raw_georeferenced_rows": 1852,
+  "mapped_site_entries": 234,
+  "source_rows_without_valid_coordinates": 660,
+  "coordinate_review_entries": 1,
+  "by_study": {
+    "DRC / Uganda: cross-border vector survey": 37,
+    "DRC: crab / vector survey": 19,
+    "DRC: human infection surveys": 54,
+    "DRC: species collections": 26,
+    "Ethiopia: Metema / Metekel": 11,
+    "GBIF: occurrence records": 21,
+    "South Sudan: Naam / Yei": 16,
+    "Sudan: Atbara breeding survey": 40,
+    "Sudan: seasonal biting study": 3,
+    "Uganda / Tanzania: trap study": 7
+  }
+}

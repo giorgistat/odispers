@@ -1,0 +1,14 @@
+Health Area,Study number [source of data],Year,Study design; population,Median age (IQR; range)  years,Proportion of females  %,Anti-Ov16 seropositive/total tested,Anti-Ov16 seroprevalence  %  (95% CI)
+Logo Health Zone,,,,,,,
+Draju,"1  [2, 9]",2015,Case-control; 56 epilepsy cases and 58 controls,17 (12–25; 4–60),5 0 . 9,47/114,41.2 (32.2–50.8)
+Draju,2  [10],2016,Cross-sectional; 438 community samples,16 (9–35; 3–88),55.0,158/438,36.1 (31.6–40.8)
+Draju,3  [3],2017,Cross-sectional;  27   men aged ≥20 years  ,32  ( 24 – 47 ;  20 – 75 ),0.0,11/27,40 . 7  ( 23 . 0 – 61 . 0 )
+Draju,4   [4],2017 ,Epilepsy cohort; 73 samples,21 (16–28; 3–59),53.4,47/73,64.4 (52.2–75.0)
+Kanga,2  [10],2016 ,Cross-sectional; 476 community samples,16 (8–34; 3–85),51.1,123/476,25.8 (22.0–30.1)
+Kanga,3  [3],2017,Cross-sectional;  37   men aged ≥20 years  ,46  ( 33 – 58 ;  20 – 67 ),0.0,24/37,64 . 9  ( 47 . 4 – 79 . 3 )
+Ulyeko,2  [10],2016 ,Cross-sectional; 7 community samples,28 (13–46; 3–48),28.6,2/7,– c
+Walla,3  [3],2017,Cross-sectional;  30   men aged ≥20 years  ,28  ( 23 – 37 ;  20 – 73 ),0.0,8/30,26 . 7  ( 13 . 0 – 46 . 2 )
+Mixed  a,4   [4],2017 ,Epilepsy cohort; 286 samples,20 (14–30; 3–72),48.3,80/286,28.0 (22.9–33.6)
+Rethy  Health Zone,,,,,,,
+Lokpa,"1  [2, 9]",2015 ,Case-control; 24 epilepsy cases and 27 controls,17 (12–28; 5–64),66.7,15/51,29.4 (17.9–44.0)
+Rassia,"1  [2, 9]",2015 ,Case-control; 21 epilepsy cases and 16 controls,15 (12–21; 7–55),31.6,14/37,37.8 (22.9–55.2)

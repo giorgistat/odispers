@@ -12,7 +12,9 @@ Description: Fits exposure models for disease prevalence in which vector
     prevalence is exactly zero beyond the reach of any river. This version
     implements the model without latent random fields, fitted by maximum
     likelihood, and with a Whittle-Matern field on the river network in the
-    breeding intensity, fitted by a Laplace approximation.
+    breeding intensity, fitted by a Laplace approximation. An experimental
+    sampler fits a log-Gaussian Cox process of latent breeding sites using
+    village prevalence and a dispersal kernel centred on each site.
 License: GPL (>= 3)
 Encoding: UTF-8
 Depends: R (>= 4.1.0)
@@ -26,7 +28,9 @@ Imports:
 LinkingTo:
     Rcpp
 Suggests:
+    posterior,
     terra,
-    testthat (>= 3.0.0)
+    testthat (>= 3.0.0),
+    withr
 Config/testthat/edition: 3
-RoxygenNote: 7.3.1
+Config/roxygen2/version: 8.1.1

@@ -1,0 +1,26 @@
+\subsection{Mixing of the latent Gaussian field}\label{sec:field-mixing}
+
+The archived fits retain coefficient draws and running cell summaries, but no trajectories of $g$. We therefore replayed the four full-data chains for the tail-down model at $r=800$~km, using the revised code and the same 8,000-sweep schedule, 2,000-sweep burn-in, seeds and initial widths as the archived analysis. The field starts at zero in every chain; the initial widths are 10, 20, 40 and 80~km. The monitoring records values after both field colours have been updated, without changing proposals or random-number draws. Retained parameter draws agree with the archive to within $1.3\times10^{-14}$, and the stored cell summaries agree exactly.
+
+We selected 128 vertex IDs at evenly spaced positions in the sorted list of vertices touching the survey footprint, and 32 from its complement, before inspecting their trajectories. We also recorded cell-length-weighted averages of the interpolated field over the whole network, the survey footprint, and its northern and southern halves, together with the north--south difference. The halves are defined by the median latitude of footprint cells. Diagnostics use all 6,000 retained states per chain, giving 24,000 stored draws for each monitored quantity; these coordinates and summaries do not exhaust all 145,329 field dimensions.
+
+\input{field_mixing_interpretation.tex}
+
+\begin{table}[H]
+\centering\small
+\caption{Latent-field diagnostics for the additional tail-down 800~km run. ESS is calculated across four chains; autocorrelations at lags 1 and 100 are averaged over the four within-chain estimates. The last row selects the largest $\widehat R$ among the 128 monitored footprint vertices.}
+\label{tab:field-mixing}
+\begin{tabular}{lrrrrr}
+\toprule
+Field quantity & $\widehat R$ & Bulk ESS & Tail ESS & ACF(1) & ACF(100)\\
+\midrule
+\input{field_mixing_rows.tex}
+\end{tabular}
+\end{table}
+
+\begin{figure}[htbp]
+\centering\includegraphics[width=\textwidth]{field_mixing.png}
+\caption{Retained field traces and within-chain autocorrelations for the survey-footprint mean, the north--south contrast, and the monitored footprint vertex with the largest $\widehat R$. Colours identify the four chains; traces are displayed every fifth sweep, while all retained draws enter the diagnostics and autocorrelations.}
+\label{fig:field-mixing}
+\end{figure}
+\FloatBarrier

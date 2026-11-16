@@ -30,9 +30,81 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// lgcp_tree_layout
+List lgcp_tree_layout(const S4& K);
+RcppExport SEXP _odispers_lgcp_tree_layout(SEXP KSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const S4& >::type K(KSEXP);
+    rcpp_result_gen = Rcpp::wrap(lgcp_tree_layout(K));
+    return rcpp_result_gen;
+END_RCPP
+}
+// lgcp_local_sweep
+List lgcp_local_sweep(const S4& K, const List& layout, const IntegerVector& old_counts, const IntegerVector& old_high, const NumericVector& mu, const NumericVector& predictor, const NumericVector& y, const NumericVector& n, const IntegerVector& order, int block_size, double spread, const IntegerVector& relocation_group, bool logit, const NumericVector& gate_base, const IntegerVector& activity_sign, double gate_slope);
+RcppExport SEXP _odispers_lgcp_local_sweep(SEXP KSEXP, SEXP layoutSEXP, SEXP old_countsSEXP, SEXP old_highSEXP, SEXP muSEXP, SEXP predictorSEXP, SEXP ySEXP, SEXP nSEXP, SEXP orderSEXP, SEXP block_sizeSEXP, SEXP spreadSEXP, SEXP relocation_groupSEXP, SEXP logitSEXP, SEXP gate_baseSEXP, SEXP activity_signSEXP, SEXP gate_slopeSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const S4& >::type K(KSEXP);
+    Rcpp::traits::input_parameter< const List& >::type layout(layoutSEXP);
+    Rcpp::traits::input_parameter< const IntegerVector& >::type old_counts(old_countsSEXP);
+    Rcpp::traits::input_parameter< const IntegerVector& >::type old_high(old_highSEXP);
+    Rcpp::traits::input_parameter< const NumericVector& >::type mu(muSEXP);
+    Rcpp::traits::input_parameter< const NumericVector& >::type predictor(predictorSEXP);
+    Rcpp::traits::input_parameter< const NumericVector& >::type y(ySEXP);
+    Rcpp::traits::input_parameter< const NumericVector& >::type n(nSEXP);
+    Rcpp::traits::input_parameter< const IntegerVector& >::type order(orderSEXP);
+    Rcpp::traits::input_parameter< int >::type block_size(block_sizeSEXP);
+    Rcpp::traits::input_parameter< double >::type spread(spreadSEXP);
+    Rcpp::traits::input_parameter< const IntegerVector& >::type relocation_group(relocation_groupSEXP);
+    Rcpp::traits::input_parameter< bool >::type logit(logitSEXP);
+    Rcpp::traits::input_parameter< const NumericVector& >::type gate_base(gate_baseSEXP);
+    Rcpp::traits::input_parameter< const IntegerVector& >::type activity_sign(activity_signSEXP);
+    Rcpp::traits::input_parameter< double >::type gate_slope(gate_slopeSEXP);
+    rcpp_result_gen = Rcpp::wrap(lgcp_local_sweep(K, layout, old_counts, old_high, mu, predictor, y, n, order, block_size, spread, relocation_group, logit, gate_base, activity_sign, gate_slope));
+    return rcpp_result_gen;
+END_RCPP
+}
+// lgcp_graph_blocks
+List lgcp_graph_blocks(const IntegerVector& from, const IntegerVector& to, int vertices, int width, int shift);
+RcppExport SEXP _odispers_lgcp_graph_blocks(SEXP fromSEXP, SEXP toSEXP, SEXP verticesSEXP, SEXP widthSEXP, SEXP shiftSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const IntegerVector& >::type from(fromSEXP);
+    Rcpp::traits::input_parameter< const IntegerVector& >::type to(toSEXP);
+    Rcpp::traits::input_parameter< int >::type vertices(verticesSEXP);
+    Rcpp::traits::input_parameter< int >::type width(widthSEXP);
+    Rcpp::traits::input_parameter< int >::type shift(shiftSEXP);
+    rcpp_result_gen = Rcpp::wrap(lgcp_graph_blocks(from, to, vertices, width, shift));
+    return rcpp_result_gen;
+END_RCPP
+}
+// lgcp_block_angles
+NumericMatrix lgcp_block_angles(const IntegerVector& group, int groups, const NumericVector& offset, const NumericVector& current, const NumericVector& direction, const IntegerVector& counts);
+RcppExport SEXP _odispers_lgcp_block_angles(SEXP groupSEXP, SEXP groupsSEXP, SEXP offsetSEXP, SEXP currentSEXP, SEXP directionSEXP, SEXP countsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const IntegerVector& >::type group(groupSEXP);
+    Rcpp::traits::input_parameter< int >::type groups(groupsSEXP);
+    Rcpp::traits::input_parameter< const NumericVector& >::type offset(offsetSEXP);
+    Rcpp::traits::input_parameter< const NumericVector& >::type current(currentSEXP);
+    Rcpp::traits::input_parameter< const NumericVector& >::type direction(directionSEXP);
+    Rcpp::traits::input_parameter< const IntegerVector& >::type counts(countsSEXP);
+    rcpp_result_gen = Rcpp::wrap(lgcp_block_angles(group, groups, offset, current, direction, counts));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_odispers_exposure_cpp", (DL_FUNC) &_odispers_exposure_cpp, 10},
+    {"_odispers_lgcp_tree_layout", (DL_FUNC) &_odispers_lgcp_tree_layout, 1},
+    {"_odispers_lgcp_local_sweep", (DL_FUNC) &_odispers_lgcp_local_sweep, 16},
+    {"_odispers_lgcp_graph_blocks", (DL_FUNC) &_odispers_lgcp_graph_blocks, 5},
+    {"_odispers_lgcp_block_angles", (DL_FUNC) &_odispers_lgcp_block_angles, 6},
     {NULL, NULL, 0}
 };
 

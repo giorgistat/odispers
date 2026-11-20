@@ -18,7 +18,10 @@ odisp_fit_zil_ml(
   trace = TRUE,
   checkpoint = NULL,
   refine = 6,
-  intervals = TRUE
+  intervals = TRUE,
+  migration_range = NULL,
+  fixed_w = NULL,
+  w_start = 0.05
 )
 }
 \arguments{
@@ -59,6 +62,18 @@ and \code{z}.}
 \item{refine}{Maximum number of Newton refinement steps.}
 
 \item{intervals}{Compute the observed information and Wald intervals.}
+
+\item{migration_range}{Range (km) of a second, long-range Wendland kernel for
+migration of the vector. When given, exposure is
+\eqn{E_i(w) = (1 - w) E^{loc}_i + w E^{mig}_i}, with the local kernel of range
+\code{phi} and the migration kernel of range \code{migration_range}, and the
+migration share \eqn{w} is estimated (on the logit scale) with the other
+parameters, unless \code{fixed_w} is given.}
+
+\item{fixed_w}{Value at which \eqn{w} is held fixed (for profiling); \code{NULL}
+to estimate it.}
+
+\item{w_start}{Starting value of \eqn{w} when it is estimated.}
 }
 \value{
 An object of class \code{c("odisp_zilml", "odisp_zilfit")}: the

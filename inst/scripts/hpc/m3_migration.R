@@ -15,11 +15,23 @@
 #   profile  fit with w held at the value given as third argument (profile
 #            likelihood interval for w); run one job per value, e.g. as a
 #            SLURM array over w in 0.005 0.01 0.02 0.05 0.1 0.2 0.3 0.5
-#   cv       10-fold cross-validation of the migration model (same folds as M3)
-#   summary  likelihood ratio test, profile interval, comparison table and the
-#            share of each village's exposure due to migration,
+#   cv       10-fold cross-validation of M3 (refit) and of the migration model
+#            (same folds as the published M3)
+#   predict  predictions on a 20 km grid from both models, with maps
+#   summary  parameter estimates with 95% intervals, likelihood ratio test,
+#            profile interval for w, comparison table (log-likelihood, AIC and
+#            CV scores of both models), PIT figure, and the share of each
+#            village's exposure due to migration,
 #            s_i = w E_mig / {(1 - w) E_loc + w E_mig}
-#   all      m3, mig, cv and summary
+#
+# Outputs in <out_dir>:
+#   intervals_M3_refit.csv, intervals_M3_migration.csv   estimates and 95% intervals
+#   profile_w.csv                                        profile log-likelihood for w
+#   comparison_migration.csv                             logLik, AIC, CV scores
+#   pit_migration.png                                    mean PIT distribution functions
+#   grid_predictions.csv, maps_migration.png             20 km grid predictions and maps
+#   migration_share_villages.csv                         s_i at the surveyed villages
+#   all      m3, mig, cv, predict and summary
 #
 # Usage:
 #   Rscript m3_migration.R <out_dir> <stage> [w]
@@ -139,6 +151,15 @@ cv_scores <- function(pr, AI) {
 set.seed(2026)
 folds <- sample(rep(1:10, length.out = nrow(v)))   # identical to the folds of M3
 
+# prediction grid (20 km), as for M3; pairs to the local range only (the migratory
+# exposure is computed by predict() from blocks of river nodes)
+crs_km <- attr(nodes, "crs")
+grid <- st_make_grid(st_transform(sudan_borders, crs_km), cellsize = 20, what = "centers")
+grid <- grid[lengths(st_intersects(grid, st_transform(st_union(sudan_borders), crs_km))) > 0]
+grid <- st_sf(geometry = st_transform(grid, 4326))
+grid$AI <- extract_aridity(grid, sudan_aridity, buffer_km = 10)
+grid <- grid[is.finite(grid$AI) & grid$AI > 0, ]
+
 slim <- function(f) { f$setup$graph <- NULL; f$fld$Rch <- NULL; f }
 load_fit <- function(f) { x <- readRDS(f); x$fit$fld$Rch <- Matrix::Cholesky(x$fit$fld$R, LDL = FALSE, perm = TRUE); x }
 m3_file <- file.path(out_dir, "fit_M3_refit.rds"); mig_file <- file.path(out_dir, "fit_M3_migration.rds")
@@ -183,14 +204,56 @@ if (stage == "profile") {
   }
 }
 
-if (stage %in% c("cv", "all") && file.exists(mig_file)) {
-  res <- load_fit(mig_file)
-  if (is.null(res$cv_scores)) {
-    t0 <- Sys.time(); res$cv <- cv_zil(res$fit, folds); res$cv_scores <- cv_scores(res$cv, v$AI[res$fit$setup$has])
-    log_msg("cross-validation in %.1f min", as.numeric(difftime(Sys.time(), t0, units = "mins")))
-    res$fit <- slim(res$fit); saveRDS(res, mig_file)
+if (stage %in% c("cv", "all")) {
+  for (ff in c(m3_file, mig_file)) if (file.exists(ff)) {
+    res <- load_fit(ff)
+    if (is.null(res$cv_scores)) {
+      t0 <- Sys.time(); res$cv <- cv_zil(res$fit, folds); res$cv_scores <- cv_scores(res$cv, v$AI[res$fit$setup$has])
+      log_msg("%s: cross-validation in %.1f min", basename(ff), as.numeric(difftime(Sys.time(), t0, units = "mins")))
+      res$fit <- slim(res$fit); saveRDS(res, ff)
+    }
+    print(res$cv_scores$table, digits = 4)
   }
-  print(res$cv_scores$table, digits = 4)
+}
+
+if (stage %in% c("predict", "all") && file.exists(m3_file) && file.exists(mig_file)) {
+  gp_file <- file.path(out_dir, "grid_predictions.csv")
+  if (!file.exists(gp_file)) {
+    grid_pairs <- river_pairs(grid, nodes, phi)
+    xy <- st_coordinates(grid)
+    p0 <- predict(load_fit(m3_file)$fit, grid, nodes, graph, pairs = grid_pairs)
+    p1 <- predict(load_fit(mig_file)$fit, grid, nodes, graph, pairs = grid_pairs)
+    gp <- data.frame(lon = xy[, 1], lat = xy[, 2], AI = grid$AI,
+                     M3_E = p0$E, M3_pi = p0$pi, M3_p_zone = p0$p_zone, M3_prevalence = p0$prevalence,
+                     mig_E = p1$E, mig_E_loc = p1$E_loc, mig_E_mig = p1$E_mig, mig_s_mig = p1$s_mig,
+                     mig_pi = p1$pi, mig_p_zone = p1$p_zone, mig_prevalence = p1$prevalence)
+    write.csv(gp, gp_file, row.names = FALSE)
+    log_msg("grid predictions written (%d cells)", nrow(gp))
+  }
+  gp <- read.csv(gp_file)
+  if (requireNamespace("ggplot2", quietly = TRUE)) {
+    long <- rbind(data.frame(lon = gp$lon, lat = gp$lat, panel = "M3: expected prevalence", value = gp$M3_prevalence),
+                  data.frame(lon = gp$lon, lat = gp$lat, panel = "M3 + migration: expected prevalence", value = gp$mig_prevalence),
+                  data.frame(lon = gp$lon, lat = gp$lat, panel = "Difference (migration - M3)", value = gp$mig_prevalence - gp$M3_prevalence),
+                  data.frame(lon = gp$lon, lat = gp$lat, panel = "Share of exposure due to migration", value = gp$mig_s_mig))
+    border <- st_transform(sudan_borders, 4326)
+    mk <- function(d, lab, fill) ggplot2::ggplot() +
+      ggplot2::geom_tile(data = d, ggplot2::aes(lon, lat, fill = value), width = 0.19, height = 0.19) +
+      ggplot2::geom_sf(data = border, fill = NA, colour = "grey30", linewidth = 0.2) + fill +
+      ggplot2::labs(title = lab, x = NULL, y = NULL, fill = NULL) + ggplot2::theme_minimal(base_size = 9)
+    seq_fill <- ggplot2::scale_fill_viridis_c(option = "magma", direction = -1, na.value = "grey85")
+    div_fill <- ggplot2::scale_fill_gradient2(low = "#2166ac", mid = "white", high = "#b2182b", midpoint = 0)
+    pl <- list(mk(long[long$panel == unique(long$panel)[1], ], unique(long$panel)[1], seq_fill),
+               mk(long[long$panel == unique(long$panel)[2], ], unique(long$panel)[2], seq_fill),
+               mk(long[long$panel == unique(long$panel)[3], ], unique(long$panel)[3], div_fill),
+               mk(long[long$panel == unique(long$panel)[4], ], unique(long$panel)[4],
+                  ggplot2::scale_fill_viridis_c(limits = c(0, 1), na.value = "grey85")))
+    grDevices::png(file.path(out_dir, "maps_migration.png"), width = 10, height = 9, units = "in", res = 200)
+    grid::grid.newpage(); grid::pushViewport(grid::viewport(layout = grid::grid.layout(2, 2)))
+    for (k in 1:4) print(pl[[k]], vp = grid::viewport(layout.pos.row = (k - 1) %/% 2 + 1, layout.pos.col = (k - 1) %% 2 + 1))
+    grDevices::dev.off()
+    log_msg("maps written to maps_migration.png")
+  }
 }
 
 if (stage %in% c("summary", "all") && file.exists(m3_file) && file.exists(mig_file)) {
@@ -208,7 +271,9 @@ if (stage %in% c("summary", "all") && file.exists(m3_file) && file.exists(mig_fi
     log_msg("approximate 95%% profile interval for w (grid): %.3g to %.3g", min(inside), max(inside))
     write.csv(prof, file.path(out_dir, "profile_w.csv"), row.names = FALSE)
   }
+  write.csv(f0$intervals, file.path(out_dir, "intervals_M3_refit.csv"), row.names = FALSE)
   write.csv(f1$intervals, file.path(out_dir, "intervals_M3_migration.csv"), row.names = FALSE)
+  print(f1$intervals, digits = 4)
   # share of each village's exposure due to migration, s_i = w E_mig / {(1 - w) E_loc + w E_mig},
   # at the estimates and the mode of u
   w_hat <- f1$hyper[["w"]]; Su <- f1$setup
@@ -220,9 +285,33 @@ if (stage %in% c("summary", "all") && file.exists(m3_file) && file.exists(mig_fi
   vv <- sf::st_drop_geometry(v)[Su$has, c("long", "lat", "y", "n")]
   write.csv(data.frame(vv, E_loc = E_loc, E_mig = E_mig, s_mig = s_mig),
             file.path(out_dir, "migration_share_villages.csv"), row.names = FALSE)
-  tab <- data.frame(model = c("M3", "M3 + migration"), logLik = c(f0$logLik, f1$logLik), n_par = c(11, 12))
+  tab <- data.frame(model = c("M3", "M3 + migration"), logLik = c(f0$logLik, f1$logLik), n_par = c(11, 12),
+                    w = c(0, f1$hyper[["w"]]))
   tab$AIC <- -2 * tab$logLik + 2 * tab$n_par
-  res1 <- readRDS(mig_file)
-  if (!is.null(res1$cv_scores)) tab <- cbind(tab, rbind(NA, res1$cv_scores$table))
+  r0 <- readRDS(m3_file); r1 <- readRDS(mig_file)
+  if (!is.null(r0$cv_scores) && !is.null(r1$cv_scores)) {
+    tab <- cbind(tab, rbind(r0$cv_scores$table, r1$cv_scores$table))
+    # paired difference in log score (migration - M3), with a 1-degree block bootstrap SE
+    ls_v <- function(cv) sapply(cv, function(z) log(max(z$pmf[z$y + 1], 1e-300)))
+    d_ls <- ls_v(r1$cv) - ls_v(r0$cv)
+    cell <- with(sf::st_drop_geometry(v)[r1$fit$setup$has, ], paste(floor(long), floor(lat)))
+    ids <- split(seq_along(d_ls), cell); set.seed(1)
+    bs <- replicate(2000, sum(d_ls[unlist(ids[sample(length(ids), replace = TRUE)])]))
+    log_msg("CV log score, migration - M3: %.2f (block-bootstrap SE %.2f)", sum(d_ls), stats::sd(bs))
+    if (requireNamespace("ggplot2", quietly = TRUE)) {
+      pit <- rbind(cbind(model = "M3", r0$cv_scores$pit), cbind(model = "M3 + migration", r1$cv_scores$pit))
+      tst <- data.frame(model = c("M3", "M3 + migration"),
+                        lab = sprintf("max deviation %.3f\np = %.3f", c(r0$cv_scores$table$pit_max_dev, r1$cv_scores$table$pit_max_dev),
+                                      c(r0$cv_scores$table$pit_p, r1$cv_scores$table$pit_p)))
+      g <- ggplot2::ggplot(pit, ggplot2::aes(u)) +
+        ggplot2::geom_ribbon(ggplot2::aes(ymin = lower, ymax = upper), fill = "grey85") +
+        ggplot2::geom_abline(linetype = 2) + ggplot2::geom_line(ggplot2::aes(y = Fbar), colour = "#1b7837", linewidth = 0.8) +
+        ggplot2::geom_text(data = tst, ggplot2::aes(x = 0.03, y = 0.95, label = lab), hjust = 0, vjust = 1, size = 3) +
+        ggplot2::facet_wrap(~ model) + ggplot2::coord_equal(xlim = c(0, 1), ylim = c(0, 1)) +
+        ggplot2::labs(x = "u", y = "Mean PIT distribution function") + ggplot2::theme_minimal(base_size = 10)
+      ggplot2::ggsave(file.path(out_dir, "pit_migration.png"), g, width = 7.5, height = 4, dpi = 200, bg = "white")
+      log_msg("PIT figure written to pit_migration.png")
+    }
+  }
   print(tab, digits = 5); write.csv(tab, file.path(out_dir, "comparison_migration.csv"), row.names = FALSE)
 }

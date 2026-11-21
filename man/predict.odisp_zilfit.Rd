@@ -4,7 +4,15 @@
 \alias{predict.odisp_zilfit}
 \title{Predict from the zero-inflated model with regressions in both parts}
 \usage{
-\method{predict}{odisp_zilfit}(object, newdata, nodes, graph, pairs = NULL, ...)
+\method{predict}{odisp_zilfit}(
+  object,
+  newdata,
+  nodes,
+  graph,
+  pairs = NULL,
+  migration_block = 5,
+  ...
+)
 }
 \arguments{
 \item{object}{An \code{odisp_zilfit} object.}
@@ -17,10 +25,20 @@ covariates of the prevalence formula and the aridity index (column
 
 \item{pairs}{Optional \code{odisp_pairs} for \code{newdata}.}
 
+\item{migration_block}{Side (km) of the blocks used for the migratory exposure.}
+
 \item{...}{Not used.}
 }
 \description{
 Plug-in prediction at the posterior mode, with the village effect set to
 zero: probability of a zone of transmission \code{pi}, prevalence within a
-zone \code{p_zone} and expected prevalence \code{prevalence}.
+zone \code{p_zone} and expected prevalence \code{prevalence}. For a model
+fitted with a migration kernel (\code{migration_range} in
+\code{\link{odisp_fit_zil_ml}}), the exposure is the mixture
+\eqn{(1 - w) E^{loc} + w E^{mig}}, and the local and migratory exposures and
+the share of exposure due to migration, \code{s_mig}, are also returned.
+\code{pairs} need only reach the local range \code{phi}: the migratory
+exposure is computed from the breeding mass of the river nodes summed in
+square blocks of side \code{migration_block} km, which is accurate because
+the migration kernel varies little over a block.
 }

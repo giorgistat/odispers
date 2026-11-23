@@ -31,7 +31,9 @@
 #'   \code{par} (log sigma_u, log sigma_z, a_E, gamma, log range), \code{u}
 #'   and \code{z}.
 #' @param refine Maximum number of Newton refinement steps.
-#' @param intervals Compute the observed information and Wald intervals.
+#' @param intervals Compute the observed information and Wald intervals. With
+#'   \code{FALSE} no Hessian is computed (much faster): the estimates are the
+#'   optimiser's maximum and the intervals are \code{NA}.
 #' @param migration_range Range (km) of a second, long-range Wendland kernel for
 #'   migration of the vector. When given, exposure is
 #'   \eqn{E_i(w) = (1 - w) E^{loc}_i + w E^{mig}_i}, with the local kernel of range
@@ -235,8 +237,8 @@ odisp_fit_zil_ml <- function(formula, breeding, data, nodes, graph, pairs = NULL
     hs
   }
   hs <- NULL
-  for (it in seq_len(refine)) {
-    if (!intervals && it > 1) break
+  # without intervals no Hessian is computed: the point estimate is the optimiser's maximum
+  for (it in seq_len(if (intervals) refine else 0)) {
     hs <- at_th(th)
     e <- eigen(-hs$H, symmetric = TRUE)
     Bm <- e$vectors %*% diag(pmax(e$values, 1e-3 * max(e$values)), length(th)) %*% t(e$vectors)
@@ -252,13 +254,15 @@ odisp_fit_zil_ml <- function(formula, breeding, data, nodes, graph, pairs = NULL
     th <- th + t * step
   }
   if (!is.null(cache_file)) saveRDS(state$cache, cache_file)
-  if (is.null(hs) || !identical(hs$th, th)) hs <- at_th(th)
-  fin <- lap(th, branch = hs$x)                             # the mode at which the Hessian was taken
+  if (intervals && (is.null(hs) || !identical(hs$th, th))) hs <- at_th(th)
+  fin <- lap(th, branch = if (is.null(hs)) NULL else hs$x)  # the mode at which the Hessian was taken
   v <- th * sc; cf <- v[seq_along(cf0)]; names(cf) <- nm_cf; ps <- v[idx_p]; names(ps) <- nm_ps
   # observed information on the original scale of (coefficients, log sigma_u, log sigma_z, a_E, gamma, log range)
-  Hn <- hs$H / outer(sc, sc)
-  ev <- eigen(-Hn, symmetric = TRUE, only.values = TRUE)$values
-  V <- tryCatch(solve(-Hn), error = function(e) matrix(NA, length(v), length(v)))
+  if (!is.null(hs)) {
+    Hn <- hs$H / outer(sc, sc)
+    ev <- eigen(-Hn, symmetric = TRUE, only.values = TRUE)$values
+    V <- tryCatch(solve(-Hn), error = function(e) matrix(NA, length(v), length(v)))
+  } else { ev <- rep(NA_real_, length(v)); V <- matrix(NA_real_, length(v), length(v)) }
   dimnames(V) <- list(c(nm_cf, nm_ps), c(nm_cf, nm_ps))
   se <- sqrt(pmax(diag(V), 0)); z <- stats::qnorm(0.975)
   est <- c(cf, ps); lo <- est - z * se; hi <- est + z * se
@@ -272,7 +276,8 @@ odisp_fit_zil_ml <- function(formula, breeding, data, nodes, graph, pairs = NULL
                                           se = NA, lower = stats::plogis(lo[length(lo)]), upper = stats::plogis(hi[length(hi)])))
   rownames(tab) <- NULL
   fld <- fin$fld
-  structure(list(coefficients = cf, vcov = V, intervals = tab, eigen = ev, gradient = hs$g / sc,
+  structure(list(coefficients = cf, vcov = V, intervals = tab, eigen = ev,
+                 gradient = if (is.null(hs)) rep(NA_real_, length(v)) else hs$g / sc,
                  hyper = c(sigma_u = exp(ps[[1]]), sigma_z = exp(ps[[2]]), a_E = ps[[3]], gamma = ps[[4]],
                            range_u = exp(ps[[5]]),
                            w = if (est_w) stats::plogis(ps[[6]]) else if (!is.null(fixed_w)) fixed_w else 0),

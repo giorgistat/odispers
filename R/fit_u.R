@@ -347,7 +347,9 @@ odisp_newton_max <- function(f, x, h = 0.05, radius = 0.5, tol = 1e-3, maxit = 2
       H <- -B; attr(H, "fresh") <- FALSE
     } else {
       H <- diag((fp - 2 * fx + fm) / h^2, d)
-      if (d > 1) {
+      # with BFGS the first iteration starts from the diagonal Hessian (no extra
+      # evaluations); the full one is built only when a BFGS step fails
+      if (d > 1 && !(bfgs && it == 1)) {
         kl <- which(upper.tri(diag(d)), arr.ind = TRUE)
         fkl <- fmany(lapply(seq_len(nrow(kl)), function(r) x + E[, kl[r, 1]] + E[, kl[r, 2]]))
         for (r in seq_len(nrow(kl))) {
@@ -355,7 +357,7 @@ odisp_newton_max <- function(f, x, h = 0.05, radius = 0.5, tol = 1e-3, maxit = 2
           H[k, l] <- H[l, k] <- (fkl[r] - fp[k] - fp[l] + fx) / h^2
         }
       }
-      attr(H, "fresh") <- TRUE
+      attr(H, "fresh") <- !(bfgs && it == 1)
     }
     # Newton step with the Hessian made negative definite (eigenvalues
     # replaced by -max(|lambda|, 1)), so that directions in which the function
@@ -374,7 +376,7 @@ odisp_newton_max <- function(f, x, h = 0.05, radius = 0.5, tol = 1e-3, maxit = 2
     }
     if (fn <= fx) {
       if (gain_pred < noise) break                          # within the noise of f: converged
-      if (bfgs && it > 1 && !isTRUE(attr(H, "fresh"))) {   # retry once with a full Hessian
+      if (bfgs && !isTRUE(attr(H, "fresh"))) {              # retry once with a full Hessian
         H <- NULL; next
       }
       break

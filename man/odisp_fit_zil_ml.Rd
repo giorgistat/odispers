@@ -63,7 +63,9 @@ and \code{z}.}
 
 \item{refine}{Maximum number of Newton refinement steps.}
 
-\item{intervals}{Compute the observed information and Wald intervals.}
+\item{intervals}{Compute the observed information and Wald intervals. With
+\code{FALSE} no Hessian is computed (much faster): the estimates are the
+optimiser's maximum and the intervals are \code{NA}.}
 
 \item{migration_range}{Range (km) of a second, long-range Wendland kernel for
 migration of the vector. When given, exposure is

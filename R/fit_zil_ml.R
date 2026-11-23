@@ -41,6 +41,16 @@
 #' @param fixed_w Value at which \eqn{w} is held fixed (for profiling); \code{NULL}
 #'   to estimate it.
 #' @param w_start Starting value of \eqn{w} when it is estimated.
+#' @param cores Number of cores for the finite-difference evaluations of the
+#'   log-likelihood (gradients and Hessians), run in parallel by forking
+#'   (\code{parallel::mclapply}; not available on Windows, where 1 is used).
+#'   Each core needs its own memory for the Laplace approximation: about 1-2 GB
+#'   for M3 and about 4 GB with a 300 km migration kernel, so on a laptop keep
+#'   \code{cores} small. Results do not depend on \code{cores} beyond the numerical
+#'   noise of the inner optimisation.
+#' @param noise Numerical noise of the Laplace log-likelihood (from the
+#'   tolerance of the inner optimisation): the optimiser stops when a step fails
+#'   and the predicted gain is below it.
 #' @return An object of class \code{c("odisp_zilml", "odisp_zilfit")}: the
 #'   estimates \code{coefficients} and \code{hyper}, \code{logLik}, the
 #'   parameter vector \code{par} on the optimisation scale, \code{vcov} (on
@@ -51,7 +61,12 @@
 odisp_fit_zil_ml <- function(formula, breeding, data, nodes, graph, pairs = NULL, phi = 40,
                              trials = "n", aridity = "AI", start = list(), trace = TRUE,
                              checkpoint = NULL, refine = 6, intervals = TRUE,
-                             migration_range = NULL, fixed_w = NULL, w_start = 0.05) {
+                             migration_range = NULL, fixed_w = NULL, w_start = 0.05,
+                             cores = 1, noise = 0.02) {
+  if (cores > 1 && .Platform$OS.type == "windows") {
+    warning("parallel evaluations need forking, which is not available on Windows: using cores = 1")
+    cores <- 1
+  }
   S <- odisp_u_setup(formula, breeding, data, nodes, graph, pairs, phi, trials, aridity, prior_sd = 1,
                      migration_range = migration_range, migration_w = if (is.null(fixed_w)) 0 else fixed_w)
   est_w <- !is.null(migration_range) && is.null(fixed_w)
@@ -119,15 +134,17 @@ odisp_fit_zil_ml <- function(formula, breeding, data, nodes, graph, pairs = NULL
       rk <- tryCatch(odisp_zil_laplace(fld, S2, x), error = function(e) list(logLik = -Inf, logpost = -Inf))
       if (is.finite(rk$logpost) && rk$logpost > r$logpost) r <- rk
     }
-    state$n_eval <- state$n_eval + 1
-    if (is.finite(r$logLik)) {
-      if (is.null(branch)) state$x <- r$x
-      if (r$logLik > state$best) {
-        state$best <- r$logLik; state$best_th <- th; state$best_x <- r$x
-        save_ck()
+    if (!isTRUE(state$child)) {                              # in a forked worker the parent does the bookkeeping
+      state$n_eval <- state$n_eval + 1
+      if (is.finite(r$logLik)) {
+        if (is.null(branch)) state$x <- r$x
+        if (r$logLik > state$best) {
+          state$best <- r$logLik; state$best_th <- th; state$best_x <- r$x
+          save_ck()
+        }
       }
+      if (trace && state$n_eval %% 10 == 0) cat(sprintf("  %d evaluations, best logLik %.3f\n", state$n_eval, state$best))
     }
-    if (trace && state$n_eval %% 10 == 0) cat(sprintf("  %d evaluations, best logLik %.3f\n", state$n_eval, state$best))
     r$fld <- fld; r$S2 <- S2
     r
   }
@@ -140,9 +157,36 @@ odisp_fit_zil_ml <- function(formula, breeding, data, nodes, graph, pairs = NULL
     if (!is.null(cache_file) && length(state$cache) %% 5 == 0) saveRDS(state$cache, cache_file)
     val
   }
+  # several evaluations at once: from the cache, else in parallel on `cores` forked workers
+  ll_many <- function(ths, branch = NULL, tag = "") {
+    keys <- paste0(tag, vapply(ths, key_of, ""))
+    out <- vapply(keys, function(k) if (is.null(state$cache[[k]])) NA_real_ else state$cache[[k]], numeric(1))
+    todo <- which(is.na(out))
+    if (!length(todo)) return(unname(out))
+    if (cores <= 1 || length(todo) == 1) {
+      for (k in todo) out[k] <- ll(ths[[k]], branch, tag)
+      return(unname(out))
+    }
+    res <- parallel::mclapply(todo, function(k) {
+      state$child <- TRUE
+      r <- lap(ths[[k]], branch)
+      list(ll = r$logLik, x = if (is.finite(r$logLik)) r$x else NULL)
+    }, mc.cores = cores, mc.preschedule = FALSE)
+    for (m in seq_along(todo)) {
+      k <- todo[m]; rr <- res[[m]]
+      val <- if (inherits(rr, "try-error") || is.null(rr$ll)) -Inf else rr$ll
+      out[k] <- val; state$cache[[keys[k]]] <- val; state$n_eval <- state$n_eval + 1
+      if (is.finite(val) && val > state$best) {
+        state$best <- val; state$best_th <- ths[[k]]; state$best_x <- rr$x; save_ck()
+      }
+    }
+    if (trace) cat(sprintf("  %d evaluations, best logLik %.3f\n", state$n_eval, state$best))
+    if (!is.null(cache_file)) saveRDS(state$cache, cache_file)
+    unname(out)
+  }
   t0 <- Sys.time()
   if (state$stage == "optimise") {
-    th <- odisp_newton_max(ll, th0, bfgs = TRUE, maxit = 50)
+    th <- odisp_newton_max(ll, th0, bfgs = TRUE, maxit = 50, fmany = function(pts) ll_many(pts), noise = noise)
     if (state$best > ll(th)) th <- state$best_th
     state$stage <- "refine"; save_ck()
   } else th <- th0
@@ -165,13 +209,18 @@ odisp_fit_zil_ml <- function(formula, breeding, data, nodes, graph, pairs = NULL
     d <- length(th); h <- if (is.null(A)) 0.05 else 0.5
     if (is.null(A)) A <- diag(d)
     ce <- centre(th); f0 <- ce$f0
-    lb <- function(p) ll(th + as.vector(A %*% p), branch = ce$x, tag = ce$tag)
-    Hp <- matrix(0, d, d); fp <- fm <- numeric(d)
-    for (i in 1:d) { e <- replace(numeric(d), i, h); fp[i] <- lb(e); fm[i] <- lb(-e)
-                     Hp[i, i] <- (fp[i] - 2 * f0 + fm[i]) / h^2 }
-    for (i in 1:(d - 1)) for (j in (i + 1):d) {
-      ei <- replace(numeric(d), i, h); ej <- replace(numeric(d), j, h)
-      Hp[i, j] <- Hp[j, i] <- (lb(ei + ej) - lb(ei - ej) - lb(-ei + ej) + lb(-ei - ej)) / (4 * h^2)
+    # all the points of the finite differences, evaluated in one batch (in parallel if cores > 1)
+    e_ <- function(i) replace(numeric(d), i, h)
+    pts <- c(lapply(1:d, e_), lapply(1:d, function(i) -e_(i)))
+    ij <- which(upper.tri(diag(d)), arr.ind = TRUE)
+    for (r in seq_len(nrow(ij))) { ei <- e_(ij[r, 1]); ej <- e_(ij[r, 2])
+      pts <- c(pts, list(ei + ej, ei - ej, -ei + ej, -ei - ej)) }
+    vals <- ll_many(lapply(pts, function(p) th + as.vector(A %*% p)), branch = ce$x, tag = ce$tag)
+    fp <- vals[1:d]; fm <- vals[d + 1:d]
+    Hp <- diag((fp - 2 * f0 + fm) / h^2, d)
+    for (r in seq_len(nrow(ij))) {
+      v4 <- vals[2 * d + 4 * (r - 1) + 1:4]; i <- ij[r, 1]; j <- ij[r, 2]
+      Hp[i, j] <- Hp[j, i] <- (v4[1] - v4[2] - v4[3] + v4[4]) / (4 * h^2)
     }
     Ai <- solve(A)
     list(th = th, f0 = f0, g = as.vector(crossprod(Ai, (fp - fm) / (2 * h))), H = t(Ai) %*% Hp %*% Ai, x = ce$x)

@@ -21,7 +21,9 @@ odisp_fit_zil_ml(
   intervals = TRUE,
   migration_range = NULL,
   fixed_w = NULL,
-  w_start = 0.05
+  w_start = 0.05,
+  cores = 1,
+  noise = 0.02
 )
 }
 \arguments{
@@ -74,6 +76,18 @@ parameters, unless \code{fixed_w} is given.}
 to estimate it.}
 
 \item{w_start}{Starting value of \eqn{w} when it is estimated.}
+
+\item{cores}{Number of cores for the finite-difference evaluations of the
+log-likelihood (gradients and Hessians), run in parallel by forking
+(\code{parallel::mclapply}; not available on Windows, where 1 is used).
+Each core needs its own memory for the Laplace approximation: about 1-2 GB
+for M3 and about 4 GB with a 300 km migration kernel, so on a laptop keep
+\code{cores} small. Results do not depend on \code{cores} beyond the numerical
+noise of the inner optimisation.}
+
+\item{noise}{Numerical noise of the Laplace log-likelihood (from the
+tolerance of the inner optimisation): the optimiser stops when a step fails
+and the predicted gain is below it.}
 }
 \value{
 An object of class \code{c("odisp_zilml", "odisp_zilfit")}: the

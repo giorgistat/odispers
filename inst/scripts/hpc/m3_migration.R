@@ -169,9 +169,13 @@ load_fit <- function(f) { x <- readRDS(f); x$fit$fld$Rch <- Matrix::Cholesky(x$f
 m3_file <- file.path(out_dir, "fit_M3_refit.rds"); mig_file <- file.path(out_dir, "fit_M3_migration.rds")
 breeding <- ~ log_slope + inundation
 
-# published M3 estimates, as starting values
-m3_pub <- read.csv(system.file("reports/river_model_covariates/results/intervals_M3.csv", package = "odispers"))
-cf_pub <- setNames(m3_pub$estimate, m3_pub$parameter)
+# published M3 estimates (inst/reports/river_model_covariates/results/intervals_M3.csv),
+# as starting values; written out here because inst/reports is not part of the installed package
+cf_pub <- c("lambda.(Intercept)" = -2.01176703209239, "lambda.log(AI)" = 0.535328302137372,
+            "pi.(Intercept)" = 0.489747479889456, "pi.log(AI)" = 2.1661244154256,
+            "theta.log_slope" = 1.83234009776781, "theta.inundation" = -2.29993043276964,
+            "sigma_u" = 9.43722035886309, "sigma_z" = 0.489024217504059, "a_E" = 0.371065721321979,
+            "gamma" = 0.0693967006890684, "range_u (km)" = 897.526926743231)
 start_m3 <- list(coefficients = cf_pub[grep("^(lambda|pi|theta)\\.", names(cf_pub))],
                  par = c(log(cf_pub[["sigma_u"]]), log(cf_pub[["sigma_z"]]), cf_pub[["a_E"]], cf_pub[["gamma"]],
                          log(cf_pub[["range_u (km)"]])))

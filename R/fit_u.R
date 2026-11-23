@@ -324,12 +324,19 @@ odisp_u_laplace <- function(fld, S, x, maxit = 50, tol = 1e-7) {
 # With bfgs = TRUE the full finite-difference Hessian is computed at the first
 # iteration only and then updated by BFGS from the central-difference
 # gradients, which reduces the evaluations per iteration from about d^2 to 2d.
-odisp_newton_max <- function(f, x, h = 0.05, radius = 0.5, tol = 1e-3, maxit = 20, bfgs = FALSE) {
+# Maximise f by Newton/BFGS steps with finite-difference derivatives.
+# `fmany`, if given, evaluates f at a list of points (e.g. in parallel) and is used
+# for the finite differences. When a step fails to increase f and the predicted
+# gain is below `noise` (the numerical noise of f), the maximum is taken as
+# reached, instead of recomputing the full Hessian.
+odisp_newton_max <- function(f, x, h = 0.05, radius = 0.5, tol = 1e-3, maxit = 20, bfgs = FALSE,
+                             fmany = NULL, noise = 0) {
+  if (is.null(fmany)) fmany <- function(pts) vapply(pts, f, numeric(1))
   d <- length(x); fx <- f(x); H <- NULL; g_old <- NULL; s_old <- NULL
   for (it in seq_len(maxit)) {
     E <- diag(h, d)
-    fp <- sapply(seq_len(d), function(k) f(x + E[, k]))
-    fm <- sapply(seq_len(d), function(k) f(x - E[, k]))
+    fpm <- fmany(c(lapply(seq_len(d), function(k) x + E[, k]), lapply(seq_len(d), function(k) x - E[, k])))
+    fp <- fpm[seq_len(d)]; fm <- fpm[d + seq_len(d)]
     g <- (fp - fm) / (2 * h)
     if (bfgs && !is.null(H)) {
       B <- -H; y <- -(g - g_old); sy <- sum(s_old * y)
@@ -340,8 +347,13 @@ odisp_newton_max <- function(f, x, h = 0.05, radius = 0.5, tol = 1e-3, maxit = 2
       H <- -B; attr(H, "fresh") <- FALSE
     } else {
       H <- diag((fp - 2 * fx + fm) / h^2, d)
-      if (d > 1) for (k in 1:(d - 1)) for (l in (k + 1):d) {
-        H[k, l] <- H[l, k] <- (f(x + E[, k] + E[, l]) - fp[k] - fp[l] + fx) / h^2
+      if (d > 1) {
+        kl <- which(upper.tri(diag(d)), arr.ind = TRUE)
+        fkl <- fmany(lapply(seq_len(nrow(kl)), function(r) x + E[, kl[r, 1]] + E[, kl[r, 2]]))
+        for (r in seq_len(nrow(kl))) {
+          k <- kl[r, 1]; l <- kl[r, 2]
+          H[k, l] <- H[l, k] <- (fkl[r] - fp[k] - fp[l] + fx) / h^2
+        }
       }
       attr(H, "fresh") <- TRUE
     }
@@ -361,6 +373,7 @@ odisp_newton_max <- function(f, x, h = 0.05, radius = 0.5, tol = 1e-3, maxit = 2
       step <- step / 2
     }
     if (fn <= fx) {
+      if (gain_pred < noise) break                          # within the noise of f: converged
       if (bfgs && it > 1 && !isTRUE(attr(H, "fresh"))) {   # retry once with a full Hessian
         H <- NULL; next
       }

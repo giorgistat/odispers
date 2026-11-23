@@ -35,6 +35,8 @@
 #
 # Usage:
 #   Rscript m3_migration.R <out_dir> <stage> [w]
+# The likelihood evaluations of each fit run in parallel on SLURM_CPUS_PER_TASK cores
+# (or ODISPERS_CORES); each core needs ~2 GB for M3 and ~4 GB for the migration model.
 # Example SLURM jobs:
 #   sbatch --time=24:00:00 --mem=12G --wrap "Rscript m3_migration.R res all"
 #   sbatch --array=1-8 --time=24:00:00 --mem=12G --wrap \
@@ -46,6 +48,9 @@ out_dir <- if (length(args) >= 1) args[1] else "m3_migration_results"
 stage   <- if (length(args) >= 2) args[2] else "all"
 w_fixed <- if (length(args) >= 3) as.numeric(args[3]) else NA
 mig_range <- 300    # km, range of the migration kernel (long-range dispersal of S. damnosum s.l.)
+# cores for the parallel finite-difference evaluations: from SLURM, else the
+# environment variable ODISPERS_CORES, else 1 (e.g. on a laptop)
+n_cores <- as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", Sys.getenv("ODISPERS_CORES", "1")))
 dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
 phi <- 40           # km, dispersal range of the kernel
 log_msg <- function(...) cat(format(Sys.time(), "%H:%M:%S"), sprintf(...), "\n")
@@ -175,7 +180,7 @@ start_m3 <- list(coefficients = cf_pub[grep("^(lambda|pi|theta)\\.", names(cf_pu
 if (stage %in% c("m3", "all") && !file.exists(m3_file)) {
   log_msg("==== M3 refit")
   fit <- odisp_fit_zil_ml(y ~ log(AI), breeding, v, nodes, graph, pairs, phi = phi, start = start_m3,
-                          checkpoint = file.path(out_dir, "checkpoint_M3_refit.rds"))
+                          cores = n_cores, checkpoint = file.path(out_dir, "checkpoint_M3_refit.rds"))
   print(fit); saveRDS(list(fit = slim(fit)), m3_file)
 }
 
@@ -185,7 +190,7 @@ if (stage %in% c("mig", "all") && !file.exists(mig_file)) {
   if (file.exists(m3_file)) { f0 <- readRDS(m3_file)$fit; st <- list(coefficients = f0$coefficients, par = f0$par, u = f0$u, z = f0$z) }
   fit <- odisp_fit_zil_ml(y ~ log(AI), breeding, v, nodes, graph, pairs, phi = phi, start = st,
                           migration_range = mig_range, w_start = 0.05,
-                          checkpoint = file.path(out_dir, "checkpoint_M3_migration.rds"))
+                          cores = n_cores, checkpoint = file.path(out_dir, "checkpoint_M3_migration.rds"))
   print(fit); saveRDS(list(fit = slim(fit)), mig_file)
 }
 
@@ -198,7 +203,7 @@ if (stage == "profile") {
     if (file.exists(mig_file)) { f0 <- readRDS(mig_file)$fit; st <- list(coefficients = f0$coefficients, par = f0$par[1:5], u = f0$u, z = f0$z) }
     fit <- odisp_fit_zil_ml(y ~ log(AI), breeding, v, nodes, graph, pairs, phi = phi, start = st,
                             migration_range = mig_range, fixed_w = w_fixed, intervals = FALSE,
-                            checkpoint = file.path(out_dir, sprintf("checkpoint_profile_%g.rds", w_fixed)))
+                            cores = n_cores, checkpoint = file.path(out_dir, sprintf("checkpoint_profile_%g.rds", w_fixed)))
     saveRDS(data.frame(w = w_fixed, logLik = fit$logLik), pf)
     log_msg("w = %g: logLik %.3f", w_fixed, fit$logLik)
   }

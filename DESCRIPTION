@@ -19,6 +19,7 @@ License: GPL (>= 3)
 Encoding: UTF-8
 Depends: R (>= 4.1.0)
 Imports:
+    parallel,
     methods,
     Matrix,
     Rcpp,

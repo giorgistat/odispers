@@ -376,6 +376,30 @@ G1 has the highest log-likelihood and the best cross-validated scores (Table~\re
 The two kinds of model therefore interpolate the surveyed villages about equally well, and random folds favour the Euclidean models by construction: a held-out village almost always has surveyed neighbours, which a smooth long-range surface uses directly. The river-network model reaches a similar predictive accuracy while offering what a Euclidean process cannot. It predicts zero transmission where there are no rivers within reach, whereas G1 and G2 can only predict low prevalence, which reverts to the mean away from the data (in the cells with zero exposure in M3 their predicted prevalence is up to 2.5\%). Its prediction has a mechanism: risk comes from breeding on particular reaches, and the habitat covariates act with the directions expected from the biology of the vector. In unsurveyed areas its predictions follow the river network and the habitat along it, so that it can identify a potential focus on a steep river far from the surveys, whereas the Euclidean predictions follow only the distance to surveyed villages. It indicates which reaches and basins drive transmission, the information needed to target larviciding or the search for breeding sites. And its dependence follows the connectivity of the rivers rather than straight lines across watersheds.
 
 
+\section{Extension: long-range migration of the vector}\label{sec:migration}
+
+Adult females of the \textit{S.~damnosum} complex move in two ways: short flights from the breeding sites to feed and to lay eggs, over a few tens of kilometres, and long-range migration, in which flies are carried by the wind over hundreds of kilometres and can reinvade river basins where breeding has been controlled \citep{carnaghi2024}. The exposure of M3 represents only the first, through a kernel that vanishes beyond 40~km. The extension adds a second kernel for migration, so that the exposure of a location $x$ is a mixture of local and migratory exposure,
+\[
+E(x) = (1 - \omega)\, E_{\phi}(x) + \omega\, E_{\phi_m}(x), \qquad
+E_{\psi}(x) = \int_\Gamma \frac{1}{c\,\psi}\, k\!\left(\frac{\lVert x - s\rVert}{\psi}\right) w(s)\, \dd s,
+\]
+with the Wendland function $k$ and $c = 2/3$ of Section~\ref{sec:model}, the breeding intensity $w(s)$ of M3 (tail-down field $u$, channel slope and inundation), the local range $\phi = 40$~km and the migration range $\phi_m = 300$~km. The migration share $\omega \in [0, 1]$ is the weight given to exposure from migrating flies; $\omega = 0$ is M3. The rest of the model is unchanged:
+\[
+\mathrm{logit}\,\pi(x) = a_0 + a_E \log E(x) + a_1 \log \AI(x), \qquad
+\log \lambda(x) = b_0 + \gamma \log E(x) + b_1 \log \AI(x) + Z(x),
+\]
+with the zero-inflated binomial distribution of the number of positives of Section~\ref{sec:model}. Both kernels integrate the same breeding intensity, so that migration adds no new source of flies: it spreads the flies produced on each reach over a wider area.
+
+The migration range is fixed rather than estimated. Long-range movements of members of the complex have been documented over distances of hundreds of kilometres, up to at least 500~km \citep{carnaghi2024}; 300~km lies within this range and well below the range of the breeding field ($\hat r \approx 900$~km), so that the migration kernel does not duplicate the field, and 150 and 500~km are used as sensitivity analyses. These distances were measured on West African forms of the complex; those of the Sudanese vectors, including the isolated \textit{S.~hamedense} of Abu Hamad, are unknown.
+
+The share $\omega$ is estimated by maximum likelihood on the logit scale, jointly with the 11 parameters of M3, with the same Laplace approximation over $u$ and $Z$ and no prior on any parameter. Because $\omega = 0$ lies on the boundary of the parameter space, the likelihood ratio statistic against M3 is referred to an equal mixture of $\chi^2_0$ and $\chi^2_1$, and the interval for $\omega$ is obtained from the profile likelihood, maximising over the other parameters at fixed values of $\omega$. Since the breeding intensity varies over several orders of magnitude, the value of $\omega$ does not by itself say how much of the exposure of a village comes from migration; this is given by the share
+\[
+s(x) = \frac{\omega\, E_{\phi_m}(x)}{(1 - \omega)\, E_{\phi}(x) + \omega\, E_{\phi_m}(x)},
+\]
+which is reported at the surveyed villages. Predictive performance is compared with M3 by ten-fold cross-validation with the same folds.
+
+The model is implemented in \texttt{odisp\_fit\_zil\_ml} with the argument \texttt{migration\_range} (and \texttt{fixed\_w} for the profile), and the analysis is in \texttt{inst/scripts/hpc/m3\_migration.R}.
+
 \appendix
 \section{Exploratory figures for individual covariates}
 
@@ -390,7 +414,7 @@ Each figure shows (a) the village average of the covariate within 40~km, (b) the
 \begin{thebibliography}{99}
 \bibitem[Bolin et al.(2024)]{bolin2024} Bolin, D., Simas, A.~B. and Wallin, J. (2024). Gaussian Whittle--Mat\'ern fields on metric graphs. \textit{Bernoulli}, 30(2), 1611--1639.
 \bibitem[Bolin et al.(2026)]{bolin2026dir} Bolin, D., Simas, A.~B., Karlsson Strandh, E. and Wallin, J. (2026). Gaussian processes on directed metric graphs. arXiv:2609.01435.
-\bibitem[Carnaghi et al.(2024)]{carnaghi2024} Carnaghi, M. et al. (2024). Short- and long-range dispersal by members of the \textit{Simulium damnosum} complex (Diptera: Simuliidae), vectors of onchocerciasis: a review. \textit{Insects}, 15(8), 606.
+\bibitem[Cheke et al.(2024)]{carnaghi2024} Cheke, R.~A., Hawkes, F.~M. and Carnaghi, M. (2024). Short- and long-range dispersal by members of the \textit{Simulium damnosum} complex (Diptera: Simuliidae), vectors of onchocerciasis: a review. \textit{Insects}, 15(8), 606.
 \bibitem[Crosskey(1990)]{crosskey1990} Crosskey, R.~W. (1990). \textit{The Natural History of Blackflies}. Chichester: Wiley.
 \bibitem[Czado et al.(2009)]{czado2009} Czado, C., Gneiting, T. and Held, L. (2009). Predictive model assessment for count data. \textit{Biometrics}, 65, 1254--1261.
 \bibitem[Hartmann and Moosdorf(2012)]{hartmann2012} Hartmann, J. and Moosdorf, N. (2012). The new global lithological map database GLiM: a representation of rock properties at the Earth surface. \textit{Geochemistry, Geophysics, Geosystems}, 13, Q12004.

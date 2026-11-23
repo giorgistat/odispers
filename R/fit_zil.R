@@ -358,22 +358,52 @@ print.odisp_zilfit <- function(x, ...) {
 #'
 #' Plug-in prediction at the posterior mode, with the village effect set to
 #' zero: probability of a zone of transmission \code{pi}, prevalence within a
-#' zone \code{p_zone} and expected prevalence \code{prevalence}.
+#' zone \code{p_zone} and expected prevalence \code{prevalence}. For a model
+#' fitted with a migration kernel (\code{migration_range} in
+#' \code{\link{odisp_fit_zil_ml}}), the exposure is the mixture
+#' \eqn{(1 - w) E^{loc} + w E^{mig}}, and the local and migratory exposures and
+#' the share of exposure due to migration, \code{s_mig}, are also returned.
+#' \code{pairs} need only reach the local range \code{phi}: the migratory
+#' exposure is computed from the breeding mass of the river nodes summed in
+#' square blocks of side \code{migration_block} km, which is accurate because
+#' the migration kernel varies little over a block.
 #'
 #' @param object An \code{odisp_zilfit} object.
+#' @param migration_block Side (km) of the blocks used for the migratory exposure.
 #' @inheritParams predict.odisp_zifit
 #' @export
-predict.odisp_zilfit <- function(object, newdata, nodes, graph, pairs = NULL, ...) {
+predict.odisp_zilfit <- function(object, newdata, nodes, graph, pairs = NULL, migration_block = 5, ...) {
   S <- object$setup; phi <- S$phi; h <- object$hyper
+  mr <- object$migration_range
+  wm <- if ("w" %in% names(h)) h[["w"]] else 0
+  mig <- !is.null(mr) && wm > 0
   pairs <- odisp_prediction_pairs(newdata, nodes, pairs, phi)
   keep <- pairs$r < phi
-  i <- pairs$i[keep]; j <- pairs$j[keep]; t <- pairs$r[keep] / phi
+  i <- pairs$i[keep]; j <- pairs$j[keep]; r <- pairs$r[keep]
+  wend <- function(t) ifelse(t < 1, (1 - t)^4 * (1 + 4 * t), 0)
   Bn <- odisp_prediction_matrix(S$breeding, as.data.frame(nodes)[j, , drop = FALSE],
                                  S$breeding_spec, colnames(S$B), drop_intercept = TRUE)
   p <- ncol(S$X); q <- length(S$m_theta); cf <- object$coefficients
   w <- exp(as.vector(Bn %*% cf[2 * p + seq_len(q)]) + as.vector(graph$A[j, , drop = FALSE] %*% object$u))
-  E <- as.vector(tapply(c(nodes$len[j] * (1 - t)^4 * (1 + 4 * t) / (2 / 3 * phi) * w, rep(0, pairs$m)),
-                        c(i, seq_len(pairs$m)), sum))
+  sum_by <- function(x) as.vector(tapply(c(x, rep(0, pairs$m)), c(i, seq_len(pairs$m)), sum))
+  E_loc <- sum_by(nodes$len[j] * wend(r / phi) / (2 / 3 * phi) * w)
+  if (mig) {
+    # breeding mass of every node, summed in blocks (mass-weighted centroids)
+    Ball <- odisp_prediction_matrix(S$breeding, as.data.frame(nodes), S$breeding_spec, colnames(S$B),
+                                    drop_intercept = TRUE)
+    mass <- nodes$len * exp(as.vector(Ball %*% cf[2 * p + seq_len(q)]) + as.vector(graph$A %*% object$u))
+    blk <- paste(floor(nodes$x / migration_block), floor(nodes$y / migration_block))
+    M <- as.vector(tapply(mass, blk, sum))
+    cx <- as.vector(tapply(mass * nodes$x, blk, sum)) / M; cy <- as.vector(tapply(mass * nodes$y, blk, sum)) / M
+    ok <- M > 0; M <- M[ok]; cx <- cx[ok]; cy <- cy[ok]
+    xy <- sf::st_coordinates(sf::st_transform(sf::st_geometry(newdata), attr(nodes, "crs")))[, 1:2, drop = FALSE]
+    E_mig <- numeric(nrow(xy))
+    for (ch in split(seq_len(nrow(xy)), ceiling(seq_len(nrow(xy)) / 200))) {
+      D <- sqrt(outer(xy[ch, 1], cx, "-")^2 + outer(xy[ch, 2], cy, "-")^2)
+      E_mig[ch] <- as.vector((wend(D / mr) / (2 / 3 * mr)) %*% M)
+    }
+    E <- (1 - wm) * E_loc + wm * E_mig
+  } else E <- E_loc
   X <- odisp_prediction_matrix(S$formula, sf::st_drop_geometry(newdata),
                                 S$prevalence_spec, colnames(S$X))
   la <- log(pmax(E, 1e-300))
@@ -383,5 +413,7 @@ predict.odisp_zilfit <- function(object, newdata, nodes, graph, pairs = NULL, ..
   } else ifelse(E > 0, stats::plogis(gate_base + h[["a_E"]] * la), 0)
   risk_exposure <- if (identical(object$fld$risk_scale,"linear")) E else la
   pz <- ifelse(E > 0, -expm1(-exp(as.vector(X %*% cf[seq_len(p)]) + h[["gamma"]] * risk_exposure)), 0)
-  data.frame(E = E, pi = pi_, p_zone = pz, prevalence = pi_ * pz, zero_exposure = E == 0)
+  out <- data.frame(E = E, pi = pi_, p_zone = pz, prevalence = pi_ * pz, zero_exposure = E == 0)
+  if (mig) { out$E_loc <- E_loc; out$E_mig <- E_mig; out$s_mig <- ifelse(E > 0, wm * E_mig / E, NA) }
+  out
 }

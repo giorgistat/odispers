@@ -32,6 +32,15 @@
 #'   and \code{z}.
 #' @param refine Maximum number of Newton refinement steps.
 #' @param intervals Compute the observed information and Wald intervals.
+#' @param migration_range Range (km) of a second, long-range Wendland kernel for
+#'   migration of the vector. When given, exposure is
+#'   \eqn{E_i(w) = (1 - w) E^{loc}_i + w E^{mig}_i}, with the local kernel of range
+#'   \code{phi} and the migration kernel of range \code{migration_range}, and the
+#'   migration share \eqn{w} is estimated (on the logit scale) with the other
+#'   parameters, unless \code{fixed_w} is given.
+#' @param fixed_w Value at which \eqn{w} is held fixed (for profiling); \code{NULL}
+#'   to estimate it.
+#' @param w_start Starting value of \eqn{w} when it is estimated.
 #' @return An object of class \code{c("odisp_zilml", "odisp_zilfit")}: the
 #'   estimates \code{coefficients} and \code{hyper}, \code{logLik}, the
 #'   parameter vector \code{par} on the optimisation scale, \code{vcov} (on
@@ -41,13 +50,16 @@
 #' @export
 odisp_fit_zil_ml <- function(formula, breeding, data, nodes, graph, pairs = NULL, phi = 40,
                              trials = "n", aridity = "AI", start = list(), trace = TRUE,
-                             checkpoint = NULL, refine = 6, intervals = TRUE) {
-  S <- odisp_u_setup(formula, breeding, data, nodes, graph, pairs, phi, trials, aridity, prior_sd = 1)
+                             checkpoint = NULL, refine = 6, intervals = TRUE,
+                             migration_range = NULL, fixed_w = NULL, w_start = 0.05) {
+  S <- odisp_u_setup(formula, breeding, data, nodes, graph, pairs, phi, trials, aridity, prior_sd = 1,
+                     migration_range = migration_range, migration_w = if (is.null(fixed_w)) 0 else fixed_w)
+  est_w <- !is.null(migration_range) && is.null(fixed_w)
   S$m_c <- c(stats::qlogis(min(max(mean(S$y > 0), 0.05), 0.95)), rep(0, ncol(S$X) - 1))
   p <- ncol(S$X); q <- ncol(S$B); n <- length(S$y)
   nm_cf <- c(paste0("lambda.", colnames(S$X)), paste0("pi.", colnames(S$X)),
              if (length(S$nodes_names)) paste0("theta.", S$nodes_names))
-  nm_ps <- c("log_sigma_u", "log_sigma_z", "a_E", "gamma", "log_range")
+  nm_ps <- c("log_sigma_u", "log_sigma_z", "a_E", "gamma", "log_range", if (est_w) "logit_w")
   # starting values: coefficients by name (else the fit without u and Z), parameters
   cf0 <- c(S$m_beta, S$m_c, S$m_theta); names(cf0) <- nm_cf
   if (!is.null(start$coefficients)) {
@@ -55,10 +67,11 @@ odisp_fit_zil_ml <- function(formula, breeding, data, nodes, graph, pairs = NULL
     miss <- setdiff(grep("^theta\\.", nm_cf, value = TRUE), names(start$coefficients)); cf0[miss] <- 0
   }
   ps0 <- if (!is.null(start$par)) unname(start$par[1:5]) else c(log(5), log(0.6), 0.8, 0.2, log(800))
+  if (est_w) ps0 <- c(ps0, if (!is.null(start$par) && length(start$par) >= 6) unname(start$par[6]) else stats::qlogis(w_start))
   names(ps0) <- nm_ps
-  sc <- c(rep(0.4, length(cf0)), 1, 1, 0.4, 0.4, 1)          # optimisation scale: steps of 0.02 / 0.05
+  sc <- c(rep(0.4, length(cf0)), 1, 1, 0.4, 0.4, 1, if (est_w) 1)   # optimisation scale: steps of 0.02 / 0.05
   th0 <- c(cf0, ps0) / sc
-  idx_b <- seq_len(p); idx_c <- p + seq_len(p); idx_t <- 2 * p + seq_len(q); idx_p <- 2 * p + q + 1:5
+  idx_b <- seq_len(p); idx_c <- p + seq_len(p); idx_t <- 2 * p + seq_len(q); idx_p <- 2 * p + q + seq_along(ps0)
   state <- new.env()
   state$x <- list(beta = cf0[idx_b], c = cf0[idx_c], theta = cf0[idx_t],
                   u = if (!is.null(start$u)) start$u else rep(0, graph$nv),
@@ -96,6 +109,7 @@ odisp_fit_zil_ml <- function(formula, breeding, data, nodes, graph, pairs = NULL
     v <- th * sc; cf <- v[seq_along(cf0)]; ps <- v[idx_p]
     S2 <- S; S2$m_beta <- cf[idx_b]; S2$m_c <- cf[idx_c]; S2$m_theta <- cf[idx_t]
     S2$s2 <- 1e-10                                           # coefficients held fixed
+    if (est_w) { w <- stats::plogis(ps[6]); S2$K <- (1 - w) * S$K1 + w * S$K2; S2$migration_w <- w }
     fld <- make_fld(ps)
     starts <- if (!is.null(branch)) list(branch) else {
       s <- list(state$x); if (!is.null(state$best_x) && !identical(state$best_x$u, state$x$u)) s <- c(s, list(state$best_x)); s }
@@ -201,13 +215,19 @@ odisp_fit_zil_ml <- function(formula, breeding, data, nodes, graph, pairs = NULL
   est <- c(cf, ps); lo <- est - z * se; hi <- est + z * se
   logsc <- c(rep(FALSE, length(cf)), TRUE, TRUE, FALSE, FALSE, TRUE)
   tab <- data.frame(parameter = c(nm_cf, "sigma_u", "sigma_z", "a_E", "gamma", "range_u (km)"),
-                    estimate = ifelse(logsc, exp(est), est), se = ifelse(logsc, NA, se),
-                    lower = ifelse(logsc, exp(lo), lo), upper = ifelse(logsc, exp(hi), hi))
+                    estimate = ifelse(logsc, exp(est[seq_along(logsc)]), est[seq_along(logsc)]),
+                    se = ifelse(logsc, NA, se[seq_along(logsc)]),
+                    lower = ifelse(logsc, exp(lo[seq_along(logsc)]), lo[seq_along(logsc)]),
+                    upper = ifelse(logsc, exp(hi[seq_along(logsc)]), hi[seq_along(logsc)]))
+  if (est_w) tab <- rbind(tab, data.frame(parameter = "w (migration share)", estimate = stats::plogis(est[length(est)]),
+                                          se = NA, lower = stats::plogis(lo[length(lo)]), upper = stats::plogis(hi[length(hi)])))
   rownames(tab) <- NULL
   fld <- fin$fld
   structure(list(coefficients = cf, vcov = V, intervals = tab, eigen = ev, gradient = hs$g / sc,
                  hyper = c(sigma_u = exp(ps[[1]]), sigma_z = exp(ps[[2]]), a_E = ps[[3]], gamma = ps[[4]],
-                           range_u = exp(ps[[5]])),
+                           range_u = exp(ps[[5]]),
+                           w = if (est_w) stats::plogis(ps[[6]]) else if (!is.null(fixed_w)) fixed_w else 0),
+                 migration_range = migration_range,
                  field_type = if (is.null(graph$type)) "wm" else graph$type, par = ps, logLik = fin$logLik,
                  u = fin$x$u, z = fin$x$z, E = exp(fin$a), pi = stats::plogis(fin$d), p = -expm1(-exp(fin$e)),
                  setup = fin$S2, fld = fld, n_eval = state$n_eval,

@@ -93,31 +93,53 @@ odisp_fit_u <- function(formula, breeding, data, nodes, graph, pairs = NULL, phi
   fits
 }
 
-odisp_u_setup <- function(formula, breeding, data, nodes, graph, pairs, phi, trials, aridity, prior_sd) {
+# Set-up shared by the u-field fits. With `migration_range` the exposure uses a
+# mixture of two Wendland kernels, local dispersal of range `phi` and long-range
+# migration of range `migration_range`:
+#   E_i(w) = (1 - w) sum_j K1_ij w_j + w sum_j K2_ij w_j.
+# K1 and K2 are returned (same sparsity pattern) and K is set to the mixture at
+# `migration_w` (0 by default, i.e. the local kernel only).
+odisp_u_setup <- function(formula, breeding, data, nodes, graph, pairs, phi, trials, aridity, prior_sd,
+                          migration_range = NULL, migration_w = 0) {
   if (!inherits(graph, "odisp_graph")) stop("'graph' must come from river_graph()")
   if (nrow(graph$A) != nrow(nodes)) stop("'graph' was built from different nodes")
-  pairs <- odisp_prediction_pairs(data, nodes, pairs, phi)
+  if (!is.null(migration_range) && migration_range <= phi) stop("'migration_range' must exceed 'phi'")
+  reach <- if (is.null(migration_range)) phi else migration_range
+  pairs <- odisp_prediction_pairs(data, nodes, pairs, reach)
   # starting point and prior centre: the model without u and Z
   f0 <- suppressWarnings(odisp_fit(formula, breeding, data = data, nodes = nodes, pairs = pairs,
                                    max_range = pairs$max_range, trials = trials, aridity = aridity,
                                    fixed = list(gamma = 0, eta0 = log(phi))))
   d <- f0$design
-  keep <- d$r < phi
+  keep <- d$r < reach
   i <- d$i[keep]; jj <- d$j[keep]; r <- d$r[keep]
   used_all <- sort(unique(pairs$j))              # d$j indexes these
   jnode <- used_all[jj]
   used <- sort(unique(jnode))
-  t <- r / phi
-  kx <- nodes$len[jnode] * (1 - t)^4 * (1 + 4 * t) / (2 / 3 * phi)
-  has <- sort(unique(i))
+  wend <- function(t) ifelse(t < 1, (1 - t)^4 * (1 + 4 * t), 0)
+  k1 <- nodes$len[jnode] * wend(r / phi) / (2 / 3 * phi)
+  # villages reached by the local kernel (the mixture kernel reaches the same ones and more)
+  has <- sort(unique(i[if (is.null(migration_range)) TRUE else r < phi]))
   if (any(d$y[-has] > 0)) stop("villages with positives are beyond the reach of every river")
-  K <- Matrix::sparseMatrix(i = match(i, has), j = match(jnode, used), x = kx,
+  if (!is.null(migration_range)) { sel <- i %in% has; i <- i[sel]; jnode <- jnode[sel]; r <- r[sel]; k1 <- k1[sel]
+    used <- sort(unique(jnode)) }
+  K <- Matrix::sparseMatrix(i = match(i, has), j = match(jnode, used), x = k1,
                             dims = c(length(has), length(used)))
+  K1 <- K2 <- NULL
+  if (!is.null(migration_range)) {
+    k2 <- nodes$len[jnode] * wend(r / migration_range) / (2 / 3 * migration_range)
+    K1 <- K
+    K2 <- Matrix::sparseMatrix(i = match(i, has), j = match(jnode, used), x = k2,
+                               dims = c(length(has), length(used)))
+    K <- (1 - migration_w) * K1 + migration_w * K2
+  }
   B <- d$Z[match(used, used_all), , drop = FALSE]
   cf <- coef(f0)
   p <- ncol(d$D); q <- ncol(d$Z)
   xy <- sf::st_coordinates(sf::st_transform(sf::st_geometry(data), attr(nodes, "crs")))[has, 1:2, drop = FALSE]
-  list(y = d$y[has], n = d$n[has], X = d$D[has, , drop = FALSE], K = K, B = B, xy = xy, lai = d$logAI[has],
+  list(y = d$y[has], n = d$n[has], X = d$D[has, , drop = FALSE], K = K, K1 = K1, K2 = K2,
+       migration_range = migration_range, migration_w = migration_w,
+       B = B, xy = xy, lai = d$logAI[has],
        A = graph$A[used, , drop = FALSE], graph = graph, used = used, has = has, m_all = d$m,
        m_beta = cf[seq_len(p)], m_theta = cf[p + seq_len(q)], s2 = prior_sd^2,
        lchoose = sum(lchoose(d$n[has], d$y[has])), fit0 = f0, phi = phi,

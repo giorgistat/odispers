@@ -23,24 +23,23 @@
 #            CV scores of both models), PIT figure, and the share of each
 #            village's exposure due to migration,
 #            s_i = w E_mig / {(1 - w) E_loc + w E_mig}
+#   all      m3, mig, cv, predict and summary
 #
 # Outputs in <out_dir>:
-#   intervals_M3_refit.csv, intervals_M3_migration.csv   estimates and 95% intervals
+#   estimates_M3_refit.csv                               M3 refit estimates (intervals: published report)
+#   intervals_M3_migration.csv                           migration model estimates and 95% intervals
 #   profile_w.csv                                        profile log-likelihood for w
 #   comparison_migration.csv                             logLik, AIC, CV scores
 #   pit_migration.png                                    mean PIT distribution functions
 #   grid_predictions.csv, maps_migration.png             20 km grid predictions and maps
 #   migration_share_villages.csv                         s_i at the surveyed villages
-#   all      m3, mig, cv, predict and summary
 #
 # Usage:
 #   Rscript m3_migration.R <out_dir> <stage> [w]
 # The likelihood evaluations of each fit run in parallel on SLURM_CPUS_PER_TASK cores
 # (or ODISPERS_CORES); each core needs ~2 GB for M3 and ~4 GB for the migration model.
-# Example SLURM jobs:
-#   sbatch --time=24:00:00 --mem=12G --wrap "Rscript m3_migration.R res all"
-#   sbatch --array=1-8 --time=24:00:00 --mem=12G --wrap \
-#     "W=(0.005 0.01 0.02 0.05 0.1 0.2 0.3 0.5); Rscript m3_migration.R res profile \${W[\$((SLURM_ARRAY_TASK_ID-1))]}"
+# On SLURM use m3_migration_job.sh / submit_m3_migration.sh (12 cores, 64 GB per fit).
+# On a laptop: ODISPERS_CORES=2 Rscript m3_migration.R res m3
 ###############################################################################
 suppressPackageStartupMessages({ library(odispers); library(sf); library(Matrix) })
 args <- commandArgs(trailingOnly = TRUE)
@@ -179,8 +178,10 @@ start_m3 <- list(coefficients = cf_pub[grep("^(lambda|pi|theta)\\.", names(cf_pu
 
 if (stage %in% c("m3", "all") && !file.exists(m3_file)) {
   log_msg("==== M3 refit")
+  # only the maximised log-likelihood is needed (the intervals of M3 are in the published report),
+  # so no Hessian: intervals = FALSE
   fit <- odisp_fit_zil_ml(y ~ log(AI), breeding, v, nodes, graph, pairs, phi = phi, start = start_m3,
-                          cores = n_cores, checkpoint = file.path(out_dir, "checkpoint_M3_refit.rds"))
+                          intervals = FALSE, cores = n_cores, checkpoint = file.path(out_dir, "checkpoint_M3_refit.rds"))
   print(fit); saveRDS(list(fit = slim(fit)), m3_file)
 }
 
@@ -276,7 +277,7 @@ if (stage %in% c("summary", "all") && file.exists(m3_file) && file.exists(mig_fi
     log_msg("approximate 95%% profile interval for w (grid): %.3g to %.3g", min(inside), max(inside))
     write.csv(prof, file.path(out_dir, "profile_w.csv"), row.names = FALSE)
   }
-  write.csv(f0$intervals, file.path(out_dir, "intervals_M3_refit.csv"), row.names = FALSE)
+  write.csv(f0$intervals[, c("parameter", "estimate")], file.path(out_dir, "estimates_M3_refit.csv"), row.names = FALSE)
   write.csv(f1$intervals, file.path(out_dir, "intervals_M3_migration.csv"), row.names = FALSE)
   print(f1$intervals, digits = 4)
   # share of each village's exposure due to migration, s_i = w E_mig / {(1 - w) E_loc + w E_mig},

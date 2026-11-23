@@ -4,15 +4,7 @@
 \alias{predict.odisp_zilfit}
 \title{Predict from the zero-inflated model with regressions in both parts}
 \usage{
-\method{predict}{odisp_zilfit}(
-  object,
-  newdata,
-  nodes,
-  graph,
-  pairs = NULL,
-  migration_block = 5,
-  ...
-)
+\method{predict}{odisp_zilfit}(object, newdata, nodes, graph, pairs = NULL, migration_block = 5, ...)
 }
 \arguments{
 \item{object}{An \code{odisp_zilfit} object.}

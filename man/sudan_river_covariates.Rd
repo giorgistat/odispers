@@ -29,7 +29,7 @@ Linke, S. et al. (2019). Global hydro-environmental sub-basin and
   HydroSHEDS licence (CC BY 4.0), which requires this citation.
 }
 \usage{
-sudan_river_covariates
+data(sudan_river_covariates)
 }
 \description{
 Hydro-environmental attributes of the reaches in \code{\link{sudan_rivers}}

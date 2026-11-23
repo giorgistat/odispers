@@ -13,7 +13,7 @@ Natural Earth, 1:50m admin-0 countries (public domain),
   \url{https://www.naturalearthdata.com}.
 }
 \usage{
-sudan_borders
+data(sudan_borders)
 }
 \description{
 Borders of Sudan and South Sudan

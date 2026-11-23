@@ -14,5 +14,10 @@ fits the model by maximum likelihood.
 \author{
 \strong{Maintainer}: Emanuele Giorgi \email{e.giorgi@bham.ac.uk}
 
+Authors:
+\itemize{
+  \item Emanuele Giorgi \email{e.giorgi@bham.ac.uk}
+}
+
 }
 \keyword{internal}

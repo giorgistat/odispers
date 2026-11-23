@@ -110,7 +110,17 @@ No prior is placed on any parameter. For given parameters the mode of
 the regression coefficients held fixed, and the likelihood is maximised over
 all the parameters by a trust-region Newton method with finite-difference
 derivatives and BFGS updates, followed by Newton refinement with the full
-finite-difference Hessian. Wald intervals for every parameter come from the
+finite-difference Hessian, taken along the eigenvectors of the previous
+Hessian with steps of half a standard error (the curvature differs by orders
+of magnitude between directions). Wald intervals for every parameter come from the
 observed information, the negative Hessian of the log-likelihood at the
 maximum.
+}
+\details{
+The inner problem can have several local modes of \eqn{(u, Z)}. Each
+evaluation starts the inner Newton from the mode at the previous evaluation
+and from the mode at the best point so far, and the Laplace approximation is
+taken at the mode with the higher log-posterior. The finite differences for
+the Hessian all start from the mode at the point where the Hessian is taken,
+so that they follow a single smooth branch.
 }

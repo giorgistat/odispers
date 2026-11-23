@@ -73,9 +73,12 @@ a_E, gamma)}.}
 tail-up and tail-down fields. Used as a starting value when
 \code{estimate_range = TRUE}, otherwise held fixed.}
 
-\item{occurrence_scale}{Use log exposure (default) or raw, linear exposure in the activity logit.}
+\item{occurrence_scale}{Use log exposure (default) or raw, linear exposure in
+the activity logit.}
 
-\item{risk_scale}{Use log exposure (default) or raw, linear exposure in the log hazard within an active village. At exactly zero exposure the risk is defined to be zero. With linear exposure its right-hand limit can differ.}
+\item{risk_scale}{Use log exposure (default) or raw, linear exposure in the
+log hazard within an active village. At exactly zero exposure the risk
+is defined to be zero. With linear exposure its right-hand limit can differ.}
 }
 \value{
 An object of class \code{odisp_zilfit}.

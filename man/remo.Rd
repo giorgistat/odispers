@@ -20,7 +20,7 @@ REMO data compiled by the African Programme for Onchocerciasis
   Control; see Zoure et al. (2014), Parasites & Vectors 7, 326.
 }
 \usage{
-remo
+data(remo)
 }
 \description{
 Village-level results of the Rapid Epidemiological Mapping of

@@ -15,7 +15,7 @@ Zomer, R. J., Xu, J. and Trabucco, A. (2022). Version 3 of the
   Scientific Data 9, 409. Licence CC BY 4.0.
 }
 \usage{
-sudan_aridity
+data(sudan_aridity)
 }
 \description{
 Annual aridity index, the ratio of mean annual precipitation to reference

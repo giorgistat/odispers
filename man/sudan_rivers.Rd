@@ -22,7 +22,7 @@ Lehner, B. and Grill, G. (2013). Global river hydrography and
   the HydroSHEDS licence, which requires this citation.
 }
 \usage{
-sudan_rivers
+data(sudan_rivers)
 }
 \description{
 Reaches of HydroRIVERS v1.0 in the study area (longitude 21--40, latitude

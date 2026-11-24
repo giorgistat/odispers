@@ -42,6 +42,8 @@
 # On a laptop: ODISPERS_CORES=2 Rscript m3_migration.R res m3
 ###############################################################################
 suppressPackageStartupMessages({ library(odispers); library(sf); library(Matrix) })
+# PNG files without an X11 display (compute nodes): use the cairo device
+if (capabilities("cairo")) options(bitmapType = "cairo")
 args <- commandArgs(trailingOnly = TRUE)
 out_dir <- if (length(args) >= 1) args[1] else "m3_migration_results"
 stage   <- if (length(args) >= 2) args[2] else "all"

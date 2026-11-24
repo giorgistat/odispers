@@ -23,6 +23,9 @@
 #            CV scores of both models), PIT figure, and the share of each
 #            village's exposure due to migration,
 #            s_i = w E_mig / {(1 - w) E_loc + w E_mig}
+#   final    after the profile jobs: full fit with w estimated (and its intervals), started
+#            from the profile fit with the highest log-likelihood; it replaces the
+#            migration fit and is followed by cv, predict and summary in the same job
 #   all      m3, mig, cv, predict and summary
 #
 # Outputs in <out_dir>:
@@ -214,11 +217,38 @@ if (stage == "profile") {
                             migration_range = mig_range, fixed_w = w_fixed, intervals = FALSE,
                             cores = n_cores, checkpoint = file.path(out_dir, sprintf("checkpoint_profile_%g.rds", w_fixed)))
     saveRDS(data.frame(w = w_fixed, logLik = fit$logLik), pf)
+    # estimates at this w, used by the final stage as the start of the full fit
+    saveRDS(list(w = w_fixed, logLik = fit$logLik, coefficients = fit$coefficients, par = fit$par[1:5],
+                 u = fit$u, z = fit$z), file.path(out_dir, sprintf("profile_start_w_%g.rds", w_fixed)))
     log_msg("w = %g: logLik %.3f", w_fixed, fit$logLik)
   }
 }
 
-if (stage %in% c("cv", "all")) {
+if (stage == "final") {
+  # full fit of the migration model (w estimated, with intervals) started from the best
+  # profile fit; it replaces fit_M3_migration.rds, and the cv, predict and summary stages
+  # follow in the same job
+  sf <- list.files(out_dir, "^profile_start_w_.*\\.rds$", full.names = TRUE)
+  if (!length(sf)) stop("no profile_start_w_*.rds files: run the profile stage first")
+  starts <- lapply(sf, readRDS)
+  ll <- sapply(starts, `[[`, "logLik"); b <- starts[[which.max(ll)]]
+  ll0 <- readRDS(m3_file)$fit$logLik
+  print(data.frame(w = sapply(starts, `[[`, "w"), logLik = ll)[order(sapply(starts, `[[`, "w")), ], digits = 7, row.names = FALSE)
+  log_msg("best profile fit: w = %g, logLik %.3f (M3: %.3f, difference %.3f)", b$w, b$logLik, ll0, b$logLik - ll0)
+  if (b$logLik <= ll0 + 0.1) log_msg("NOTE: no value of w improves on M3; the migration component is not supported by the data")
+  if (file.exists(mig_file)) file.rename(mig_file, file.path(out_dir, "fit_M3_migration_first.rds"))
+  gp_old <- file.path(out_dir, "grid_predictions.csv"); if (file.exists(gp_old)) file.remove(gp_old)
+  log_msg("==== M3 + migration kernel (%g km), w estimated, started from the profile fit at w = %g", mig_range, b$w)
+  fit <- odisp_fit_zil_ml(y ~ log(AI), breeding, v, nodes, graph, pairs, phi = phi,
+                          start = list(coefficients = b$coefficients, par = c(b$par, stats::qlogis(b$w)), u = b$u, z = b$z),
+                          migration_range = mig_range, cores = n_cores,
+                          checkpoint = file.path(out_dir, "checkpoint_M3_migration_final.rds"))
+  print(fit); saveRDS(list(fit = slim(fit)), mig_file)
+  if (fit$logLik < b$logLik - 0.1) log_msg("WARNING: the full fit (%.3f) is below the best profile fit (%.3f)", fit$logLik, b$logLik)
+  stage <- "final_outputs"
+}
+
+if (stage %in% c("cv", "all", "final_outputs")) {
   for (ff in c(m3_file, mig_file)) if (file.exists(ff)) {
     res <- load_fit(ff)
     if (is.null(res$cv_scores)) {
@@ -230,7 +260,7 @@ if (stage %in% c("cv", "all")) {
   }
 }
 
-if (stage %in% c("predict", "all") && file.exists(m3_file) && file.exists(mig_file)) {
+if (stage %in% c("predict", "all", "final_outputs") && file.exists(m3_file) && file.exists(mig_file)) {
   gp_file <- file.path(out_dir, "grid_predictions.csv")
   if (!file.exists(gp_file)) {
     grid_pairs <- river_pairs(grid, nodes, phi)
@@ -270,7 +300,7 @@ if (stage %in% c("predict", "all") && file.exists(m3_file) && file.exists(mig_fi
   }
 }
 
-if (stage %in% c("summary", "all") && file.exists(m3_file) && file.exists(mig_file)) {
+if (stage %in% c("summary", "all", "final_outputs") && file.exists(m3_file) && file.exists(mig_file)) {
   f0 <- readRDS(m3_file)$fit; f1 <- readRDS(mig_file)$fit
   lr <- 2 * (f1$logLik - f0$logLik)
   p <- 0.5 * stats::pchisq(max(lr, 0), 1, lower.tail = FALSE)        # w = 0 is on the boundary

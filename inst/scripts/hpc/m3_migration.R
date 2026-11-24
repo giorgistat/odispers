@@ -206,8 +206,10 @@ if (stage == "profile") {
   pf <- file.path(out_dir, sprintf("profile_w_%g.rds", w_fixed))
   if (!file.exists(pf)) {
     log_msg("==== profile: w fixed at %g", w_fixed)
+    # started from the M3 refit (w = 0), which nests every fit with w fixed; the
+    # migration fit is not used as a start, since it may not be at its maximum
     st <- start_m3
-    if (file.exists(mig_file)) { f0 <- readRDS(mig_file)$fit; st <- list(coefficients = f0$coefficients, par = f0$par[1:5], u = f0$u, z = f0$z) }
+    if (file.exists(m3_file)) { f0 <- readRDS(m3_file)$fit; st <- list(coefficients = f0$coefficients, par = f0$par[1:5], u = f0$u, z = f0$z) }
     fit <- odisp_fit_zil_ml(y ~ log(AI), breeding, v, nodes, graph, pairs, phi = phi, start = st,
                             migration_range = mig_range, fixed_w = w_fixed, intervals = FALSE,
                             cores = n_cores, checkpoint = file.path(out_dir, sprintf("checkpoint_profile_%g.rds", w_fixed)))

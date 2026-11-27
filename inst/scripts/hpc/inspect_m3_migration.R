@@ -121,9 +121,9 @@ if (!is.null(gp)) {
   data(sudan_rivers)
   riv <- st_transform(sudan_rivers[sudan_rivers$DIS_AV_CMS >= 10, ], 4326)   # main rivers, for orientation
   bb <- st_bbox(border); zoom <- coord_sf(xlim = bb[c(1, 3)], ylim = bb[c(2, 4)], expand = FALSE)
-  # tile size from the grid itself (cells are 20 km in a projected system, so not exactly regular in degrees)
-  tw <- median(diff(sort(unique(round(gp$lon, 3))))); th <- median(diff(sort(unique(round(gp$lat, 3)))))
-  tw <- if (is.finite(tw) && tw > 0) min(tw * 1.05, 0.25) else 0.19; th <- if (is.finite(th) && th > 0) min(th * 1.05, 0.25) else 0.19
+  # tile size: the grid is regular (20 km) in a projected system, so in degrees the centres are
+  # not on a regular lattice; 20 km is about 0.18 degrees of latitude and 0.18-0.19 of longitude here
+  tw <- 0.2; th <- 0.2
   base <- function(var, title, fill, pts = NULL) {
     g <- ggplot() + geom_tile(data = gp, aes(lon, lat, fill = .data[[var]]), width = tw, height = th) +
       geom_sf(data = riv, colour = "steelblue", linewidth = 0.2, alpha = 0.6) +
@@ -133,7 +133,7 @@ if (!is.null(gp)) {
     g
   }
   prev_lim <- c(0, max(c(gp$M3_prevalence, gp$mig_prevalence), na.rm = TRUE))
-  seq_fill <- scale_fill_viridis_c(option = "magma", direction = -1, limits = prev_lim, na.value = "grey85")
+  seq_fill <- scale_fill_viridis_c(option = "magma", direction = -1, limits = prev_lim, trans = "sqrt", na.value = "grey85")   # sqrt: most cells are near 0
   dmax <- max(abs(d), 1e-6, na.rm = TRUE)
   gp$diff <- d
   maps <- list(

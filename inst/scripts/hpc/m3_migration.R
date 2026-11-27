@@ -26,6 +26,10 @@
 #   final    after the profile jobs: full fit with w estimated (and its intervals), started
 #            from the profile fit with the highest log-likelihood; it replaces the
 #            migration fit and is followed by cv, predict and summary in the same job
+#   single   M3 with a single kernel of the range given as third argument (km, at most
+#            300) instead of the 40 km kernel, i.e. no mixture: is the gain of the
+#            mixture migration, or just a wider dispersal range? Fit (no intervals),
+#            then cross-validation; writes single_<range>.csv, collected by summary
 #   all      m3, mig, cv, predict and summary
 #
 # Outputs in <out_dir>:
@@ -224,6 +228,37 @@ if (stage == "profile") {
   }
 }
 
+if (stage == "single") {
+  rng <- w_fixed                                   # third argument: range of the single kernel, km
+  stopifnot(is.finite(rng), rng > phi, rng <= mig_range)
+  sfile <- file.path(out_dir, sprintf("fit_single_%g.rds", rng))
+  if (!file.exists(sfile)) {
+    log_msg("==== single kernel of range %g km (no mixture)", rng)
+    # start from the profile fit with the largest w (closest to a single wide kernel), else M3
+    st <- start_m3
+    sf <- list.files(out_dir, "^profile_start_w_.*\\.rds$", full.names = TRUE)
+    if (length(sf)) { ss <- lapply(sf, readRDS); b <- ss[[which.max(sapply(ss, `[[`, "w"))]]
+      st <- list(coefficients = b$coefficients, par = b$par, u = b$u, z = b$z)
+      log_msg("starting from the profile fit at w = %g", b$w)
+    } else if (file.exists(m3_file)) { f0 <- readRDS(m3_file)$fit; st <- list(coefficients = f0$coefficients, par = f0$par[1:5], u = f0$u, z = f0$z) }
+    # migration_range = rng with w fixed at 1: the exposure is the kernel of range rng alone
+    fit <- odisp_fit_zil_ml(y ~ log(AI), breeding, v, nodes, graph, pairs, phi = phi, start = st,
+                            migration_range = rng, fixed_w = 1, intervals = FALSE, cores = n_cores,
+                            checkpoint = file.path(out_dir, sprintf("checkpoint_single_%g.rds", rng)))
+    print(fit); saveRDS(list(fit = slim(fit)), sfile)
+  }
+  res <- load_fit(sfile)
+  if (is.null(res$cv_scores)) {
+    res$cv <- cv_zil(res$fit, folds); res$cv_scores <- cv_scores(res$cv, v$AI[res$fit$setup$has])
+    res$fit <- slim(res$fit); saveRDS(res, sfile)
+  }
+  out <- data.frame(model = sprintf("single kernel %g km", rng), logLik = res$fit$logLik, n_par = 11, w = NA,
+                    res$cv_scores$table)
+  out$AIC <- -2 * out$logLik + 2 * out$n_par
+  write.csv(out, file.path(out_dir, sprintf("single_%g.csv", rng)), row.names = FALSE)
+  print(out, digits = 5)
+}
+
 if (stage == "final") {
   # full fit of the migration model (w estimated, with intervals) started from the best
   # profile fit; it replaces fit_M3_migration.rds, and the cv, predict and summary stages
@@ -356,6 +391,12 @@ if (stage %in% c("summary", "all", "final_outputs") && file.exists(m3_file) && f
       ggplot2::ggsave(file.path(out_dir, "pit_migration.png"), g, width = 7.5, height = 4, dpi = 200, bg = "white")
       log_msg("PIT figure written to pit_migration.png")
     }
+  }
+  # single-kernel fits (stage single), if any, on the same footing
+  sk <- list.files(out_dir, "^single_.*\\.csv$", full.names = TRUE)
+  if (length(sk) && "sum_log_score" %in% names(tab)) {
+    skt <- do.call(rbind, lapply(sk, read.csv))
+    tab <- rbind(tab, skt[, names(tab)])
   }
   print(tab, digits = 5); write.csv(tab, file.path(out_dir, "comparison_migration.csv"), row.names = FALSE)
 }

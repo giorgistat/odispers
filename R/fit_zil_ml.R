@@ -264,7 +264,15 @@ odisp_fit_zil_ml <- function(formula, breeding, data, nodes, graph, pairs = NULL
     V <- tryCatch(solve(-Hn), error = function(e) matrix(NA, length(v), length(v)))
   } else { ev <- rep(NA_real_, length(v)); V <- matrix(NA_real_, length(v), length(v)) }
   dimnames(V) <- list(c(nm_cf, nm_ps), c(nm_cf, nm_ps))
-  se <- sqrt(pmax(diag(V), 0)); z <- stats::qnorm(0.975)
+  # the observed information must be positive definite at a maximum; if it is not, the fit
+  # has stopped short of the maximum (or at a saddle) and Wald intervals are meaningless
+  pd <- all(is.finite(ev)) && all(ev > 0)
+  if (!is.null(hs) && !pd) {
+    msg <- sprintf("observed information not positive definite (%d of %d eigenvalues <= 0): the fit is not at a maximum; standard errors set to NA",
+                   sum(ev <= 0), length(ev))
+    warning(msg, call. = FALSE); if (trace) cat("  WARNING:", msg, "\n")
+  }
+  se <- if (pd) sqrt(diag(V)) else rep(NA_real_, length(v)); z <- stats::qnorm(0.975)
   est <- c(cf, ps); lo <- est - z * se; hi <- est + z * se
   logsc <- c(rep(FALSE, length(cf)), TRUE, TRUE, FALSE, FALSE, TRUE)
   tab <- data.frame(parameter = c(nm_cf, "sigma_u", "sigma_z", "a_E", "gamma", "range_u (km)"),
@@ -276,7 +284,7 @@ odisp_fit_zil_ml <- function(formula, breeding, data, nodes, graph, pairs = NULL
                                           se = NA, lower = stats::plogis(lo[length(lo)]), upper = stats::plogis(hi[length(hi)])))
   rownames(tab) <- NULL
   fld <- fin$fld
-  structure(list(coefficients = cf, vcov = V, intervals = tab, eigen = ev,
+  structure(list(coefficients = cf, vcov = V, intervals = tab, eigen = ev, info_pd = pd,
                  gradient = if (is.null(hs)) rep(NA_real_, length(v)) else hs$g / sc,
                  hyper = c(sigma_u = exp(ps[[1]]), sigma_z = exp(ps[[2]]), a_E = ps[[3]], gamma = ps[[4]],
                            range_u = exp(ps[[5]]),

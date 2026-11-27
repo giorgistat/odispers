@@ -30,6 +30,11 @@
 #            300) instead of the 40 km kernel, i.e. no mixture: is the gain of the
 #            mixture migration, or just a wider dispersal range? Fit (no intervals),
 #            then cross-validation; writes single_<range>.csv, collected by summary
+#   phi      M3 with the dispersal range phi set to the third argument (km; at least 33,
+#            the distance of the farthest village with positives from a river, and at
+#            most 300) instead of 40 km: profile over the range of the single kernel.
+#            Fit (no intervals), then cross-validation; writes phi_<range>.csv,
+#            collected by summary (phi = 40 is the M3 refit)
 #   all      m3, mig, cv, predict and summary
 #
 # Outputs in <out_dir>:
@@ -259,6 +264,35 @@ if (stage == "single") {
   print(out, digits = 5)
 }
 
+if (stage == "phi") {
+  rng <- w_fixed                                   # third argument: dispersal range, km
+  stopifnot(is.finite(rng), rng >= 33, rng <= mig_range)
+  pfile <- file.path(out_dir, sprintf("fit_phi_%g.rds", rng))
+  if (!file.exists(pfile)) {
+    log_msg("==== M3 with dispersal range phi = %g km", rng)
+    st <- start_m3
+    # (Z is not carried over: with phi < 40 fewer villages are in the setup)
+    if (file.exists(m3_file)) { f0 <- readRDS(m3_file)$fit; st <- list(coefficients = f0$coefficients, par = f0$par[1:5], u = f0$u) }
+    # villages beyond phi of every river (all with zero positives) are left out of the
+    # setup; under the model their probability of zero positives is 1, so the
+    # log-likelihood and the summed CV log score are comparable across phi
+    fit <- odisp_fit_zil_ml(y ~ log(AI), breeding, v, nodes, graph, pairs, phi = rng, start = st,
+                            intervals = FALSE, cores = n_cores,
+                            checkpoint = file.path(out_dir, sprintf("checkpoint_phi_%g.rds", rng)))
+    print(fit); saveRDS(list(fit = slim(fit)), pfile)
+  }
+  res <- load_fit(pfile)
+  if (is.null(res$cv_scores)) {
+    res$cv <- cv_zil(res$fit, folds); res$cv_scores <- cv_scores(res$cv, v$AI[res$fit$setup$has])
+    res$fit <- slim(res$fit); saveRDS(res, pfile)
+  }
+  out <- data.frame(model = sprintf("M3, phi = %g km", rng), logLik = res$fit$logLik, n_par = 11, w = NA,
+                    res$cv_scores$table, villages = length(res$fit$setup$has))
+  out$AIC <- -2 * out$logLik + 2 * out$n_par
+  write.csv(out, file.path(out_dir, sprintf("phi_%g.csv", rng)), row.names = FALSE)
+  print(out, digits = 5)
+}
+
 if (stage == "final") {
   # full fit of the migration model (w estimated, with intervals) started from the best
   # profile fit; it replaces fit_M3_migration.rds, and the cv, predict and summary stages
@@ -393,7 +427,7 @@ if (stage %in% c("summary", "all", "final_outputs") && file.exists(m3_file) && f
     }
   }
   # single-kernel fits (stage single), if any, on the same footing
-  sk <- list.files(out_dir, "^single_.*\\.csv$", full.names = TRUE)
+  sk <- list.files(out_dir, "^(single|phi)_.*\\.csv$", full.names = TRUE)
   if (length(sk) && "sum_log_score" %in% names(tab)) {
     skt <- do.call(rbind, lapply(sk, read.csv))
     tab <- rbind(tab, skt[, names(tab)])
